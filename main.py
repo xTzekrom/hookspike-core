@@ -123,6 +123,10 @@ def index():
 def admin_reset_secure_99x():
     session['search_count'] = 0
     return redirect("/")
+    @app.route('/google-site-verification=azNOHwmWrobqSZC338vxcuqeBCHNhnF3GOrQ8OL2CDk')
+def google_verification():
+    return "google-site-verification=azNOHwmWrobqSZC338vxcuqeBCHNhnF3GOrQ8OL2CDk"
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+    

@@ -123,6 +123,11 @@ def index():
 def admin_reset_secure_99x():
     session['search_count'] = 0
     return redirect("/")
+@app.route("/googlef68e9b418fb37d6e.html")
+def google_verification_file():
+    return    "google-site-verification: googlef68e9b418fb37d6e.html"
+
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))

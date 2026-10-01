@@ -13,6 +13,7 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="google-site-verification" content="EOl-njARKhvmSLTzhuBy-3xJ8kchPVDb38nV-KzuLfk" />
     <title>HookSpike AI ⚡ - Ultra-Growth Creative Engine</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -123,9 +124,7 @@ def index():
 def admin_reset_secure_99x():
     session['search_count'] = 0
     return redirect("/")
-@app.route("/googlef68e9b418fb37d6e.html")
-def google_verification_file():
-    return    "google-site-verification: googlef68e9b418fb37d6e.html"
+
 
 
 if __name__ == "__main__":

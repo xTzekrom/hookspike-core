@@ -125,10 +125,11 @@ def admin_reset_secure_99x():
     return redirect("/")
     @app.route('/google-site-verification=azNOHwmWrobqSZC338vxcuqeBCHNhnF3GOrQ8OL2CDk')
 def google_verification():
-    return "google-site-verification=azNOHwmWrobqSZC338vxcuqeBCHNhnF3GOrQ8OL2CDk"   
+    return "google-site-verification=azNOHwmWrobqSZC338vxcuqeBCHNhnF3GOrQ8OL2CDk"
 
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
      

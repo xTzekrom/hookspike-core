@@ -60,6 +60,24 @@ HTML_TEMPLATE = """
         .upi-details { font-size: 18px; font-weight: bold; color: #66fcf1; background: #030712; padding: 14px; border-radius: 12px; border: 1px solid #1f2937; }
         .pay-btn { display: block; width: 100%; padding: 16px; background: linear-gradient(90deg, #00ffcc, #00b399); color: #030712; text-decoration: none; border-radius: 14px; font-weight: bold; font-size: 16px; margin-top: 15px; text-transform: uppercase; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.2); }
     </style>
+    <script>
+        function showLoading() {
+            document.getElementById("submitBtn").style.display = "none";
+            document.getElementById("loaderIcon").style.display = "block";
+            document.getElementById("loaderText").style.display = "block";
+        }
+        function copyText() {
+            var r = document.createRange();
+            r.selectNode(document.getElementById("rawText"));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(r);
+            document.execCommand("copy");
+            window.getSelection().removeAllRanges();
+            var btn = document.getElementById("copyBtnText");
+            btn.innerText = "Copied! ✓";
+            setTimeout(function(){ btn.innerText = "📋 Copy Strategy Data"; }, 2000);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -72,7 +90,7 @@ HTML_TEMPLATE = """
             <p style="color: #9ca3af; font-size: 14px; margin-bottom: 30px;">Sign in with Google to sync your tokens securely across all devices.</p>
             <a href="/login/google" class="google-btn">
                 <img src="https://gstatic.com" alt="Google logo" width="22" height="22">
-                <span style="display: inline-block;">Continue with Google</span>
+                <span>Continue with Google</span>
             </a>
         </div>
         {% else %}
@@ -129,7 +147,7 @@ def get_user_tokens(user_id, email):
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
         if res.data:
-            return res.data[0]["tokens_left"]
+            return res.data["tokens_left"]
         else:
             supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
             return 5
@@ -142,6 +160,7 @@ def decrease_user_token(user_id):
         return
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
+        # MISTAKE FIXED: res.data list hota hai, pehle index[0] se data nikalna padega
         if res.data:
             current = res.data[0]["tokens_left"]
             if current > 0:
@@ -164,7 +183,7 @@ def index():
         show_paywall = True
 
     if request.method == "POST":
-                platform_type = request.form.get("platform_type")
+        platform_type = request.form.get("platform_type")
         topic = request.form.get("topic")
         if tokens_left > 0:
             result = get_ai_response(platform_type, topic)
@@ -181,7 +200,7 @@ def login_google():
     if not supabase:
         return "Supabase connection error. Please configure Render environment variables."
     
-    # CORRECT FIX: Pura live callback URL set kar diya hai taaki koi error na aaye
+    # MISTAKE FIXED: Pura exact redirect path set kar diya hai
     redirect_url = "https://onrender.com"
     
     res = supabase.auth.sign_in_with_oauth({
@@ -204,6 +223,9 @@ def logout():
     session.clear()
     return redirect("/")
 
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+    
+        

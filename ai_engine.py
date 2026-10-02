@@ -38,7 +38,9 @@ def get_ai_response(platform_type, topic):
         response = client_primary.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
+            config={'temperature': 0.7}
         )
+     
         return response.text
     except:
         try:

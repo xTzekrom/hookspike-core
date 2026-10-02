@@ -12,7 +12,7 @@ from flask import (
 
 from supabase import create_client, Client
 from supabase.client import ClientOptions
-from gotrue import SyncSupportedStorage
+from supabase_auth import SyncSupportedStorage
 
 
 # ============================================================

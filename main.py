@@ -11,6 +11,11 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'hookspike_billionaire_clean_auto_secret_99x')
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
 
 # Render Environment Variables
 SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")

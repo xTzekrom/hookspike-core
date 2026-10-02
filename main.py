@@ -151,10 +151,9 @@ def get_user_tokens(user_id, email):
         if res.data:
             return res.data[0]["tokens_left"]
         else:
-                    # get_user_tokens ka baaki bacha hua hissa (Sahi format me)
-        supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
-        return 5
-    except Exception as e:
+             supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
+             return 5
+    except Ereturn 5xception as e:
         print(f"Database error: {e}")
         return 5
 

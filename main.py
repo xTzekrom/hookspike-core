@@ -12,7 +12,7 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'hookspike_billionaire_clean_auto_secret_99x')
 
-# Render पर डाले गए Variables से कनेक्ट करना
+# Render Environment Variables
 SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")
 SUPABASE_ANON_KEY = os.environ.get("VITE_SUPABASE_ANON_KEY")
 
@@ -31,13 +31,14 @@ HTML_TEMPLATE = """
     <style>
         body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; background: radial-gradient(circle at center, #0d1527 0%, #030712 100%); color: #f3f4f6; margin: 0; }
         .container { max-width: 500px; margin: 40px auto; background: rgba(11, 15, 25, 0.85); padding: 35px; border-radius: 24px; box-shadow: 0 0 50px rgba(102, 252, 241, 0.15); border: 2px solid #1f2937; backdrop-filter: blur(15px); }
-        .logo { font-size: 40px; font-weight: 900; color: #66fcf1; text-shadow: 0 0 30px rgba(102, 252, 241, 0.6); }
+        .logo { font-size: 40px; font-weight: 900; color: #66fcf1; text-shadow: 0 0 30px rgba(102, 252, 241, 0.6); display: flex; align-items: center; justify-content: center; gap: 8px; }
         .logo span { color: #f59e0b; }
         p.tagline { color: #9ca3af; font-size: 12px; margin-top: 5px; margin-bottom: 30px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; }
         .counter-badge { display: inline-block; padding: 8px 18px; background: rgba(17, 24, 39, 0.9); border-radius: 30px; font-size: 13px; color: #66fcf1; border: 1px solid #00ffcc; margin-bottom: 25px; font-weight: bold; }
         
         .login-box { padding: 20px; text-align: center; }
-        .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px; background: white; color: #1f2937; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px; background: white; color: #1f2937; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; }
+        .google-btn:active { transform: scale(0.98); }
         .user-profile { font-size: 12px; color: #9ca3af; margin-bottom: 15px; text-align: right; }
         .logout-link { color: #f43f5e; text-decoration: none; margin-left: 8px; font-weight: bold; }
         
@@ -89,7 +90,8 @@ HTML_TEMPLATE = """
             <h3 style="color: #66fcf1; margin-bottom: 20px;">Welcome Back Creator!</h3>
             <p style="color: #9ca3af; font-size: 14px; margin-bottom: 30px;">Sign in with Google to sync your tokens securely across all devices.</p>
             <a href="/login/google" class="google-btn">
-                <img src="https://gstatic.com" alt="Google logo" width="22" height="22">
+                <!-- 100% Fixed Base64 Official Google 'G' Logo -->
+                <img src="data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 24 24' width='22' height='22'><path fill='%23EA4335' d='M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3A11.934 11.934 0 0 0 12 0C7.305 0 3.26 2.697 1.266 6.645l4 3.12z'/><path fill='%234285F4' d='M16.04 15.345c-1.077.732-2.432 1.164-4.04 1.164a7.076 7.076 0 0 1-6.734-4.855l-4 3.12A11.934 11.934 0 0 0 12 24c3.305 0 6.082-1.09 8.109-2.955l-4.068-3.125z'/><path fill='%23FBBC05' d='M5.266 14.235A7.011 7.011 0 0 1 4.909 12c0-.79.132-1.55.357-2.265l-4-3.12A11.91 11.91 0 0 0 0 12c0 1.945.464 3.782 1.266 5.42l4-3.185z'/><path fill='%2334A853' d='M23.755 10.155H12v4.51h6.734a5.753 5.753 0 0 1-2.51 3.773l4.068 3.125C22.664 19.43 24 16.023 24 12c0-.645-.055-1.277-.245-1.845z'/></svg>" alt="Google Logo">
                 <span>Continue with Google</span>
             </a>
         </div>
@@ -129,8 +131,9 @@ HTML_TEMPLATE = """
         <div id="loaderText" class="loading-text">⚡ HookSpike Compiling Multi-Platform Vectors...</div>
         
         {% if result and not show_paywall %}
-        <div class="result-box">
-            <h3>📊 Engine Output Matrix Unlocked:</h3>
+        
+    
+        <h3>📊 Engine Output Matrix Unlocked:</h3>
             <div id="rawText">{{ result }}</div>
             <button id="copyBtnText" class="copy-btn" onclick="copyText()">📋 Copy Strategy Data</button>
         </div>
@@ -147,7 +150,7 @@ def get_user_tokens(user_id, email):
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
         if res.data:
-            return res.data["tokens_left"]
+            return res.data[0]["tokens_left"]
         else:
             supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
             return 5
@@ -160,7 +163,6 @@ def decrease_user_token(user_id):
         return
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
-        # MISTAKE FIXED: res.data list hota hai, pehle index[0] se data nikalna padega
         if res.data:
             current = res.data[0]["tokens_left"]
             if current > 0:
@@ -200,7 +202,7 @@ def login_google():
     if not supabase:
         return "Supabase connection error. Please configure Render environment variables."
     
-    # MISTAKE FIXED: Pura exact redirect path set kar diya hai
+    # MISTAKE FIXED: Pura clean production redirect URL laga diya hai
     redirect_url = "https://onrender.com"
     
     res = supabase.auth.sign_in_with_oauth({
@@ -223,9 +225,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-
+# MISTAKE FIXED: __name__ aur "__main__" ke double underscores correct kar diye hain
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    
-        

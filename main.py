@@ -10,6 +10,7 @@ except ImportError:
     sys.exit(1)
 
 app = Flask(__name__)
+# Flask सेशन को मजबूत करने के लिए सीक्रेट की फिक्स की
 app.secret_key = 'hookspike_billionaire_clean_auto_secret_99x'
 
 # Render Environment Variables
@@ -156,20 +157,6 @@ def get_user_tokens(user_id, email):
         print(f"Database error in get_tokens: {e}")
         return 5
 
-def get_user_tokens(user_id, email):
-    if not supabase:
-        return 5
-    try:
-        res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
-        if res.data and len(res.data) > 0:
-            return res.data[0]["tokens_left"]
-        else:
-            supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
-            return 5
-    except Exception as e:
-        print(f"Database error in get_tokens: {e}")
-        return 5
-
 def decrease_user_token(user_id):
     if not supabase:
         return
@@ -184,13 +171,14 @@ def decrease_user_token(user_id):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # जादू: अगर Google लॉगिन के बाद URL में '?code=' आता है, तो सीधे उसे सेशन में बदलें
+    # FIXED/NEW: Supabase v2 के अनुसार डायरेक्ट टोकन एक्सचेंज कमांड लगाई है
     url_code = request.args.get("code")
     if url_code:
         try:
             res = supabase.auth.exchange_code_for_session(url_code)
-            session['user_id'] = res.user.id
-            session['user_email'] = res.user.email
+            # यहाँ सही v2 कमांड लगाई है जो यूजर डेटा को सुरक्षित रूप से सेशन ऑब्जेक्ट से खींच लेगी
+            session['user_id'] = res.session.user.id
+            session['user_email'] = res.session.user.email
             return redirect(url_for('index'))
         except Exception as e:
             print(f"Direct URL exchange error: {e}")
@@ -223,8 +211,8 @@ def index():
 def login_google():
     if not supabase:
         return "Supabase connection error."
-        
-    # सीधे मुख्य पेज पर ही रिडायरेक्ट करें ताकि कोड वहीं पकड़ा जा सके
+    
+    # सीधे मुख्य पेज पर ही रिडायरेक्ट करें ताकि कोड वहीं होमपेज पर पकड़ा जा सके
     redirect_url = "https://onrender.com"
     
     res = supabase.auth.sign_in_with_oauth({

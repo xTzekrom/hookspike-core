@@ -37,7 +37,7 @@ HTML_TEMPLATE = """
         .counter-badge { display: inline-block; padding: 8px 18px; background: rgba(17, 24, 39, 0.9); border-radius: 30px; font-size: 13px; color: #66fcf1; border: 1px solid #00ffcc; margin-bottom: 25px; font-weight: bold; }
         
         .login-box { padding: 20px; text-align: center; }
-        .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px; background: white; color: #1f2937; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px; background: white; color: #1f2937; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); box-sizing: border-box; }
         .user-profile { font-size: 12px; color: #9ca3af; margin-bottom: 15px; text-align: right; }
         .logout-link { color: #f43f5e; text-decoration: none; margin-left: 8px; font-weight: bold; }
         
@@ -71,8 +71,8 @@ HTML_TEMPLATE = """
             <h3 style="color: #66fcf1; margin-bottom: 20px;">Welcome Back Creator!</h3>
             <p style="color: #9ca3af; font-size: 14px; margin-bottom: 30px;">Sign in with Google to sync your tokens securely across all devices.</p>
             <a href="/login/google" class="google-btn">
-                <img src="https://gstatic.com" alt="Google logo" width="20">
-                Continue with Google
+                <img src="https://gstatic.com" alt="Google logo" width="22" height="22">
+                <span style="display: inline-block;">Continue with Google</span>
             </a>
         </div>
         {% else %}
@@ -164,7 +164,7 @@ def index():
         show_paywall = True
 
     if request.method == "POST":
-        platform_type = request.form.get("platform_type")
+                platform_type = request.form.get("platform_type")
         topic = request.form.get("topic")
         if tokens_left > 0:
             result = get_ai_response(platform_type, topic)
@@ -180,7 +180,10 @@ def index():
 def login_google():
     if not supabase:
         return "Supabase connection error. Please configure Render environment variables."
-    redirect_url = url_for("auth_callback", _external=True)
+    
+    # CORRECT FIX: Pura live callback URL set kar diya hai taaki koi error na aaye
+    redirect_url = "https://onrender.com"
+    
     res = supabase.auth.sign_in_with_oauth({
         "provider": "google",
         "options": {"redirect_to": redirect_url}

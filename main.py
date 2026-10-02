@@ -147,13 +147,27 @@ def get_user_tokens(user_id, email):
         return 5
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
-        if res.data:
+        if res.data and len(res.data) > 0:
             return res.data[0]["tokens_left"]
         else:
             supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
             return 5
     except Exception as e:
-        print(f"Database error: {e}")
+        print(f"Database error in get_tokens: {e}")
+        return 5
+
+def decrease_user_token(user_id):
+    if not supabase:
+        return
+    try:
+        res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
+        if res.data and len(res.data) > 0:
+            current = res.data[0]["tokens_left"]
+            if current > 0:
+                supabase.table("user_tokens").update({"tokens_left": current - 1}).eq("id", user_id).execute()
+    except Exception as e:
+        print(f"Database error on update: {e}")
+        
 def decrease_user_token(user_id):
     if not supabase:
         return

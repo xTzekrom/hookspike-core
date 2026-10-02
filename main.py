@@ -90,7 +90,6 @@ HTML_TEMPLATE = """
             <h3 style="color: #66fcf1; margin-bottom: 20px;">Welcome Back Creator!</h3>
             <p style="color: #9ca3af; font-size: 14px; margin-bottom: 30px;">Sign in with Google to sync your tokens securely across all devices.</p>
             <a href="/login/google" class="google-btn">
-                <!-- Fixed PNG Logo Added Here Perfectly -->
                 <img src="https://wikimedia.org" alt="" width="22" height="22" style="object-fit: contain; display: block;">
                 <span>Continue with Google</span>
             </a>
@@ -151,18 +150,15 @@ def get_user_tokens(user_id, email):
         if res.data:
             return res.data[0]["tokens_left"]
         else:
-             supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
-             return 5
+            supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
+            return 5
     except Exception as e:
         print(f"Database error: {e}")
-        return 5
-
 def decrease_user_token(user_id):
     if not supabase:
         return
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
-        # FIXED: Supabase response list hota hai, use first index [0] se access karenge
         if res.data:
             current = res.data[0]["tokens_left"]
             if current > 0:
@@ -175,7 +171,7 @@ def index():
     logged_in = 'user_id' in session
     if not logged_in:
         return render_template_string(HTML_TEMPLATE, logged_in=False)
-
+    
     user_id = session['user_id']
     email = session['user_email']
     tokens_left = get_user_tokens(user_id, email)
@@ -183,7 +179,7 @@ def index():
     result, topic, show_paywall = None, "", False
     if tokens_left <= 0:
         show_paywall = True
-
+        
     if request.method == "POST":
         platform_type = request.form.get("platform_type")
         topic = request.form.get("topic")
@@ -191,25 +187,10 @@ def index():
             result = get_ai_response(platform_type, topic)
             decrease_user_token(user_id)
             tokens_left = get_user_tokens(user_id, email)
-            
         if tokens_left <= 0:
             show_paywall = True
-
+            
     return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, tokens_left=tokens_left, show_paywall=show_paywall)
-
-@app.route("/login/google")
-def login_google():
-    if not supabase:
-        return "Supabase connection error. Please configure Render environment variables."
-    
-    # FIXED: Adhoore onrender.com ko badalkar full callback URL lagaya hai
-    redirect_url = "https://hookspike-core.onrender.com"
-    
-    res = supabase.auth.sign_in_with_oauth({
-        "provider": "google",
-        "options": {"redirect_to": redirect_url}
-    })
-    return redirect(res.url)
 
 @app.route("/login/google")
 def login_google():
@@ -233,7 +214,7 @@ def auth_callback():
             session['user_id'] = res.session.user.id
             session['user_email'] = res.session.user.email
         except Exception as e:
-            print(f"Login error: {e}")
+            print(f"Login token exchange error: {e}")
     return redirect("/")
 
 @app.route("/logout")

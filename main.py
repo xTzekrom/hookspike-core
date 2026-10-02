@@ -203,6 +203,19 @@ def login_google():
         return "Supabase connection error. Please configure Render environment variables."
     
     # FIXED: Adhoore onrender.com ko badalkar full callback URL lagaya hai
+    redirect_url = "https://hookspike-core.onrender.com"
+    
+    res = supabase.auth.sign_in_with_oauth({
+        "provider": "google",
+        "options": {"redirect_to": redirect_url}
+    })
+    return redirect(res.url)
+
+@app.route("/login/google")
+def login_google():
+    if not supabase:
+        return "Supabase connection error. Please configure Render environment variables."
+    
     redirect_url = "https://onrender.com"
     
     res = supabase.auth.sign_in_with_oauth({
@@ -215,9 +228,12 @@ def login_google():
 def auth_callback():
     code = request.args.get("code")
     if code:
-        res = supabase.auth.exchange_code_for_session({"auth_code": code})
-        session['user_id'] = res.user.id
-        session['user_email'] = res.user.email
+        try:
+            res = supabase.auth.exchange_code_for_session(code)
+            session['user_id'] = res.session.user.id
+            session['user_email'] = res.session.user.email
+        except Exception as e:
+            print(f"Login error: {e}")
     return redirect("/")
 
 @app.route("/logout")
@@ -225,7 +241,6 @@ def logout():
     session.clear()
     return redirect("/")
 
-# FIXED: Standard python startup validation logic lagaya hai
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

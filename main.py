@@ -12,12 +12,11 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'hookspike_billionaire_clean_auto_secret_99x')
 
-# 1. Supabase सेटअप (Render पर डाली गई Keys से सीधे कनेक्ट होगा)
+# Render पर डाले गए Variables से कनेक्ट करना
 SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")
 SUPABASE_ANON_KEY = os.environ.get("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-    print("WARNING: Supabase variables are missing on Render!")
     supabase = None
 else:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -37,10 +36,8 @@ HTML_TEMPLATE = """
         p.tagline { color: #9ca3af; font-size: 12px; margin-top: 5px; margin-bottom: 30px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; }
         .counter-badge { display: inline-block; padding: 8px 18px; background: rgba(17, 24, 39, 0.9); border-radius: 30px; font-size: 13px; color: #66fcf1; border: 1px solid #00ffcc; margin-bottom: 25px; font-weight: bold; }
         
-        /* Login Screen Elements */
         .login-box { padding: 20px; text-align: center; }
-        .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px; background: white; color: #1f2937; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.2s; }
-        .google-btn:hover { background: #f9fafb; transform: translateY(-2px); }
+        .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px; background: white; color: #1f2937; border-radius: 14px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .user-profile { font-size: 12px; color: #9ca3af; margin-bottom: 15px; text-align: right; }
         .logout-link { color: #f43f5e; text-decoration: none; margin-left: 8px; font-weight: bold; }
         
@@ -63,23 +60,6 @@ HTML_TEMPLATE = """
         .upi-details { font-size: 18px; font-weight: bold; color: #66fcf1; background: #030712; padding: 14px; border-radius: 12px; border: 1px solid #1f2937; }
         .pay-btn { display: block; width: 100%; padding: 16px; background: linear-gradient(90deg, #00ffcc, #00b399); color: #030712; text-decoration: none; border-radius: 14px; font-weight: bold; font-size: 16px; margin-top: 15px; text-transform: uppercase; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.2); }
     </style>
-    <script>
-        function showLoading() {
-            var btn = document.getElementById("submitBtn");
-            if(btn) {
-                btn.style.display = "none";
-                document.getElementById("loaderIcon").style.display = "block";
-                document.getElementById("loaderText").style.display = "block";
-            }
-        }
-        function copyText() {
-            var textToCopy = document.getElementById("rawText").innerText;
-            navigator.clipboard.writeText(textToCopy);
-            var copyBtn = document.getElementById("copyBtnText");
-            copyBtn.innerText = "📋 Strategy Copied!";
-            setTimeout(function(){ copyBtn.innerText = "📋 Copy Strategy Data"; }, 2000);
-        }
-    </script>
 </head>
 <body>
     <div class="container">
@@ -87,22 +67,20 @@ HTML_TEMPLATE = """
         <p class="tagline">Hyper-Growth Retention Suite</p>
         
         {% if not logged_in %}
-        <!-- लॉगिन नहीं होने पर दिखने वाली स्क्रीन -->
         <div class="login-box">
             <h3 style="color: #66fcf1; margin-bottom: 20px;">Welcome Back Creator!</h3>
-            <p style="color: #9ca3af; font-size: 14px; margin-bottom: 30px;">Sign in with Google to sync your free neural tokens securely across all devices.</p>
+            <p style="color: #9ca3af; font-size: 14px; margin-bottom: 30px;">Sign in with Google to sync your tokens securely across all devices.</p>
             <a href="/login/google" class="google-btn">
                 <img src="https://gstatic.com" alt="Google logo" width="20">
                 Continue with Google
             </a>
         </div>
         {% else %}
-        <!-- लॉगिन होने के बाद दिखने वाली मुख्य AI स्क्रीन -->
         <div class="user-profile">
             👤 {{ user_email }} | <a href="/logout" class="logout-link">Logout</a>
         </div>
         
-        <div class="counter-badge">⚡ Neural Tokens: {{ 5 - count }} / 5 Free Requests</div>
+        <div class="counter-badge">⚡ Neural Tokens Remaining: {{ tokens_left }} / 5</div>
         
         {% if show_paywall %}
         <div class="paywall-box">
@@ -145,66 +123,63 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# डेटाबेस से यूजर का सही सर्च काउंट लाने या नया यूजर बनाने का फंक्शन
-def get_or_create_user_count(email):
+def get_user_tokens(user_id, email):
     if not supabase:
-        return 0
+        return 5
     try:
-        # डेटाबेस में ईमेल ढूंढें
-        res = supabase.table("user_tokens").select("search_count").eq("email", email).execute()
+        res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
         if res.data:
-            return res.data[0]["search_count"]
+            return res.data[0]["tokens_left"]
         else:
-            # अगर नया यूजर है, तो उसे 0 काउंट के साथ रजिस्टर करें
-            supabase.table("user_tokens").insert({"email": email, "search_count": 0}).execute()
-            return 0
+            supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
+            return 5
     except Exception as e:
         print(f"Database error: {e}")
-        return 0
+        return 5
 
-# डेटाबेस में सर्च काउंट +1 बढ़ाने का फंक्शन
-def increment_user_count(email):
+def decrease_user_token(user_id):
     if not supabase:
         return
     try:
-        current_count = get_or_create_user_count(email)
-        supabase.table("user_tokens").update({"search_count": current_count + 1}).eq("email", email).execute()
+        res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
+        if res.data:
+            current = res.data[0]["tokens_left"]
+            if current > 0:
+                supabase.table("user_tokens").update({"tokens_left": current - 1}).eq("id", user_id).execute()
     except Exception as e:
         print(f"Database error on update: {e}")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    logged_in = 'user_email' in session
+    logged_in = 'user_id' in session
     if not logged_in:
         return render_template_string(HTML_TEMPLATE, logged_in=False)
-        
+
+    user_id = session['user_id']
     email = session['user_email']
-    search_count = get_or_create_user_count(email)
-    result, topic, show_paywall = None, "", False
+    tokens_left = get_user_tokens(user_id, email)
     
-    if search_count >= 5:
+    result, topic, show_paywall = None, "", False
+    if tokens_left <= 0:
         show_paywall = True
-        
+
     if request.method == "POST":
         platform_type = request.form.get("platform_type")
         topic = request.form.get("topic")
-        
-        if search_count < 5:
+        if tokens_left > 0:
             result = get_ai_response(platform_type, topic)
-            increment_user_count(email)
-            search_count = get_or_create_user_count(email) # ताजा काउंट प्राप्त करें
+            decrease_user_token(user_id)
+            tokens_left = get_user_tokens(user_id, email)
             
-        if search_count >= 5:
+        if tokens_left <= 0:
             show_paywall = True
-            
-    return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, count=min(search_count, 5), show_paywall=show_paywall)
 
-# Google Login पर भेजने का रूट
+    return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, tokens_left=tokens_left, show_paywall=show_paywall)
+
 @app.route("/login/google")
 def login_google():
     if not supabase:
         return "Supabase connection error. Please configure Render environment variables."
-    # यह कोड यूजर को गूगल के ऑफिशियल ऑथेंटिकेशन पेज पर रीडायरेक्ट करेगा
     redirect_url = url_for("auth_callback", _external=True)
     res = supabase.auth.sign_in_with_oauth({
         "provider": "google",
@@ -212,28 +187,18 @@ def login_google():
     })
     return redirect(res.url)
 
-# लॉगिन होने के बाद वापस आने का रास्ता (Callback Route)
 @app.route("/auth/callback")
 def auth_callback():
-    # सुपाबेस से कोड प्राप्त करके यूजर सेशन सेट करना
     code = request.args.get("code")
     if code:
         res = supabase.auth.exchange_code_for_session({"auth_code": code})
-        # यूजर का ईमेल सेशन में सेव करें ताकि ऐप उसे पहचान सके
+        session['user_id'] = res.user.id
         session['user_email'] = res.user.email
     return redirect("/")
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/")
-
-@app.route("/admin_reset_secure_99x")
-def admin_reset_secure_99x():
-    if 'user_email' in session:
-        email = session['user_email']
-        if supabase:
-            supabase.table("user_tokens").update({"search_count": 0}).eq("email", email).execute()
     return redirect("/")
 
 if __name__ == "__main__":

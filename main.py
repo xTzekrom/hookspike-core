@@ -153,7 +153,7 @@ def get_user_tokens(user_id, email):
         else:
              supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
              return 5
-    except Ereturn 5xception as e:
+    except Ereturn Exception as e:
         print(f"Database error: {e}")
         return 5
 

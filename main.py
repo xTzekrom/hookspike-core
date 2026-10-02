@@ -10,12 +10,7 @@ except ImportError:
     sys.exit(1)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'hookspike_billionaire_clean_auto_secret_99x')
-app.config.update(
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-)
+app.secret_key = 'hookspike_billionaire_clean_auto_secret_99x'
 
 # Render Environment Variables
 SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")
@@ -67,6 +62,27 @@ HTML_TEMPLATE = """
         .pay-btn { display: block; width: 100%; padding: 16px; background: linear-gradient(90deg, #00ffcc, #00b399); color: #030712; text-decoration: none; border-radius: 14px; font-weight: bold; font-size: 16px; margin-top: 15px; text-transform: uppercase; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.2); }
     </style>
     <script>
+        // लॉगिन सेशन को ब्राउज़र की लोकल मेमोरी में परमानेंट लॉक करने का जादुई जावास्क्रिप्ट
+        {% if set_local_storage %}
+            localStorage.setItem("user_id", "{{ user_id }}");
+            localStorage.setItem("user_email", "{{ user_email }}");
+            window.location.href = "/";
+        {% endif %}
+
+        // पेज लोड होते ही ऑटो-चेक
+        window.onload = function() {
+            var local_id = localStorage.getItem("user_id");
+            var current_session = "{{ logged_in }}";
+            if (local_id && current_session === "False") {
+                window.location.href = "/local-login?user_id=" + local_id + "&email=" + localStorage.getItem("user_email");
+            }
+        };
+
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = "/logout";
+        }
+
         function showLoading() {
             document.getElementById("submitBtn").style.display = "none";
             document.getElementById("loaderIcon").style.display = "block";
@@ -101,7 +117,7 @@ HTML_TEMPLATE = """
         </div>
         {% else %}
         <div class="user-profile">
-            👤 {{ user_email }} | <a href="/logout" class="logout-link">Logout</a>
+            👤 {{ user_email }} | <a href="#" onclick="handleLogout()" class="logout-link">Logout</a>
         </div>
         
         <div class="counter-badge">⚡ Neural Tokens Remaining: {{ tokens_left }} / 5</div>
@@ -118,7 +134,7 @@ HTML_TEMPLATE = """
             <a href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=49&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end" class="pay-btn">📱 Open GPay / PhonePe to Pay</a>
         </div>
         {% else %}
-        <form method="POST" action="/" onsubmit="showLoading()">
+        <form method="POST" action="/">
             <label>Select Optimization Engine:</label>
             <select name="platform_type">
                 <option value="youtube">🎥 YouTube Engine (Hooks & Thumbnails)</option>
@@ -127,13 +143,13 @@ HTML_TEMPLATE = """
             </select>
             <label>Enter Topic / Strategy Request:</label>
             <input type="text" name="topic" placeholder="Enter topic, query, or script concept..." required><br>
-            <button type="submit" id="submitBtn">Launch AI Strategy Engine 🚀</button>
+            <button type="submit" id="submitBtn" onclick="showLoading()">Launch AI Strategy Engine 🚀</button>
         </form>
         {% endif %}
         
         <div id="loaderIcon" class="loader"></div>
         <div id="loaderText" class="loading-text">⚡ HookSpike Compiling Multi-Platform Vectors...</div>
-        
+
         {% if result and not show_paywall %}
         <div class="result-box">
             <h3>📊 Engine Output Matrix Unlocked:</h3>
@@ -172,24 +188,12 @@ def decrease_user_token(user_id):
                 supabase.table("user_tokens").update({"tokens_left": current - 1}).eq("id", user_id).execute()
     except Exception as e:
         print(f"Database error on update: {e}")
-        
-def decrease_user_token(user_id):
-    if not supabase:
-        return
-    try:
-        res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
-        if res.data:
-            current = res.data[0]["tokens_left"]
-            if current > 0:
-                supabase.table("user_tokens").update({"tokens_left": current - 1}).eq("id", user_id).execute()
-    except Exception as e:
-        print(f"Database error on update: {e}")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     logged_in = 'user_id' in session
     if not logged_in:
-        return render_template_string(HTML_TEMPLATE, logged_in=False)
+        return render_template_string(HTML_TEMPLATE, logged_in=False, set_local_storage=False)
     
     user_id = session['user_id']
     email = session['user_email']
@@ -209,12 +213,12 @@ def index():
         if tokens_left <= 0:
             show_paywall = True
             
-    return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, tokens_left=tokens_left, show_paywall=show_paywall)
+    return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, tokens_left=tokens_left, show_paywall=show_paywall, set_local_storage=False)
 
 @app.route("/login/google")
 def login_google():
     if not supabase:
-        return "Supabase connection error. Please configure Render environment variables."
+        return "Supabase connection error."
     
     redirect_url = "https://onrender.com"
     
@@ -230,10 +234,20 @@ def auth_callback():
     if code:
         try:
             res = supabase.auth.exchange_code_for_session(code)
-            session['user_id'] = res.session.user.id
-            session['user_email'] = res.session.user.email
+            session['user_id'] = res.user.id
+            session['user_email'] = res.user.email
+            return render_template_string(HTML_TEMPLATE, logged_in=False, set_local_storage=True, user_id=res.user.id, user_email=res.user.email)
         except Exception as e:
             print(f"Login token exchange error: {e}")
+    return redirect("/")
+
+@app.route("/local-login")
+def local_login():
+    user_id = request.args.get("user_id")
+    email = request.args.get("email")
+    if user_id and email:
+        session['user_id'] = user_id
+        session['user_email'] = email
     return redirect("/")
 
 @app.route("/logout")

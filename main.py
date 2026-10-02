@@ -62,27 +62,6 @@ HTML_TEMPLATE = """
         .pay-btn { display: block; width: 100%; padding: 16px; background: linear-gradient(90deg, #00ffcc, #00b399); color: #030712; text-decoration: none; border-radius: 14px; font-weight: bold; font-size: 16px; margin-top: 15px; text-transform: uppercase; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.2); }
     </style>
     <script>
-        // लॉगिन सेशन को ब्राउज़र की लोकल मेमोरी में परमानेंट लॉक करने का जादुई जावास्क्रिप्ट
-        {% if set_local_storage %}
-            localStorage.setItem("user_id", "{{ user_id }}");
-            localStorage.setItem("user_email", "{{ user_email }}");
-            window.location.href = "/";
-        {% endif %}
-
-        // पेज लोड होते ही ऑटो-चेक
-        window.onload = function() {
-            var local_id = localStorage.getItem("user_id");
-            var current_session = "{{ logged_in }}";
-            if (local_id && current_session === "False") {
-                window.location.href = "/local-login?user_id=" + local_id + "&email=" + localStorage.getItem("user_email");
-            }
-        };
-
-        function handleLogout() {
-            localStorage.clear();
-            window.location.href = "/logout";
-        }
-
         function showLoading() {
             document.getElementById("submitBtn").style.display = "none";
             document.getElementById("loaderIcon").style.display = "block";
@@ -117,7 +96,7 @@ HTML_TEMPLATE = """
         </div>
         {% else %}
         <div class="user-profile">
-            👤 {{ user_email }} | <a href="#" onclick="handleLogout()" class="logout-link">Logout</a>
+            👤 {{ user_email }} | <a href="/logout" class="logout-link">Logout</a>
         </div>
         
         <div class="counter-badge">⚡ Neural Tokens Remaining: {{ tokens_left }} / 5</div>
@@ -143,13 +122,13 @@ HTML_TEMPLATE = """
             </select>
             <label>Enter Topic / Strategy Request:</label>
             <input type="text" name="topic" placeholder="Enter topic, query, or script concept..." required><br>
-            <button type="submit" id="submitBtn" onclick="showLoading()">Launch AI Strategy Engine 🚀</button>
+            <button type="submit" id="submitBtn">Launch AI Strategy Engine 🚀</button>
         </form>
         {% endif %}
         
         <div id="loaderIcon" class="loader"></div>
         <div id="loaderText" class="loading-text">⚡ HookSpike Compiling Multi-Platform Vectors...</div>
-
+        
         {% if result and not show_paywall %}
         <div class="result-box">
             <h3>📊 Engine Output Matrix Unlocked:</h3>
@@ -162,6 +141,20 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
+
+def get_user_tokens(user_id, email):
+    if not supabase:
+        return 5
+    try:
+        res = supabase.table("user_tokens").select("tokens_left").eq("id", user_id).execute()
+        if res.data and len(res.data) > 0:
+            return res.data[0]["tokens_left"]
+        else:
+            supabase.table("user_tokens").insert({"id": user_id, "email": email, "tokens_left": 5}).execute()
+            return 5
+    except Exception as e:
+        print(f"Database error in get_tokens: {e}")
+        return 5
 
 def get_user_tokens(user_id, email):
     if not supabase:
@@ -191,10 +184,21 @@ def decrease_user_token(user_id):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # जादू: अगर Google लॉगिन के बाद URL में '?code=' आता है, तो सीधे उसे सेशन में बदलें
+    url_code = request.args.get("code")
+    if url_code:
+        try:
+            res = supabase.auth.exchange_code_for_session(url_code)
+            session['user_id'] = res.user.id
+            session['user_email'] = res.user.email
+            return redirect(url_for('index'))
+        except Exception as e:
+            print(f"Direct URL exchange error: {e}")
+
     logged_in = 'user_id' in session
     if not logged_in:
-        return render_template_string(HTML_TEMPLATE, logged_in=False, set_local_storage=False)
-    
+        return render_template_string(HTML_TEMPLATE, logged_in=False)
+
     user_id = session['user_id']
     email = session['user_email']
     tokens_left = get_user_tokens(user_id, email)
@@ -202,7 +206,7 @@ def index():
     result, topic, show_paywall = None, "", False
     if tokens_left <= 0:
         show_paywall = True
-        
+
     if request.method == "POST":
         platform_type = request.form.get("platform_type")
         topic = request.form.get("topic")
@@ -212,14 +216,15 @@ def index():
             tokens_left = get_user_tokens(user_id, email)
         if tokens_left <= 0:
             show_paywall = True
-            
-    return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, tokens_left=tokens_left, show_paywall=show_paywall, set_local_storage=False)
+
+    return render_template_string(HTML_TEMPLATE, logged_in=True, user_email=email, result=result, topic=topic, tokens_left=tokens_left, show_paywall=show_paywall)
 
 @app.route("/login/google")
 def login_google():
     if not supabase:
         return "Supabase connection error."
-    
+        
+    # सीधे मुख्य पेज पर ही रिडायरेक्ट करें ताकि कोड वहीं पकड़ा जा सके
     redirect_url = "https://onrender.com"
     
     res = supabase.auth.sign_in_with_oauth({
@@ -227,28 +232,6 @@ def login_google():
         "options": {"redirect_to": redirect_url}
     })
     return redirect(res.url)
-
-@app.route("/auth/callback")
-def auth_callback():
-    code = request.args.get("code")
-    if code:
-        try:
-            res = supabase.auth.exchange_code_for_session(code)
-            session['user_id'] = res.user.id
-            session['user_email'] = res.user.email
-            return render_template_string(HTML_TEMPLATE, logged_in=False, set_local_storage=True, user_id=res.user.id, user_email=res.user.email)
-        except Exception as e:
-            print(f"Login token exchange error: {e}")
-    return redirect("/")
-
-@app.route("/local-login")
-def local_login():
-    user_id = request.args.get("user_id")
-    email = request.args.get("email")
-    if user_id and email:
-        session['user_id'] = user_id
-        session['user_email'] = email
-    return redirect("/")
 
 @app.route("/logout")
 def logout():

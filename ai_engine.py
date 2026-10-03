@@ -255,6 +255,7 @@ def _build_creative_prompt(
     content_type,
     topic,
     research,
+    brand_voice="",
 ):
     if content_type == "hooks":
         task = """
@@ -282,11 +283,11 @@ Do NOT include a script, thumbnail ideas, titles, hashtags or unrelated content.
 Create ONLY one topic-specific short-form script.
 
 Structure:
-1. HOOK
-2. SETUP
-3. MAIN BODY
-4. PAYOFF
-5. CTA
+🎯 HOOK
+🧩 SETUP
+🔥 MAIN BODY
+💥 PAYOFF
+📣 CTA
 
 Make it natural to speak, specific to the searched topic, and based on verified
 current information when applicable.
@@ -302,13 +303,13 @@ Create ONLY a thumbnail concept package for the searched topic.
 Give exactly 3 distinct thumbnail concepts.
 
 For each concept include:
-1. CONCEPT NAME
-2. VISUAL COMPOSITION
-3. SUBJECT / CHARACTER FOCUS
-4. SHORT THUMBNAIL TEXT (3-6 words)
-5. EXPRESSION / EMOTION
-6. COLOR / LIGHTING DIRECTION
-7. WHY IT FITS THIS TOPIC
+1. 🏷️ CONCEPT NAME
+2. 🎨 VISUAL COMPOSITION
+3. 👤 SUBJECT / CHARACTER FOCUS
+4. 📝 SHORT THUMBNAIL TEXT (3-6 words)
+5. 😱 EXPRESSION / EMOTION
+6. 💡 COLOR / LIGHTING DIRECTION
+7. 🎯 WHY IT FITS THIS TOPIC
 
 The concepts must be visually different and tied tightly to the user's topic.
 Do not include hooks, scripts, titles or hashtags.
@@ -319,6 +320,9 @@ You are HookSpike's creative intelligence engine.
 
 USER REQUEST:
 {topic}
+
+CREATOR VOICE PREFERENCE:
+{brand_voice or "Use a natural, clear creator-friendly voice."}
 
 REQUESTED OUTPUT TYPE:
 {content_type}
@@ -340,6 +344,7 @@ QUALITY RULES:
 - Avoid repeated hooks or near-duplicate wording.
 - Do not mention Gemini, OpenAI, HookSpike or internal systems.
 - Output in clear English.
+- Use a small number of relevant emojis as visual section markers. Never spam emojis or replace important words with emojis.
 """
 
 
@@ -685,6 +690,7 @@ def _openai_creative(
     topic,
     content_type,
     research,
+    brand_voice="",
 ):
     keys = _get_openai_keys()
 
@@ -705,6 +711,7 @@ def _openai_creative(
         content_type=content_type,
         topic=topic,
         research=compact_research,
+        brand_voice=brand_voice,
     )
 
     last_error = None
@@ -910,6 +917,7 @@ IMPORTANT:
 def get_ai_response(
     content_type,
     topic,
+    brand_voice="",
 ):
     """
     Main function used by main.py.
@@ -967,6 +975,7 @@ def get_ai_response(
                 topic=topic,
                 content_type=content_type,
                 research=research,
+                brand_voice=brand_voice,
             )
         except Exception as exc:
             creative_error = f"OpenAI creative exception: {exc}"
@@ -985,6 +994,7 @@ If a current claim cannot be verified, explicitly mark it as unverified.
                 topic=topic,
                 content_type=content_type,
                 research=fallback_research,
+                brand_voice=brand_voice,
             )
         except Exception as exc:
             creative_error = f"OpenAI creative exception: {exc}"
@@ -1014,6 +1024,226 @@ If a current claim cannot be verified, explicitly mark it as unverified.
         "Please try again in a few seconds."
     )
 
+
+
+# ============================================================
+# CREATOR STUDIO EXTENSIONS
+# ============================================================
+
+def _openai_freeform(prompt, purpose="creator tool"):
+    """Small, reusable OpenAI text action for non-research transformations."""
+    keys = _get_openai_keys()
+    if not keys:
+        return None, "OpenAI API key is not configured."
+
+    last_error = None
+    for api_key in keys:
+        try:
+            client = _get_openai_client(api_key)
+        except Exception as exc:
+            last_error = _format_openai_error(exc)
+            continue
+
+        for model in OPENAI_MODELS:
+            try:
+                text = _generate_openai(client, prompt, model)
+                if text and text.strip():
+                    return text.strip()[:MAX_CREATIVE_CHARS], None
+            except Exception as exc:
+                last_error = f"{model}: {_format_openai_error(exc)}"
+                print(f"[HookSpike STUDIO ERROR] {purpose} | {last_error}", flush=True)
+                # Move to the next model/key. Billing/quota errors are not
+                # retried in a loop beyond the configured model/key fallbacks.
+                continue
+
+    return None, last_error or f"{purpose} failed."
+
+
+def generate_creator_pack(topic, brand_voice=""):
+    """One-token complete content package using the same verified Gemini research."""
+    topic = str(topic or "").strip()[:MAX_TOPIC_CHARS]
+    if not topic:
+        return None, "Please enter a topic first."
+
+    research, research_error = _gemini_research(
+        topic=topic,
+        content_type="creator_pack",
+        use_search=True,
+    )
+
+    if not research:
+        research = (
+            "Current web research was temporarily unavailable. "
+            "Do not invent current facts; mark anything current as unverified."
+        )
+
+    prompt = f"""
+Create a complete creator content package for this topic:
+
+TOPIC:
+{topic}
+
+CREATOR VOICE PREFERENCE:
+{brand_voice or "Use a natural, creator-friendly voice."}
+
+VERIFIED RESEARCH:
+{_compact_research_for_openai(research)}
+
+Return ONLY the package in this exact structure:
+
+🔥 TITLE IDEAS
+Give 5 distinct, specific title ideas.
+
+🪝 HOOKS
+Give exactly 7 genuinely different opening hooks, numbered 1-7.
+
+🎬 SCRIPT
+Give one concise, topic-specific script with these headings:
+HOOK
+SETUP
+MAIN BODY
+PAYOFF
+CTA
+
+🖼️ THUMBNAIL CONCEPTS
+Give exactly 3 distinct concepts. Each must contain:
+CONCEPT NAME
+THUMBNAIL TEXT
+VISUAL DIRECTION
+
+📝 DESCRIPTION
+Write one ready-to-paste description.
+
+#️⃣ HASHTAGS
+Give 8-12 relevant hashtags.
+
+🔑 KEYWORDS
+Give 10-15 relevant keywords/tags.
+
+RULES:
+- Use the research as the factual source of truth.
+- Never invent current announcements, dates, statistics, names, quotes or claims.
+- Preserve uncertainty where the research is uncertain.
+- Make every item meaningfully different.
+- Use natural creator-friendly language, not corporate filler.
+- Add useful emojis only as section markers; do not spam them.
+- Do not mention Gemini, OpenAI, HookSpike or internal systems.
+"""
+
+    result, error = _openai_freeform(prompt, "complete creator pack")
+    if result:
+        return result, None
+    return None, error or research_error or "Creator pack failed."
+
+
+def refine_creator_content(topic, content, action, brand_voice=""):
+    """Improve an existing result without changing its underlying facts."""
+    topic = str(topic or "").strip()[:MAX_TOPIC_CHARS]
+    content = str(content or "").strip()[:MAX_CREATIVE_CHARS]
+    action = str(action or "").strip().lower()
+
+    actions = {
+        "more-curious": "Make the opening more curiosity-driven while keeping the factual meaning intact.",
+        "more-viral": "Make it punchier and more attention-grabbing without making unsupported claims.",
+        "more-natural": "Rewrite it to sound natural, conversational and creator-friendly.",
+        "shorter": "Compress it substantially while preserving the most useful information.",
+        "cinematic": "Make the writing more cinematic and visual while keeping facts intact.",
+        "shorts": "Convert it into a tight YouTube Shorts/Reels/TikTok-friendly version.",
+        "gaming": "Give it energetic gaming-creator language without adding invented game facts.",
+        "anime": "Give it energetic anime-community language without adding invented facts.",
+        "thumbnail-clickable": "Improve the thumbnail concepts for clarity and curiosity without clickbait claims.",
+    }
+    instruction = actions.get(action)
+    if not instruction:
+        return None, "Unknown creator action."
+
+    prompt = f"""
+Improve this existing creator content.
+
+TOPIC:
+{topic}
+
+CREATOR VOICE PREFERENCE:
+{brand_voice or "Keep the existing natural voice."}
+
+EXISTING CONTENT:
+{content}
+
+TASK:
+{instruction}
+
+STRICT RULES:
+- Do not invent or alter factual claims.
+- Do not add fake dates, numbers, quotes, announcements or sources.
+- Return ONLY the improved content.
+- Keep the original content type and useful structure.
+- Do not mention internal systems.
+"""
+    return _openai_freeform(prompt, f"refine:{action}")
+
+
+def analyze_hook(hook, topic=""):
+    hook = str(hook or "").strip()[:8000]
+    topic = str(topic or "").strip()[:4000]
+    if not hook:
+        return None, "Please enter a hook first."
+
+    prompt = f"""
+Analyze this creator hook.
+Topic: {topic or 'Not provided'}
+Hook: {hook}
+
+Return ONLY:
+🎯 CLARITY — one short sentence
+🧲 CURIOSITY — one short sentence
+⚡ FIRST-SECONDS IMPACT — one short sentence
+🎯 SPECIFICITY — one short sentence
+🛠️ IMPROVEMENT — one rewritten stronger version
+
+Do not give a numeric score or pretend to predict virality. Be concrete and useful.
+"""
+    return _openai_freeform(prompt, "hook analyzer")
+
+
+def discover_topics(category="general"):
+    """Fresh topic discovery using Gemini + Google Search; returns a creator-ready brief."""
+    category = str(category or "general").strip()[:100]
+    prompt = f"""
+You are a current creator trend research assistant.
+Category: {category}
+
+Use Google Search grounding and return 8 CURRENT topic opportunities that creators could make content about.
+For each:
+1. Topic
+2. What is happening (one sentence)
+3. Why it matters to creators
+4. What is confirmed vs uncertain
+5. Suggested content angle
+
+Prefer official sources and reputable reporting. Do not invent trends. Clearly mark uncertainty.
+Return only the concise creator list with useful emojis as section markers.
+"""
+    keys = _get_gemini_keys()
+    if not keys:
+        return None, "Gemini API key is not configured."
+
+    last_error = None
+    for key in keys:
+        try:
+            client = genai.Client(api_key=key)
+        except Exception as exc:
+            last_error = str(exc)
+            continue
+        for model in GEMINI_MODELS:
+            try:
+                response = _generate_gemini(client, model, prompt, True)
+                text = getattr(response, "text", None)
+                if text and text.strip():
+                    return text.strip()[:MAX_RESEARCH_CHARS], None
+            except Exception as exc:
+                last_error = f"{model}: {exc}"
+                continue
+    return None, last_error or "Topic discovery failed."
 
 # STATUS HELPER
 # ============================================================

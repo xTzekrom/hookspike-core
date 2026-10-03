@@ -119,7 +119,7 @@ HTML_TEMPLATE = """
 
     <title>HookSpike AI ⚡ - Ultra-Growth Creative Engine</title>
 
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/xTzekrom/hookspike-core/main/file_00000000fd8481fab2b4f371e41aa854.png?=v2">
+    <link rel="icon" type="image/png" href="/favicon.png?v=2">
 
     <meta
         name="viewport"
@@ -1391,7 +1391,15 @@ def add_no_cache_headers(response):
     response.headers["Expires"] = "0"
     return response
 
-
+@app.route("/favicon.png")
+def favicon():
+    return send_file(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "file_00000000fd8481fab2b4f371e41aa854.png"
+        ),
+        mimetype="image/png"
+        )
 @app.route("/health")
 def health():
 

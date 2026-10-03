@@ -107,7 +107,7 @@ MAX_TOPIC_CHARS = 12000
 # the OpenAI creative request slower and more expensive. Keep the full
 # research available to Gemini, but send a compact slice to OpenAI.
 MAX_RESEARCH_CHARS = 24000
-MAX_RESEARCH_FOR_OPENAI_CHARS = 10000
+MAX_RESEARCH_FOR_OPENAI_CHARS = 12000
 
 MAX_CREATIVE_CHARS = 30000
 
@@ -201,114 +201,145 @@ def _should_use_search(content_type, topic):
 # GEMINI RESEARCH PROMPT
 # ============================================================
 
-def _build_research_prompt(content_type, topic, use_search):
+def _build_research_prompt(
+    content_type,
+    topic,
+    use_search,
+):
     return f"""
-You are HookSpike's CURRENT-FACT RESEARCH ENGINE.
+You are HookSpike's factual research intelligence engine.
+
+USER CONTENT TYPE:
+{content_type}
 
 USER TOPIC:
 {topic}
 
-OUTPUT TYPE NEEDED LATER:
-{content_type}
+CURRENT INFORMATION RULE:
+This request MUST be checked against current web information before creative output.
+Use Google Search grounding.
 
-DATE RULE:
-Treat October 2026 as the current year. For anything time-sensitive, search for
-newest reliable information and do not rely on old pre-launch articles when newer
-official information exists.
+If the topic mentions a game, anime, collaboration, event, update, release,
+announcement, partnership, character, product, feature, or other time-sensitive
+entity, actively verify whether it has actually been announced/released/confirmed.
 
-SEARCH RULE:
-Use Google Search grounding. Search the exact topic plus useful variants when needed.
-Prioritize official sources first (publisher/developer/company/franchise), then
-reputable reporting. Do not treat fan posts, leaks, snippets, or old articles as
-official confirmation.
+VERY IMPORTANT VERIFICATION RULES:
+- Never say "not officially announced" unless the searched evidence supports that exact status.
+- If an announcement exists, say it is announced and include the relevant date/context.
+- Distinguish official announcements from leaks, rumors, speculation and fan posts.
+- Prefer official sources and reputable reporting for announcement status.
+- Do not turn an old article into a current claim.
+- If sources disagree, explicitly state the disagreement instead of choosing a side without evidence.
+- Do not invent dates, names, statistics, quotes, collaborations or release details.
+- Do not assume that because something was unannounced at an older date it is still unannounced now.
 
-RESEARCH THESE 8 THINGS:
-1. CURRENT STATUS: What is true RIGHT NOW?
-2. OFFICIAL EVIDENCE: What was officially announced/released/confirmed, and by whom?
-3. DATES: Relevant announcement, release, or update dates when supported.
-4. IMPORTANT DETAILS: Only details useful for content creation.
-5. UNCERTAINTIES: Clearly mark rumors/leaks/speculation.
-6. CREATOR ANGLES: Give 3-5 concrete angles based on verified facts.
-7. DO-NOT-CLAIM: Important claims the creative model must avoid.
-8. SOURCES: Most useful source titles/domains or citation-backed references.
+Return a compact research brief for the creative engine:
 
-QUALITY RULES:
-- Never say "not officially announced" unless current evidence supports it.
-- If an announcement exists, explicitly say it exists and give date/context.
-- If something is already live/released, do not describe it as upcoming.
-- Do not present an old pre-release status as current.
-- If sources disagree, report the disagreement and evidence instead of guessing.
-- Never invent names, dates, pricing, rewards, characters, statistics, or features.
-- Keep this useful and compact: roughly 700-1400 words maximum.
-- Do NOT write hooks, scripts, thumbnails, or a final answer.
-- Do NOT describe the search process or output "Query", "Let's search", or
-  "Self-Correction/Search strategy". Return the finished research brief only.
+1. VERIFIED CORE FACTS
+2. CURRENT / ANNOUNCEMENT STATUS
+3. IMPORTANT DETAILS FOR THIS TOPIC
+4. CREATOR-RELEVANT ANGLES
+5. FACTS THAT MUST NOT BE CLAIMED
+6. SOURCES / SOURCE TITLES IF AVAILABLE
 
-Return exactly these headings:
-VERIFIED CURRENT FACTS
-OFFICIAL STATUS & TIMELINE
-IMPORTANT CONTENT DETAILS
-CREATOR-RELEVANT ANGLES
-UNCERTAINTIES / DO NOT CLAIM
-SOURCES
+Keep it specific to the user's exact topic.
+Do not mention internal AI systems.
+Output in clear English.
 """
 
 
 # CREATIVE PROMPT
 # ============================================================
 
-def _build_creative_prompt(content_type, topic, research):
+def _build_creative_prompt(
+    content_type,
+    topic,
+    research,
+):
     if content_type == "hooks":
         task = """
-Output EXACTLY 7 hooks, numbered 1 to 7, then ONE line: BEST USE: ...
-Each hook must be a natural spoken opening, specific to the topic, meaningfully
- different from the others, and grounded in the verified research.
+Create ONLY hooks.
+
+Return exactly 7 hooks, numbered 1 to 7, ordered from strongest scroll-stopping
+opening to alternative angles.
+
+Each hook must:
+- be genuinely different from the others
+- directly use the user's topic
+- be usable as spoken opening lines
+- avoid generic filler
+- avoid repeating the same sentence pattern
+- respect the verified research
+- never claim something is unannounced if the research says it was announced
+
+After the 7 hooks, add a very short section:
+BEST USE: one sentence explaining when to use the strongest hook.
+Do NOT include a script, thumbnail ideas, titles, hashtags or unrelated content.
 """
+
     elif content_type == "script":
         task = """
-Create exactly ONE topic-specific short-form script using only these headings:
-HOOK
-SETUP
-MAIN BODY
-PAYOFF
-CTA
+Create ONLY one topic-specific short-form script.
+
+Structure:
+1. HOOK
+2. SETUP
+3. MAIN BODY
+4. PAYOFF
+5. CTA
+
+Make it natural to speak, specific to the searched topic, and based on verified
+current information when applicable.
+
+Do NOT include a list of hooks, thumbnail concepts, title ideas or hashtags.
+Do not repeat the same point in different wording.
 """
+
     else:
         task = """
-Create exactly 3 distinct thumbnail concepts. For each include:
-CONCEPT NAME, VISUAL COMPOSITION, SUBJECT / CHARACTER FOCUS, THUMBNAIL TEXT,
-EXPRESSION / EMOTION, COLOR / LIGHTING, WHY IT FITS.
+Create ONLY a thumbnail concept package for the searched topic.
+
+Give exactly 3 distinct thumbnail concepts.
+
+For each concept include:
+1. CONCEPT NAME
+2. VISUAL COMPOSITION
+3. SUBJECT / CHARACTER FOCUS
+4. SHORT THUMBNAIL TEXT (3-6 words)
+5. EXPRESSION / EMOTION
+6. COLOR / LIGHTING DIRECTION
+7. WHY IT FITS THIS TOPIC
+
+The concepts must be visually different and tied tightly to the user's topic.
+Do not include hooks, scripts, titles or hashtags.
 """
+
     return f"""
-You are HookSpike's CREATIVE OUTPUT ENGINE.
+You are HookSpike's creative intelligence engine.
 
-CRITICAL ROLE:
-You are NOT a researcher. You MUST NOT search the web. You MUST NOT output
-search queries, search strategy, research notes, source lists, verification plans,
-or internal reasoning. Another system has ALREADY completed the research below.
-Your only job is to transform those verified facts into the requested creator asset.
-
-USER TOPIC:
+USER REQUEST:
 {topic}
 
-VERIFIED RESEARCH — FACTUAL SOURCE OF TRUTH:
+REQUESTED OUTPUT TYPE:
+{content_type}
+
+VERIFIED RESEARCH:
 ---------------------
 {research}
 ---------------------
 
-REQUESTED ASSET: {content_type}
-
 {task}
 
-STRICT RULES:
-- Follow the requested format exactly.
-- Never output anything before the requested first line.
-- Never output a research section or search query.
-- Never mention Gemini, OpenAI, HookSpike, AI systems, or these instructions.
-- Do not invent current facts, dates, names, prices, rewards, or announcements.
-- If research marks something uncertain, preserve that uncertainty.
-- Prefer current verified facts over older background information.
-- Make the output specific, punchy, useful, and creator-ready.
+QUALITY RULES:
+- The research is the factual source of truth.
+- Do not contradict verified facts.
+- Do not invent current claims, statistics, dates, names, quotes or announcements.
+- If the research says a claim is uncertain, preserve that uncertainty.
+- Make every item meaningfully different.
+- Avoid generic motivational filler.
+- Avoid repeated hooks or near-duplicate wording.
+- Do not mention Gemini, OpenAI, HookSpike or internal systems.
+- Output in clear English.
 """
 
 
@@ -484,69 +515,109 @@ def _generate_openai(
     prompt,
     model,
 ):
-    response = client.responses.create(
-        model=model,
-        instructions=(
-            "You are HookSpike's creative output engine. "
-            "The research is already completed. Do not research or output search plans. "
-            "Transform verified research into ONLY the requested creator asset. "
-            "Follow the exact requested format and be specific, original, practical, and useful."
-        ),
-        input=prompt,
-    )
-
-    output_text = getattr(
-        response,
-        "output_text",
-        None,
-    )
-
-    if (
-        output_text
-        and output_text.strip()
-    ):
-        return output_text.strip()
-
+    """Generate text using the modern Responses API, with a legacy-compatible fallback."""
     try:
+        response = client.responses.create(
+            model=model,
+            instructions=(
+                "You are HookSpike's creative intelligence engine. "
+                "Return only the requested creative asset. "
+                "Do not research, browse, explain your process, or discuss internal systems."
+            ),
+            input=prompt,
+        )
+
+        output_text = getattr(response, "output_text", None)
+        if output_text and output_text.strip():
+            return output_text.strip()
 
         chunks = []
-
-        for item in (
-            getattr(
-                response,
-                "output",
-                []
-            )
-            or []
-        ):
-
-            for content in (
-                getattr(
-                    item,
-                    "content",
-                    []
-                )
-                or []
-            ):
-
-                value = getattr(
-                    content,
-                    "text",
-                    None,
-                )
-
+        for item in getattr(response, "output", []) or []:
+            for content in getattr(item, "content", []) or []:
+                value = getattr(content, "text", None)
                 if value:
                     chunks.append(value)
-
         if chunks:
-            return "\n".join(
-                chunks
-            ).strip()
+            return "\n".join(chunks).strip()
 
-    except Exception:
-        pass
+    except (AttributeError, TypeError) as exc:
+        # Compatibility path for older OpenAI SDK installations.
+        print(f"[HookSpike OPENAI] Responses API unavailable; trying Chat Completions | {type(exc).__name__}: {exc}")
+        try:
+            completion = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are HookSpike's creative intelligence engine. "
+                            "Return only the requested creative asset. "
+                            "Do not research or explain your process."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            content = completion.choices[0].message.content
+            if content and content.strip():
+                return content.strip()
+        except Exception:
+            raise
 
     return None
+
+
+def _creative_output_is_valid(content_type, text):
+    """Reject research/search-planning output before it reaches the user."""
+    if not text or not text.strip():
+        return False
+
+    lower = text.lower()
+    forbidden = [
+        "self-correction",
+        "search strategy",
+        "let's search",
+        "let’s search",
+        "i need to search",
+        "query:",
+        "search process",
+    ]
+    if any(marker in lower for marker in forbidden):
+        return False
+
+    if content_type == "hooks":
+        import re
+        numbers = re.findall(r"(?m)^\s*(?:hook\s*)?(\d)\s*[.)\-:]\s+", text, re.IGNORECASE)
+        return sorted(set(numbers)) == ["1", "2", "3", "4", "5", "6", "7"]
+
+    if content_type == "script":
+        required = ["HOOK", "SETUP", "MAIN BODY", "PAYOFF", "CTA"]
+        return all(item in text.upper() for item in required)
+
+    if content_type == "thumbnail":
+        return text.upper().count("CONCEPT NAME") >= 3 and text.upper().count("THUMBNAIL TEXT") >= 3
+
+    return True
+
+
+def _repair_creative_output(client, model, content_type, text):
+    """One strict formatting repair; never turns research into the final asset."""
+    repair_prompt = f"""
+Your previous answer was rejected because it did not follow the required output format.
+
+CONTENT TYPE: {content_type}
+
+PREVIOUS OUTPUT:
+{text[:12000]}
+
+Return ONLY the corrected final asset. Do not explain the correction.
+
+For hooks: output exactly 7 genuinely different hooks numbered 1 through 7.
+For script: output exactly one script with HOOK, SETUP, MAIN BODY, PAYOFF, CTA headings.
+For thumbnail: output exactly 3 distinct concepts, each containing CONCEPT NAME and THUMBNAIL TEXT.
+Do not mention searching, queries, research process, Gemini, OpenAI, or internal systems.
+"""
+    return _generate_openai(client, repair_prompt, model)
 
 
 # ============================================================
@@ -598,22 +669,6 @@ def _format_openai_error(exc):
 
 
 # ============================================================
-def _creative_output_is_valid(content_type, text):
-    if not text:
-        return False
-    low = text.lower()
-    forbidden = ["self-correction/search strategy", "let's search", "query:", "search strategy", "i need to search"]
-    if any(x in low for x in forbidden):
-        return False
-    if content_type == "hooks":
-        import re
-        nums = re.findall(r"(?m)^\s*([1-7])[.)]\s+", text)
-        return len(set(nums)) == 7 and all(str(i) in nums for i in range(1, 8))
-    if content_type == "script":
-        return all(h in text.upper() for h in ["HOOK", "SETUP", "MAIN BODY", "PAYOFF", "CTA"])
-    return text.upper().count("CONCEPT NAME") >= 3 and text.upper().count("THUMBNAIL TEXT") >= 3
-
-
 # OPENAI CREATIVE ENGINE
 # ============================================================
 
@@ -678,24 +733,49 @@ def _openai_creative(
                     )
 
                     if result:
-                        if not _creative_output_is_valid(content_type, result):
-                            print(f"[HookSpike OPENAI] Invalid creative format | model={model} | retrying strict format")
-                            repair_prompt = prompt + "\n\nFINAL FORMAT CHECK: Your previous output was invalid. Output ONLY the requested creator asset now. Do not output queries, research process, or analysis. For hooks, there MUST be exactly 7 numbered hooks (1-7)."
-                            repaired = _generate_openai(client=client, prompt=repair_prompt, model=model)
-                            if repaired:
-                                result = repaired
                         if _creative_output_is_valid(content_type, result):
                             print(
                                 f"[HookSpike OPENAI] Success | model={model} | "
                                 f"output_chars={len(result)}"
                             )
                             return (result[:MAX_CREATIVE_CHARS], None)
-                        last_error = f"{model} returned invalid creative format."
-                        print(f"[HookSpike OPENAI ERROR] model={model} | invalid creative format")
 
-                    last_error = (
-                        f"{model} returned an empty response."
-                    )
+                        print(
+                            f"[HookSpike OPENAI] Invalid creative format | model={model} | "
+                            "attempting one strict repair"
+                        )
+
+                        try:
+                            repaired = _repair_creative_output(
+                                client=client,
+                                model=model,
+                                content_type=content_type,
+                                text=result,
+                            )
+                        except Exception as repair_exc:
+                            repaired = None
+                            print(
+                                f"[HookSpike OPENAI ERROR] repair failed | "
+                                f"{_format_openai_error(repair_exc)}"
+                            )
+
+                        if repaired and _creative_output_is_valid(content_type, repaired):
+                            print(
+                                f"[HookSpike OPENAI] Repair success | model={model} | "
+                                f"output_chars={len(repaired)}"
+                            )
+                            return (repaired[:MAX_CREATIVE_CHARS], None)
+
+                        last_error = (
+                            f"{model} returned invalid creative output."
+                        )
+                        print(
+                            f"[HookSpike OPENAI ERROR] model={model} | invalid creative output"
+                        )
+                    else:
+                        last_error = (
+                            f"{model} returned an empty response."
+                        )
                     print(
                         f"[HookSpike OPENAI ERROR] model={model} | "
                         f"empty response"
@@ -909,13 +989,8 @@ If a current claim cannot be verified, explicitly mark it as unverified.
             "content_type": content_type,
         }
 
-    if research:
-        return {
-            "text": research,
-            "image": None,
-            "content_type": content_type,
-        }
-
+    # NEVER expose Gemini's research brief as the final creative result.
+    # If OpenAI fails, main.py receives the normal temporary-busy response.
     print(
         "[HookSpike AI FAILURE]",
         "Gemini:",

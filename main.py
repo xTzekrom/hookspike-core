@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 from flask import (
     Flask,
@@ -912,6 +913,34 @@ def decrease_user_token(user_id):
 
 
 # ============================================================
+# AI RESULT / TOKEN SAFETY
+# ============================================================
+
+def _ai_result_is_success(result):
+    """
+    Only consume a user token when the AI engine actually returned
+    a usable result. Provider/configuration failures must not burn tokens.
+    """
+    if not isinstance(result, str):
+        return bool(result)
+
+    text = result.strip().lower()
+
+    failure_markers = (
+        "⚠️ ai is temporarily unavailable",
+        "⚠️ ai is temporarily busy",
+        "ai api key is not configured",
+        "gemini api key is not configured",
+        "openai api key is not configured",
+        "openai sdk is missing",
+        "gemini research failed",
+        "openai creative generation failed",
+    )
+
+    return bool(text) and not any(marker in text for marker in failure_markers)
+
+
+# ============================================================
 # HOME
 # ============================================================
 
@@ -981,6 +1010,8 @@ def index():
 
         if tokens_left > 0:
 
+            started_at = time.perf_counter()
+
             try:
 
                 result = get_ai_response(
@@ -988,26 +1019,41 @@ def index():
                     topic,
                 )
 
-                # Consume one token
-                decrease_user_token(
-                    user_id
+                elapsed = time.perf_counter() - started_at
+
+                print(
+                    f"AI request completed in {elapsed:.2f}s "
+                    f"| platform={platform_type} "
+                    f"| topic_chars={len(topic)}"
                 )
 
-                # Read updated balance
-                tokens_left = get_user_tokens(
-                    user_id,
-                    email,
-                )
+                # IMPORTANT:
+                # Do NOT consume a token when the AI provider failed.
+                if _ai_result_is_success(result):
+                    decrease_user_token(user_id)
+
+                    tokens_left = get_user_tokens(
+                        user_id,
+                        email,
+                    )
+                else:
+                    print(
+                        "AI request did not produce a successful result; "
+                        "token was not consumed."
+                    )
 
             except Exception as e:
 
+                elapsed = time.perf_counter() - started_at
+
                 print(
-                    f"AI Engine Error: {e}"
+                    f"AI Engine Error after {elapsed:.2f}s: "
+                    f"{repr(e)}"
                 )
 
                 result = (
-                    "⚠️ AI Engine temporarily "
-                    "unavailable. Please try again."
+                    "⚠️ AI Engine temporarily unavailable. "
+                    "Your token was not consumed. Please try again."
                 )
 
 
@@ -1277,12 +1323,25 @@ def logout():
 # HEALTH CHECK
 # ============================================================
 
+@app.after_request
+def add_no_cache_headers(response):
+    # AI results are dynamic; never let an intermediary/browser serve
+    # an old generated page as a new result.
+    response.headers["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, max-age=0"
+    )
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @app.route("/health")
 def health():
 
     return {
         "status": "ok",
         "app": "HookSpike AI",
+        "ai_engine": "v2",
     }
 
 

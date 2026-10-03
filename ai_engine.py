@@ -1,30 +1,29 @@
 """
-HookSpike Dual-AI Engine
-========================
+HookSpike AI Engine
+===================
 
-Pipeline:
+Flow:
 
-    User
-      |
-      +--> Gemini
-      |       - research
-      |       - Google Search grounding
-      |       - facts / trends / sources
-      |
-      +--> OpenAI
-              - creative strategy
-              - hooks
-              - titles
-              - thumbnails
-              - scripts / angles
+    User Request
+         |
+         v
+    Gemini Research
+         |
+         |-- Google Search when current information is needed
+         |
+         v
+    OpenAI Creative Engine
+         |
+         v
+    Final User Answer
 
-Required environment variables:
+Environment variables:
 
     PRIMARY_KEY
-    BACKUP_KEY                  optional
+    BACKUP_KEY
 
     OPENAI_API_KEY
-    OPENAI_BACKUP_KEY           optional
+    OPENAI_BACKUP_KEY
 
 Optional:
 
@@ -34,7 +33,6 @@ Optional:
 
 import os
 import time
-import hashlib
 
 from google import genai
 from google.genai import types
@@ -44,28 +42,18 @@ from google.genai import types
 # CONFIG
 # ============================================================
 
-PRIMARY_KEY = os.environ.get(
-    "PRIMARY_KEY"
-)
+PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
+BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-BACKUP_KEY = os.environ.get(
-    "BACKUP_KEY"
-)
-
-OPENAI_API_KEY = os.environ.get(
-    "OPENAI_API_KEY"
-)
-
-OPENAI_BACKUP_KEY = os.environ.get(
-    "OPENAI_BACKUP_KEY"
-)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_BACKUP_KEY = os.environ.get("OPENAI_BACKUP_KEY")
 
 
-# ------------------------------------------------------------
-# Gemini models
-# ------------------------------------------------------------
+# ============================================================
+# GEMINI MODELS
+# ============================================================
 
-_GEMINI_PRIMARY_MODEL = os.environ.get(
+GEMINI_PRIMARY_MODEL = os.environ.get(
     "GEMINI_MODEL",
     "gemini-3.8-flash",
 )
@@ -73,18 +61,19 @@ _GEMINI_PRIMARY_MODEL = os.environ.get(
 GEMINI_MODELS = list(
     dict.fromkeys(
         [
-            _GEMINI_PRIMARY_MODEL,
+            GEMINI_PRIMARY_MODEL,
             "gemini-3.7-flash",
             "gemini-3.6-flash",
+            "gemini-3.5-flash",
             "gemini-3.5-flash-lite",
         ]
     )
 )
 
 
-# ------------------------------------------------------------
-# OpenAI models
-# ------------------------------------------------------------
+# ============================================================
+# OPENAI MODELS
+# ============================================================
 
 OPENAI_MODEL = os.environ.get(
     "OPENAI_MODEL",
@@ -102,15 +91,17 @@ OPENAI_MODELS = list(
 )
 
 
-# ------------------------------------------------------------
-# Performance limits
-# ------------------------------------------------------------
+# ============================================================
+# LIMITS
+# ============================================================
 
-MAX_RETRIES_PER_MODEL = 1
+MAX_RETRIES = 1
 
 MAX_TOPIC_CHARS = 12000
 
 MAX_RESEARCH_CHARS = 24000
+
+MAX_CREATIVE_CHARS = 30000
 
 
 # ============================================================
@@ -118,41 +109,28 @@ MAX_RESEARCH_CHARS = 24000
 # ============================================================
 
 def _get_gemini_keys():
-
     keys = []
 
     if PRIMARY_KEY:
-        keys.append(
-            PRIMARY_KEY
-        )
+        keys.append(PRIMARY_KEY)
 
-    if (
-        BACKUP_KEY
-        and BACKUP_KEY != PRIMARY_KEY
-    ):
-        keys.append(
-            BACKUP_KEY
-        )
+    if BACKUP_KEY and BACKUP_KEY != PRIMARY_KEY:
+        keys.append(BACKUP_KEY)
 
     return keys
 
 
 def _get_openai_keys():
-
     keys = []
 
     if OPENAI_API_KEY:
-        keys.append(
-            OPENAI_API_KEY
-        )
+        keys.append(OPENAI_API_KEY)
 
     if (
         OPENAI_BACKUP_KEY
         and OPENAI_BACKUP_KEY != OPENAI_API_KEY
     ):
-        keys.append(
-            OPENAI_BACKUP_KEY
-        )
+        keys.append(OPENAI_BACKUP_KEY)
 
     return keys
 
@@ -161,241 +139,134 @@ def _get_openai_keys():
 # ERROR HELPERS
 # ============================================================
 
-def _looks_like_temporary_error(
-    error_text
-):
+def _looks_like_temporary_error(error):
+    text = str(error).lower()
 
-    text = str(
-        error_text
-    ).lower()
-
-    temporary_signals = [
-
-        "503",
-
-        "502",
-
-        "500",
-
-        "unavailable",
-
-        "high demand",
-
-        "temporarily",
-
-        "overloaded",
-
-        "deadline exceeded",
-
-        "timeout",
-
-        "timed out",
-
+    signals = [
         "429",
-
+        "500",
+        "502",
+        "503",
         "rate limit",
-
         "rate_limit",
-
         "resource exhausted",
-
-        "internal error",
-
-        "server error",
-
+        "temporarily",
+        "temporary",
+        "unavailable",
+        "overloaded",
+        "high demand",
+        "timeout",
+        "timed out",
+        "deadline exceeded",
         "connection reset",
-
         "connection error",
-
+        "internal error",
+        "server error",
     ]
 
-    return any(
-        signal in text
-        for signal in temporary_signals
-    )
+    return any(signal in text for signal in signals)
 
 
-def _sleep_backoff(
-    attempt
-):
-
-    time.sleep(
-        0.8 * attempt
-    )
+def _backoff(attempt):
+    time.sleep(0.8 * attempt)
 
 
 # ============================================================
 # SEARCH DECISION
 # ============================================================
 
-def _should_use_search(
-    platform_type,
-    topic
-):
-
-    text = (
-        topic
-        .lower()
-    )
+def _should_use_search(platform_type, topic):
+    text = topic.lower()
 
     current_signals = [
-
         "today",
-
         "latest",
-
         "recent",
-
         "current",
-
         "news",
-
         "2026",
-
         "2027",
-
         "price",
-
+        "prices",
         "stock",
-
+        "stocks",
         "weather",
-
         "score",
-
+        "scores",
         "update",
-
+        "updates",
         "who is",
-
         "what happened",
-
         "new",
-
         "this week",
-
         "this month",
-
         "this year",
-
         "trend",
-
         "trending",
-
         "market",
-
+        "markets",
         "earning",
-
         "earnings",
-
         "salary",
-
         "income",
-
         "make money",
-
         "how to make money",
-
         "best",
-
         "top",
-
         "compare",
-
+        "comparison",
+        "viral",
     ]
 
-    if any(
-        signal in text
-        for signal in current_signals
-    ):
+    if any(signal in text for signal in current_signals):
         return True
-
-
-    # General AI questions should be grounded.
-    if platform_type == "global_ai":
-        return True
-
 
     return False
 
 
 # ============================================================
-# REQUEST FINGERPRINT
-# ============================================================
-
-def _request_fingerprint(
-    platform_type,
-    topic
-):
-
-    raw = (
-        f"{platform_type}|"
-        f"{topic.strip()}"
-    )
-
-    return hashlib.sha256(
-        raw.encode(
-            "utf-8"
-        )
-    ).hexdigest()[:12]
-
-
-# ============================================================
-# RESEARCH PROMPT
+# GEMINI RESEARCH PROMPT
 # ============================================================
 
 def _build_research_prompt(
     platform_type,
     topic,
-    use_search
+    use_search,
 ):
-
     if use_search:
-
         search_instruction = """
-USE WEB GROUNDING:
+Use Google Search grounding when useful.
 
-Use Google Search when it improves factual accuracy
-or freshness.
+The user may be asking for current information.
 
-Prefer recent, credible, primary, or authoritative sources.
+Prefer recent and reliable information.
 
 Do not invent:
-
 - statistics
 - dates
 - prices
-- quotes
-- claims
 - names
+- quotes
+- events
 - sources
+- claims
 """
-
     else:
-
         search_instruction = """
-WEB GROUNDING:
+Search is not required for this request.
 
-Web search is not required for this request.
+Answer from reliable model knowledge.
 
 Do not invent facts or sources.
+
+If something is uncertain, clearly mark it as uncertain.
 """
 
-
-    request_id = _request_fingerprint(
-        platform_type,
-        topic
-    )
-
-
     return f"""
+You are HookSpike's research intelligence engine.
 
-You are HookSpike's RESEARCH INTELLIGENCE agent.
-
-REQUEST ID:
-{request_id}
-
-Your job is NOT to write a generic answer.
-
-Your job is to research THIS EXACT USER REQUEST.
+Your job is to deeply understand the user's exact request
+and create a useful factual research brief for another AI.
 
 PLATFORM:
 {platform_type}
@@ -405,78 +276,51 @@ USER REQUEST:
 
 {search_instruction}
 
-
 IMPORTANT:
 
-Answer THIS exact request.
+Do not give a generic answer.
 
-Do not recycle a generic answer.
+Understand the exact topic.
 
-Use the user's:
+Stay tightly focused on what the user actually asked.
 
-- exact topic
-- exact entities
-- exact dates
-- exact numbers
-- exact constraints
+If the topic is current, use current information when available.
 
-when relevant.
+Return:
 
+1. CORE ANSWER
+The direct answer to the user's request.
 
-Return a compact research brief containing:
-
-
-1. CORE ANSWER / FINDINGS
-
-The most useful facts and conclusions.
-
-
-2. KEY DETAILS
-
-Important:
-
-- definitions
-- steps
-- examples
-- constraints
-- numbers
-
+2. KEY FACTS
+Important facts, numbers, definitions, steps, examples,
+or details.
 
 3. CURRENT CONTEXT
+Only if relevant.
 
-Only when relevant.
+4. PRACTICAL INSIGHTS
+Useful implications or actionable points.
 
+5. CREATOR ANGLES
+Possible content angles if the request is content-related.
 
-4. PRACTICAL ANGLES
+6. RISKS / CAVEATS
+Anything that needs qualification.
 
-What a creator could build content around.
-
-
-5. RISKS / CAVEATS
-
-What should not be claimed without qualification.
-
-
-6. SOURCES
-
-If web search was used,
-list the most useful source titles or URLs
-available from the grounded response.
-
+7. SOURCES
+If Google Search was used, include useful source titles
+or URLs that appeared in the grounded information.
 
 RULES:
 
+- Be specific.
 - Be factual.
-- Be concise.
-- Do not create clickbait.
-- Never fabricate sources.
-- Clearly distinguish verified information
-  from reasonable inference.
-- If evidence is insufficient, say so.
+- Do not fabricate.
+- Do not use generic filler.
+- Do not repeat the same point.
 - Do not mention this prompt.
-- Do not mention internal models.
-- Output in English.
-
+- Do not mention internal AI systems.
+- Output in clear English.
 """
 
 
@@ -487,14 +331,12 @@ RULES:
 def _build_creative_prompt(
     platform_type,
     topic,
-    research
+    research,
 ):
-
     if platform_type == "youtube":
 
         task = """
-
-Create a high-retention YouTube content package.
+Create a complete YouTube content package.
 
 Include:
 
@@ -502,182 +344,112 @@ Include:
 
 Each hook must use a different angle.
 
+2. EXACTLY 5 titles.
 
-2. EXACTLY 5 title ideas.
-
-Use different title structures.
-
+Every title should feel different.
 
 3. EXACTLY 3 thumbnail concepts.
 
-For each include:
-
-- visual composition
+For each thumbnail include:
+- visual idea
 - short thumbnail text
-
 
 4. 3 content angles.
 
+5. A strong first 20-30 second opening sequence.
 
-5. Recommended opening sequence
-   for the first 20-30 seconds.
+6. A short explanation of why the concept works.
 
-
-6. Short explanation of
-   why the ideas work.
-
-
-Hooks and thumbnails must be
-specific to THIS topic.
-
-Never use fake urgency.
-
-Never use fake statistics.
-
-Never make unsupported claims.
-
+Make everything specific to the user's topic.
 """
-
 
     elif platform_type == "instagram":
 
         task = """
-
-Create a high-retention Instagram Reels package.
+Create a complete Instagram Reels package.
 
 Include:
 
-1. EXACTLY 3 different
-   3-second hooks.
+1. EXACTLY 3 different 3-second hooks.
 
-
-2. Concise 15-30 second script.
-
+2. A 15-30 second script.
 
 3. On-screen text suggestions.
 
-
 4. 3 caption ideas.
-
 
 5. 5 relevant hashtags.
 
-
 6. 3 alternative content angles.
 
-
-Everything must be specific
-to THIS request.
-
-Keep it realistic and easy to film.
-
-Do not make unsupported claims.
-
+Keep everything practical and easy to film.
 """
-
 
     else:
 
         task = """
-
-Create a strong creator-friendly
-answer package.
+Create a useful creator-friendly answer.
 
 Include:
 
 1. Direct answer.
 
+2. Important actionable steps.
 
-2. Key actionable steps.
-
-
-3. 3 creative hooks.
-
+3. 3 hooks.
 
 4. 5 title ideas.
 
-
-5. 3 thumbnail / visual concepts.
-
+5. 3 thumbnail or visual concepts.
 
 6. 3 content angles.
 
-
 7. Practical next steps.
 
+If the user asked a normal factual question,
+answer that question first.
 
-If the user asked a non-creative
-question, prioritize the actual answer.
-
-Do not add unnecessary creator assets.
-
+Do not force creator assets when they are not useful.
 """
 
-
     return f"""
-
-You are HookSpike's
-CREATIVE INTELLIGENCE agent.
-
+You are HookSpike's creative intelligence engine.
 
 USER REQUEST:
-
 {topic}
 
+PLATFORM:
+{platform_type}
 
-RESEARCH BRIEF:
-
---------------------------------
+RESEARCH FROM GEMINI:
+---------------------
 
 {research}
 
---------------------------------
-
+---------------------
 
 {task}
 
-
 CREATIVE RULES:
 
-- Make the output specifically
-  about THIS user request.
-
-- Use concrete details from
-  the research.
-
-- Do not simply copy the
-  research wording.
-
-- Produce fresh wording.
-
-- Use distinct angles.
-
+- Be highly specific to the user's topic.
+- Do not produce generic motivational filler.
+- Do not copy the research word-for-word.
 - Do not invent facts.
+- Do not invent statistics.
+- Do not invent sources.
+- Do not create fake urgency.
+- Do not use fake claims.
+- Keep uncertainty when research is uncertain.
+- Make every hook meaningfully different.
+- Avoid repetitive wording.
+- Make the result immediately usable.
+- Do not mention Gemini.
+- Do not mention OpenAI.
+- Do not mention HookSpike.
+- Do not mention internal systems.
 
-- If research contains uncertainty,
-  preserve that uncertainty.
-
-- Avoid generic filler.
-
-- Avoid repetitive structures.
-
-- Make hooks curiosity-driven
-  without deception.
-
-- Keep everything practical.
-
-- Output in clear English.
-
-- Do not mention:
-
-  Gemini
-
-  OpenAI
-
-  HookSpike
-
-  AI models
-
+Output in clear English.
 """
 
 
@@ -689,200 +461,115 @@ def _generate_gemini(
     client,
     model,
     prompt,
-    use_search
+    use_search,
 ):
-
     tools = []
 
     if use_search:
-
         tools.append(
             types.Tool(
                 google_search=types.GoogleSearch()
             )
         )
 
-
     config = types.GenerateContentConfig(
-
-        max_output_tokens=4096,
-
-        tools=(
-            tools
-            if tools
-            else None
+        max_output_tokens=8192,
+        tools=tools if tools else None,
+        thinking_config=types.ThinkingConfig(
+            thinking_level="low"
         ),
-
-        thinking_config=(
-            types.ThinkingConfig(
-                thinking_level="low"
-            )
-        ),
-
     )
 
-
     return client.models.generate_content(
-
         model=model,
-
         contents=prompt,
-
         config=config,
-
     )
 
 
 # ============================================================
-# GEMINI RESEARCH
+# GEMINI RESEARCH ENGINE
 # ============================================================
 
 def _gemini_research(
     topic,
     platform_type,
-    use_search
+    use_search,
 ):
-
     keys = _get_gemini_keys()
 
-
     if not keys:
-
         return (
             None,
             "Gemini API key is not configured."
         )
 
-
     last_error = None
-
 
     for api_key in keys:
 
         try:
-
             client = genai.Client(
                 api_key=api_key
             )
 
         except Exception as exc:
-
             last_error = (
                 f"Gemini client error: {exc}"
             )
-
             continue
-
 
         for model in GEMINI_MODELS:
 
             if use_search:
-
-                search_modes = [
-                    True,
-                    False,
-                ]
-
+                search_modes = [True, False]
             else:
-
-                search_modes = [
-                    False
-                ]
-
+                search_modes = [False]
 
             for search_mode in search_modes:
 
                 prompt = _build_research_prompt(
-
                     platform_type=platform_type,
-
                     topic=topic,
-
                     use_search=search_mode,
-
                 )
 
-
-                if (
-                    not search_mode
-                    and use_search
-                ):
-
-                    prompt += """
-
-IMPORTANT FALLBACK:
-
-Web grounding was unavailable.
-
-Do NOT pretend that web research
-was performed.
-
-Answer only from reliable model
-knowledge.
-
-Clearly qualify information that
-may have changed.
-
-"""
-
-
                 for attempt in range(
-
                     1,
-
-                    MAX_RETRIES_PER_MODEL + 1
-
+                    MAX_RETRIES + 1,
                 ):
 
                     try:
-
                         response = _generate_gemini(
-
                             client=client,
-
                             model=model,
-
                             prompt=prompt,
-
                             use_search=search_mode,
-
                         )
 
-
-                        text = getattr(
-
+                        result = getattr(
                             response,
-
                             "text",
-
-                            None
-
+                            None,
                         )
-
 
                         if (
-                            text
-                            and text.strip()
+                            result
+                            and result.strip()
                         ):
-
                             return (
-
-                                text.strip()[
+                                result.strip()[
                                     :MAX_RESEARCH_CHARS
                                 ],
-
                                 None,
-
                             )
 
-
                         last_error = (
-                            f"{model} "
-                            "returned an empty response."
+                            f"{model} returned "
+                            "an empty response."
                         )
 
                         break
-
 
                     except Exception as exc:
 
@@ -890,37 +577,20 @@ may have changed.
                             f"{model}: {exc}"
                         )
 
-
                         if (
-
                             _looks_like_temporary_error(
                                 last_error
                             )
-
-                            and
-
-                            attempt
-                            < MAX_RETRIES_PER_MODEL
-
+                            and attempt < MAX_RETRIES
                         ):
-
-                            _sleep_backoff(
-                                attempt
-                            )
-
+                            _backoff(attempt)
                             continue
-
 
                         break
 
-
     return (
-
         None,
-
-        last_error
-        or "Gemini research failed."
-
+        last_error or "Gemini research failed."
     )
 
 
@@ -928,35 +598,22 @@ may have changed.
 # OPENAI CLIENT
 # ============================================================
 
-def _get_openai_client(
-    api_key
-):
+def _get_openai_client(api_key):
 
     try:
-
         from openai import OpenAI
 
     except ImportError:
-
         raise RuntimeError(
-
             "OpenAI SDK is missing. "
-
             "Add 'openai' to requirements.txt "
-
             "and redeploy on Render."
-
         )
 
-
     return OpenAI(
-
         api_key=api_key,
-
         timeout=30.0,
-
         max_retries=0,
-
     )
 
 
@@ -967,206 +624,139 @@ def _get_openai_client(
 def _generate_openai(
     client,
     prompt,
-    model=None
+    model,
 ):
-
     response = client.responses.create(
-
-        model=(
-            model
-            or OPENAI_MODEL
-        ),
-
+        model=model,
         instructions=(
-
-            "You are HookSpike's "
-            "creative intelligence layer. "
-
-            "Be accurate, original, "
-            "practical, concise, "
-            "and useful."
-
+            "You are HookSpike's creative "
+            "intelligence engine. "
+            "Be accurate, original, practical, "
+            "specific and useful."
         ),
-
         input=prompt,
-
     )
 
-
-    text = getattr(
-
+    output_text = getattr(
         response,
-
         "output_text",
-
-        None
-
+        None,
     )
-
 
     if (
-        text
-        and text.strip()
+        output_text
+        and output_text.strip()
     ):
-
-        return text.strip()
-
-
-    # Defensive SDK fallback.
+        return output_text.strip()
 
     try:
 
         chunks = []
 
-
-        for item in getattr(
-
-            response,
-
-            "output",
-
-            []
-
-        ) or []:
-
-
-            for content in getattr(
-
-                item,
-
-                "content",
-
+        for item in (
+            getattr(
+                response,
+                "output",
                 []
+            )
+            or []
+        ):
 
-            ) or []:
-
+            for content in (
+                getattr(
+                    item,
+                    "content",
+                    []
+                )
+                or []
+            ):
 
                 value = getattr(
-
                     content,
-
                     "text",
-
-                    None
-
+                    None,
                 )
 
-
                 if value:
-
-                    chunks.append(
-                        value
-                    )
-
+                    chunks.append(value)
 
         if chunks:
-
             return "\n".join(
                 chunks
             ).strip()
 
-
     except Exception:
-
         pass
-
 
     return None
 
 
 # ============================================================
-# OPENAI CREATIVE
+# OPENAI CREATIVE ENGINE
 # ============================================================
 
 def _openai_creative(
     topic,
     platform_type,
-    research
+    research,
 ):
-
     keys = _get_openai_keys()
 
-
     if not keys:
-
         return (
-
             None,
-
             "OpenAI API key is not configured."
-
         )
 
-
     prompt = _build_creative_prompt(
-
         platform_type=platform_type,
-
         topic=topic,
-
         research=research,
-
     )
 
-
     last_error = None
-
 
     for api_key in keys:
 
         try:
-
             client = _get_openai_client(
                 api_key
             )
 
         except Exception as exc:
-
             last_error = (
                 f"OpenAI client error: {exc}"
             )
-
             continue
-
 
         for model in OPENAI_MODELS:
 
             for attempt in range(
-
                 1,
-
-                MAX_RETRIES_PER_MODEL + 1
-
+                MAX_RETRIES + 1,
             ):
 
                 try:
 
-                    text = _generate_openai(
-
+                    result = _generate_openai(
                         client=client,
-
                         prompt=prompt,
-
                         model=model,
-
                     )
 
-
-                    if text:
+                    if result:
 
                         return (
-                            text,
-                            None
+                            result[
+                                :MAX_CREATIVE_CHARS
+                            ],
+                            None,
                         )
 
-
                     last_error = (
-
-                        f"{model} "
-                        "returned an empty response."
-
+                        f"{model} returned "
+                        "an empty response."
                     )
-
 
                 except Exception as exc:
 
@@ -1174,37 +764,21 @@ def _openai_creative(
                         f"{model}: {exc}"
                     )
 
-
                     if (
-
                         _looks_like_temporary_error(
                             last_error
                         )
-
-                        and
-
-                        attempt
-                        < MAX_RETRIES_PER_MODEL
-
+                        and attempt < MAX_RETRIES
                     ):
-
-                        _sleep_backoff(
-                            attempt
-                        )
-
+                        _backoff(attempt)
                         continue
-
 
                 break
 
-
     return (
-
         None,
-
         last_error
         or "OpenAI creative generation failed."
-
     )
 
 
@@ -1214,124 +788,242 @@ def _openai_creative(
 
 def get_ai_response(
     platform_type,
-    topic
+    topic,
 ):
-
     """
-    Main function imported by main.py.
+    Main function used by main.py.
 
     Normal pipeline:
 
-        User request
-             ↓
-        Gemini research
-             ↓
-        OpenAI creative answer
-             ↓
-        Result
+        Gemini
+           |
+           v
+        Research
+           |
+           v
+        OpenAI
+           |
+           v
+        Final answer
 
+    Fallback:
 
-    If Gemini fails:
-
-        OpenAI receives the ORIGINAL request
-        and can still answer.
-
+        Gemini fails
+             |
+             v
+        OpenAI works directly
+        from user's topic
 
     If OpenAI fails:
 
         Gemini research is returned.
 
-
     If everything fails:
 
-        Friendly error message.
+        Friendly temporary error.
     """
-
 
     # --------------------------------------------------------
     # Validate topic
     # --------------------------------------------------------
 
-    if (
-        not topic
-        or not topic.strip()
-    ):
-
+    if not topic:
         return (
-            "❌ Please enter a "
-            "question or topic first."
+            "❌ Please enter a question "
+            "or topic first."
         )
 
+    topic = str(topic).strip()
 
-    topic = topic.strip()
-
+    if not topic:
+        return (
+            "❌ Please enter a question "
+            "or topic first."
+        )
 
     if len(topic) > MAX_TOPIC_CHARS:
-
-        topic = topic[
-            :MAX_TOPIC_CHARS
-        ]
-
+        topic = topic[:MAX_TOPIC_CHARS]
 
     # --------------------------------------------------------
     # Validate platform
     # --------------------------------------------------------
 
     platform_type = (
-
         platform_type
         or "global_ai"
-
-    ).strip().lower()
-
-
-    if platform_type not in {
-
-        "youtube",
-
-        "instagram",
-
-        "global_ai",
-
-    }:
-
-        platform_type = "global_ai"
-
-
-    print(
-
-        "[HookSpike] New request | "
-
-        f"platform={platform_type} | "
-
-        f"topic_chars={len(topic)}"
-
     )
 
+    platform_type = (
+        str(platform_type)
+        .strip()
+        .lower()
+    )
+
+    allowed_platforms = {
+        "youtube",
+        "instagram",
+        "global_ai",
+    }
+
+    if platform_type not in allowed_platforms:
+        platform_type = "global_ai"
 
     # --------------------------------------------------------
-    # Decide if web grounding is useful
+    # Decide whether Google Search is needed
     # --------------------------------------------------------
 
     use_search = _should_use_search(
-
         platform_type=platform_type,
-
         topic=topic,
-
     )
 
-
-    # ========================================================
+    # --------------------------------------------------------
     # PHASE 1
     # GEMINI RESEARCH
-    # ========================================================
+    # --------------------------------------------------------
 
     research = None
-
     research_error = None
-
 
     try:
 
-        research, research_error =
+        research, research_error = (
+            _gemini_research(
+                topic=topic,
+                platform_type=platform_type,
+                use_search=use_search,
+            )
+        )
+
+    except Exception as exc:
+
+        research = None
+
+        research_error = (
+            f"Gemini research exception: {exc}"
+        )
+
+    # --------------------------------------------------------
+    # PHASE 2
+    # OPENAI CREATIVE ENGINE
+    # --------------------------------------------------------
+
+    creative = None
+    creative_error = None
+
+    if research:
+
+        try:
+
+            creative, creative_error = (
+                _openai_creative(
+                    topic=topic,
+                    platform_type=platform_type,
+                    research=research,
+                )
+            )
+
+        except Exception as exc:
+
+            creative = None
+
+            creative_error = (
+                f"OpenAI creative exception: {exc}"
+            )
+
+    else:
+
+        # ----------------------------------------------------
+        # GEMINI FAILED
+        # OPENAI WORKS DIRECTLY FROM USER REQUEST
+        # ----------------------------------------------------
+
+        fallback_research = """
+Gemini research was unavailable.
+
+Work directly from the user's exact request.
+
+Do not invent current facts,
+statistics, dates, prices, quotes,
+or sources.
+
+If current information is required,
+clearly state uncertainty.
+"""
+
+        try:
+
+            creative, creative_error = (
+                _openai_creative(
+                    topic=topic,
+                    platform_type=platform_type,
+                    research=fallback_research,
+                )
+            )
+
+        except Exception as exc:
+
+            creative = None
+
+            creative_error = (
+                f"OpenAI creative exception: {exc}"
+            )
+
+    # --------------------------------------------------------
+    # BEST RESULT
+    # --------------------------------------------------------
+
+    if creative:
+        return creative
+
+    if research:
+        return research
+
+    # --------------------------------------------------------
+    # EVERYTHING FAILED
+    # --------------------------------------------------------
+
+    print(
+        "[HookSpike AI FAILURE]",
+        "Gemini:",
+        research_error,
+        "| OpenAI:",
+        creative_error,
+    )
+
+    return (
+        "⚠️ AI is temporarily busy right now. "
+        "Please try again in a few seconds."
+    )
+
+
+# ============================================================
+# STATUS HELPER
+# ============================================================
+
+def get_ai_engine_status():
+    """
+    Safe status information.
+
+    Never exposes API keys.
+    """
+
+    return {
+        "gemini_configured": bool(
+            _get_gemini_keys()
+        ),
+        "openai_configured": bool(
+            _get_openai_keys()
+        ),
+        "gemini_model": GEMINI_MODELS[0],
+        "gemini_fallback_models": (
+            GEMINI_MODELS[1:]
+        ),
+        "openai_model": OPENAI_MODEL,
+        "openai_fallback_models": (
+            OPENAI_MODELS[1:]
+        ),
+        "search_available": bool(
+            _get_gemini_keys()
+        ),
+    }

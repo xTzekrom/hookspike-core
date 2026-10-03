@@ -10,6 +10,7 @@ from flask import (
     redirect,
     url_for,
     send_file,
+    jsonify,
 )
 
 from supabase import create_client, Client
@@ -22,7 +23,7 @@ from supabase_auth import SyncSupportedStorage
 # ============================================================
 
 try:
-    from ai_engine import get_ai_response
+    from ai_engine import get_ai_response, generate_thumbnail_image
 except ImportError:
     print("CRITICAL ERROR: 'ai_engine.py' file not found!")
     sys.exit(1)
@@ -386,6 +387,68 @@ HTML_TEMPLATE = """
             font-size: 20px;
             font-weight: 800;
         }
+        .content-selector { display: grid; gap: 12px; margin-bottom: 24px; }
+        .content-option { position: relative; }
+        .content-option input { position: absolute; opacity: 0; pointer-events: none; }
+        .content-option label {
+            display:flex; align-items:center; gap:14px; width:100%; box-sizing:border-box;
+            padding:16px 18px; margin:0; border:1px solid #263244; border-radius:16px;
+            background:linear-gradient(135deg,#0d111a,#111827); color:#e5e7eb;
+            text-transform:none; font-size:15px; letter-spacing:0; cursor:pointer; transition:.2s;
+        }
+        .content-option label:hover { border-color:#66fcf1; transform:translateY(-1px); }
+        .content-option input:checked + label {
+            border-color:#66fcf1; box-shadow:0 0 22px rgba(102,252,241,.14);
+            background:linear-gradient(135deg,#10202a,#111827);
+        }
+        .option-icon { font-size:26px; min-width:32px; }
+        .option-copy { text-align:left; }
+        .option-title { display:block; color:#fff; font-weight:900; font-size:16px; }
+        .option-sub { display:block; color:#8b96a8; font-size:12px; margin-top:3px; }
+        .result-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:15px; }
+        .result-type {
+            display:inline-flex; padding:7px 11px; border-radius:999px;
+            background:rgba(102,252,241,.08); border:1px solid rgba(102,252,241,.25);
+            color:#66fcf1; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:1px;
+        }
+        .thumbnail-preview { width:100%; display:block; margin-top:18px; border-radius:16px; border:1px solid #263244; box-shadow:0 12px 35px rgba(0,0,0,.35); }
+        .idea-note,.research-note { margin-top:12px; padding:12px 14px; border-radius:12px; font-size:12px; line-height:1.55; }
+        .generate-image-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 13px 18px;
+            border-radius: 12px;
+            border: 1px solid #374151;
+            background: linear-gradient(90deg, #7c3aed, #4f46e5);
+            color: white;
+            font-weight: 800;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: none;
+        }
+        .generate-image-btn:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+        .image-status {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(31, 41, 55, 0.65);
+            border: 1px dashed #374151;
+            color: #9ca3af;
+            font-size: 13px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .image-status.error {
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(127, 29, 29, 0.12);
+        }
+
+        .idea-note { background:rgba(245,158,11,.07); border:1px dashed rgba(245,158,11,.35); color:#cbd5e1; }
+        .research-note { background:rgba(102,252,241,.045); border:1px solid rgba(102,252,241,.12); color:#94a3b8; }
 
         /* --- PREMIUM COMMERCIAL PAYWALL SUITE --- */
         .paywall-box {
@@ -545,6 +608,60 @@ HTML_TEMPLATE = """
             }
         }
 
+
+        async function generateThumbnailImage() {
+            const btn = document.getElementById("generateImageBtn");
+            const status = document.getElementById("imageStatus");
+            const imageBox = document.getElementById("generatedImageBox");
+            const topicInput = document.querySelector('input[name="topic"]');
+            const rawText = document.getElementById("rawText");
+
+            if (!btn || !status || !imageBox || !topicInput || !rawText) return;
+
+            btn.disabled = true;
+            btn.innerText = "⏳ Generating thumbnail idea...";
+            status.className = "image-status";
+            status.innerText = "✨ Creating your visual idea...";
+            imageBox.innerHTML = "";
+
+            try {
+                const response = await fetch("/generate-thumbnail", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        topic: topicInput.value,
+                        thumbnail_text: rawText.innerText || rawText.textContent || ""
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.image) {
+                    const img = document.createElement("img");
+                    img.className = "thumbnail-preview";
+                    img.src = data.image;
+                    img.alt = "AI-generated thumbnail idea";
+                    imageBox.appendChild(img);
+
+                    status.className = "image-status";
+                    status.innerHTML = "💡 <strong>It’s an idea for your thumbnail.</strong> Use it as inspiration for your final design.";
+                    btn.innerText = "🖼️ Generate Again";
+                } else {
+                    status.className = "image-status error";
+                    status.innerText = data.error || "⚠️ Image server is busy — thumbnail image can't be generated right now.";
+                    btn.innerText = "🖼️ Try Generate Image Again";
+                }
+            } catch (error) {
+                console.error(error);
+                status.className = "image-status error";
+                status.innerText = "⚠️ Image server is busy — thumbnail image can't be generated right now.";
+                btn.innerText = "🖼️ Try Generate Image Again";
+            } finally {
+                btn.disabled = false;
+            }
+        }
 
          function copyText() {
             var element = document.getElementById("rawText");
@@ -767,51 +884,60 @@ HTML_TEMPLATE = """
                 onsubmit="showLoading()"
             >
 
-                <label>
-                    Select Optimization Engine:
-                </label>
+                <label>What do you want to create?</label>
 
-                <select
-                    name="platform_type"
-                    required
-                >
+                <div class="content-selector">
 
-                    <option value="youtube">
-                        🎥 YouTube Engine
-                        (Hooks & Thumbnails)
-                    </option>
+                    <div class="content-option">
+                        <input type="radio" id="typeHooks" name="content_type" value="hooks"
+                            {% if content_type == "hooks" or not content_type %}checked{% endif %} required>
+                        <label for="typeHooks">
+                            <span class="option-icon">🔥</span>
+                            <span class="option-copy">
+                                <span class="option-title">Hooks</span>
+                                <span class="option-sub">Scroll-stopping hooks, arranged in a clean sequence</span>
+                            </span>
+                        </label>
+                    </div>
 
-                    <option value="instagram">
-                        📱 Instagram Reels Engine
-                        (Viral Scripts & Hooks)
-                    </option>
+                    <div class="content-option">
+                        <input type="radio" id="typeScript" name="content_type" value="script"
+                            {% if content_type == "script" %}checked{% endif %}>
+                        <label for="typeScript">
+                            <span class="option-icon">🎬</span>
+                            <span class="option-copy">
+                                <span class="option-title">Script</span>
+                                <span class="option-sub">A topic-specific script with a strong opening and flow</span>
+                            </span>
+                        </label>
+                    </div>
 
-                    <option value="global_ai">
-                        🌐 HookSpike Core AI Search
-                        (Global Intelligence)
-                    </option>
+                    <div class="content-option">
+                        <input type="radio" id="typeThumbnail" name="content_type" value="thumbnail"
+                            {% if content_type == "thumbnail" %}checked{% endif %}>
+                        <label for="typeThumbnail">
+                            <span class="option-icon">🖼️</span>
+                            <span class="option-copy">
+                                <span class="option-title">Thumbnail</span>
+                                <span class="option-sub">Thumbnail concepts plus an AI visual example</span>
+                            </span>
+                        </label>
+                    </div>
 
-                </select>
+                </div>
 
-
-                <label>
-                    Enter Topic / Strategy Request:
-                </label>
+                <label>Enter Topic / Search:</label>
 
                 <input
                     type="text"
                     name="topic"
-                    placeholder="Enter topic, query, or script concept..."
+                    placeholder="Search a topic, game, update, trend, or idea..."
                     value="{{ topic }}"
                     required
                 >
 
-
-                <button
-                    type="submit"
-                    id="submitBtn"
-                >
-                    Launch AI Strategy Engine 🚀
+                <button type="submit" id="submitBtn">
+                    Create My {{ content_type|title if content_type else "Hooks" }} 🚀
                 </button>
 
             </form>
@@ -833,32 +959,56 @@ HTML_TEMPLATE = """
         </div>
 
 
-        {% if result and not show_paywall %}
+        {% if result_text and not show_paywall %}
 
             <div class="result-box">
 
-                <h3>
-                    📊 Engine Output Matrix Unlocked:
-                </h3>
-
-                <!-- Naya Visual Gaming Card Hook Wrapper -->
-                <div class="hook-card">
-                    <div id="rawText">{{ result }}</div>
-                    
-                    <!-- Dynamic Creator Video/Audio Guidance Box -->
-                    <div class="cue-box">
-                        🎬 <strong>Visual Cue Suggestion:</strong> Show high-paced B-roll mapping to the core query concept. Apply a 3-second aggressive frame zoom to disrupt viewer scrolling patterns.<br><br>
-                        🎵 <strong>Audio Cue Suggestion:</strong> Layer a low-frequency cinematic sub-bass drop or 'Vine Boom' element exactly at the hook delivery timestamp.
-                    </div>
+                <div class="result-header">
+                    <h3 style="margin:0;">
+                        {% if content_type == "hooks" %}🔥 Hook Lab
+                        {% elif content_type == "script" %}🎬 Script Studio
+                        {% else %}🖼️ Thumbnail Lab
+                        {% endif %}
+                    </h3>
+                    <span class="result-type">{{ content_type|title }}</span>
                 </div>
 
-                <button
-                    id="copyBtnText"
-                    class="copy-btn"
-                    onclick="copyText()"
-                    type="button"
-                >
-                    📋 Copy Strategy Data
+                <div class="hook-card">
+                    <div id="rawText">{{ result_text }}</div>
+
+                    {% if content_type == "thumbnail" %}
+                        <div id="generatedImageBox"></div>
+                        <button
+                            id="generateImageBtn"
+                            class="generate-image-btn"
+                            type="button"
+                            onclick="generateThumbnailImage()"
+                        >
+                            🖼️ Generate Image for an Idea
+                        </button>
+                        <div id="imageStatus" class="image-status">
+                            💡 Want to see the concept? Tap the button above to generate an example image.
+                        </div>
+                    {% endif %}
+
+                    {% if content_type == "hooks" %}
+                        <div class="research-note">
+                            ⚡ Hooks are arranged in sequence so you can test different opening angles
+                            without scripts or thumbnail concepts mixed into the result.
+                        </div>
+                    {% elif content_type == "script" %}
+                        <div class="research-note">
+                            🎬 This result is focused only on the searched topic, with current facts checked when required.
+                        </div>
+                    {% else %}
+                        <div class="research-note">
+                            🎨 The text defines the thumbnail direction; the generated visual is an example concept.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <button id="copyBtnText" class="copy-btn" onclick="copyText()" type="button">
+                    📋 Copy Result
                 </button>
 
             </div>
@@ -1026,6 +1176,9 @@ def index():
     )
 
     result = None
+    result_text = None
+    result_image = None
+    content_type = "hooks"
     topic = ""
 
     show_paywall = (
@@ -1039,11 +1192,15 @@ def index():
 
     if request.method == "POST":
 
-        platform_type = (
+        content_type = (
             request.form
-            .get("platform_type", "")
+            .get("content_type", "hooks")
             .strip()
+            .lower()
         )
+
+        if content_type not in {"hooks", "script", "thumbnail"}:
+            content_type = "hooks"
 
         topic = (
             request.form
@@ -1059,6 +1216,9 @@ def index():
                 logged_in=True,
                 user_email=email,
                 result=None,
+                result_text=None,
+                result_image=None,
+                content_type=content_type,
                 topic="",
                 tokens_left=tokens_left,
                 show_paywall=show_paywall,
@@ -1072,7 +1232,7 @@ def index():
             try:
 
                 result = get_ai_response(
-                    platform_type,
+                    content_type,
                     topic,
                 )
 
@@ -1080,9 +1240,17 @@ def index():
 
                 print(
                     f"AI request completed in {elapsed:.2f}s "
-                    f"| platform={platform_type} "
+                    f"| content_type={content_type} "
                     f"| topic_chars={len(topic)}"
                 )
+
+                # New engine returns text plus an optional thumbnail image.
+                if isinstance(result, dict):
+                    result_text = result.get("text")
+                    result_image = result.get("image")
+                else:
+                    result_text = result
+                    result_image = None
 
                 # IMPORTANT:
                 # Do NOT consume a token when the AI provider failed.
@@ -1124,6 +1292,9 @@ def index():
         logged_in=True,
         user_email=email,
         result=result,
+        result_text=result_text,
+        result_image=result_image,
+        content_type=content_type,
         topic=topic,
         tokens_left=tokens_left,
         show_paywall=show_paywall,
@@ -1374,6 +1545,48 @@ def logout():
     return redirect(
         url_for("index")
     )
+
+
+# ============================================================
+# ON-DEMAND THUMBNAIL IMAGE
+# ============================================================
+
+@app.route("/generate-thumbnail", methods=["POST"])
+def generate_thumbnail_route():
+
+    if not session.get("user_id"):
+        return jsonify({
+            "ok": False,
+            "image": None,
+            "error": "⚠️ Please log in first."
+        }), 401
+
+    try:
+        data = request.get_json(silent=True) or {}
+        topic = str(data.get("topic", "")).strip()
+        thumbnail_text = str(data.get("thumbnail_text", "")).strip()
+
+        if not topic or not thumbnail_text:
+            return jsonify({
+                "ok": False,
+                "image": None,
+                "error": "⚠️ Thumbnail details are missing. Please generate the thumbnail concepts again."
+            }), 400
+
+        result = generate_thumbnail_image(
+            topic=topic[:12000],
+            thumbnail_text=thumbnail_text[:30000],
+        )
+
+        return jsonify(result)
+
+    except Exception as exc:
+        print(f"On-demand thumbnail route error: {repr(exc)}")
+        return jsonify({
+            "ok": False,
+            "image": None,
+            "error": "⚠️ Image server is busy — thumbnail image can't be generated right now."
+        }), 200
 
 
 # ============================================================

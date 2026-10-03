@@ -48,6 +48,10 @@ BACKUP_KEY = os.environ.get("BACKUP_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_BACKUP_KEY = os.environ.get("OPENAI_BACKUP_KEY")
 
+# Optional dedicated key for thumbnail image generation.
+# If not set, the existing OpenAI backup key is used.
+OPENAI_IMAGE_API_KEY = os.environ.get("OPENAI_IMAGE_API_KEY")
+
 
 # ============================================================
 # GEMINI MODELS
@@ -175,241 +179,129 @@ def _backoff(attempt):
 # SEARCH DECISION
 # ============================================================
 
-def _should_use_search(platform_type, topic):
-    text = topic.lower()
-
-    current_signals = [
-        "today",
-        "latest",
-        "recent",
-        "current",
-        "news",
-        "2026",
-        "2027",
-        "price",
-        "prices",
-        "stock",
-        "stocks",
-        "weather",
-        "score",
-        "scores",
-        "update",
-        "updates",
-        "who is",
-        "what happened",
-        "new",
-        "this week",
-        "this month",
-        "this year",
-        "trend",
-        "trending",
-        "market",
-        "markets",
-        "earning",
-        "earnings",
-        "salary",
-        "income",
-        "make money",
-        "how to make money",
-        "best",
-        "top",
-        "compare",
-        "comparison",
-        "viral",
-    ]
-
-    if any(signal in text for signal in current_signals):
-        return True
-
-    return False
+def _should_use_search(content_type, topic):
+    """
+    Creator requests can depend on very recent announcements, collaborations,
+    game updates, releases and trends. Search is therefore enabled by default
+    so the research layer can verify current claims before creative generation.
+    """
+    return True
 
 
-# ============================================================
 # GEMINI RESEARCH PROMPT
 # ============================================================
 
 def _build_research_prompt(
-    platform_type,
+    content_type,
     topic,
     use_search,
 ):
-    if use_search:
-        search_instruction = """
-Use Google Search grounding when useful.
-
-The user may be asking for current information.
-
-Prefer recent and reliable information.
-
-Do not invent:
-- statistics
-- dates
-- prices
-- names
-- quotes
-- events
-- sources
-- claims
-"""
-    else:
-        search_instruction = """
-Search is not required for this request.
-
-Answer from reliable model knowledge.
-
-Do not invent facts or sources.
-
-If something is uncertain, clearly mark it as uncertain.
-"""
-
     return f"""
-You are HookSpike's research intelligence engine.
+You are HookSpike's factual research intelligence engine.
 
-Your job is to deeply understand the user's exact request
-and create a useful factual research brief for another AI.
+USER CONTENT TYPE:
+{content_type}
 
-PLATFORM:
-{platform_type}
-
-USER REQUEST:
+USER TOPIC:
 {topic}
 
-{search_instruction}
+CURRENT INFORMATION RULE:
+This request MUST be checked against current web information before creative output.
+Use Google Search grounding.
 
-IMPORTANT:
+If the topic mentions a game, anime, collaboration, event, update, release,
+announcement, partnership, character, product, feature, or other time-sensitive
+entity, actively verify whether it has actually been announced/released/confirmed.
 
-Do not give a generic answer.
+VERY IMPORTANT VERIFICATION RULES:
+- Never say "not officially announced" unless the searched evidence supports that exact status.
+- If an announcement exists, say it is announced and include the relevant date/context.
+- Distinguish official announcements from leaks, rumors, speculation and fan posts.
+- Prefer official sources and reputable reporting for announcement status.
+- Do not turn an old article into a current claim.
+- If sources disagree, explicitly state the disagreement instead of choosing a side without evidence.
+- Do not invent dates, names, statistics, quotes, collaborations or release details.
+- Do not assume that because something was unannounced at an older date it is still unannounced now.
 
-Understand the exact topic.
+Return a compact research brief for the creative engine:
 
-Stay tightly focused on what the user actually asked.
+1. VERIFIED CORE FACTS
+2. CURRENT / ANNOUNCEMENT STATUS
+3. IMPORTANT DETAILS FOR THIS TOPIC
+4. CREATOR-RELEVANT ANGLES
+5. FACTS THAT MUST NOT BE CLAIMED
+6. SOURCES / SOURCE TITLES IF AVAILABLE
 
-If the topic is current, use current information when available.
-
-Return:
-
-1. CORE ANSWER
-The direct answer to the user's request.
-
-2. KEY FACTS
-Important facts, numbers, definitions, steps, examples,
-or details.
-
-3. CURRENT CONTEXT
-Only if relevant.
-
-4. PRACTICAL INSIGHTS
-Useful implications or actionable points.
-
-5. CREATOR ANGLES
-Possible content angles if the request is content-related.
-
-6. RISKS / CAVEATS
-Anything that needs qualification.
-
-7. SOURCES
-If Google Search was used, include useful source titles
-or URLs that appeared in the grounded information.
-
-RULES:
-
-- Be specific.
-- Be factual.
-- Do not fabricate.
-- Do not use generic filler.
-- Do not repeat the same point.
-- Do not mention this prompt.
-- Do not mention internal AI systems.
-- Output in clear English.
+Keep it specific to the user's exact topic.
+Do not mention internal AI systems.
+Output in clear English.
 """
 
 
-# ============================================================
 # CREATIVE PROMPT
 # ============================================================
 
 def _build_creative_prompt(
-    platform_type,
+    content_type,
     topic,
     research,
 ):
-    if platform_type == "youtube":
-
+    if content_type == "hooks":
         task = """
-Create a complete YouTube content package.
+Create ONLY hooks.
 
-Include:
+Return exactly 7 hooks, numbered 1 to 7, ordered from strongest scroll-stopping
+opening to alternative angles.
 
-1. EXACTLY 3 hooks.
+Each hook must:
+- be genuinely different from the others
+- directly use the user's topic
+- be usable as spoken opening lines
+- avoid generic filler
+- avoid repeating the same sentence pattern
+- respect the verified research
+- never claim something is unannounced if the research says it was announced
 
-Each hook must use a different angle.
-
-2. EXACTLY 5 titles.
-
-Every title should feel different.
-
-3. EXACTLY 3 thumbnail concepts.
-
-For each thumbnail include:
-- visual idea
-- short thumbnail text
-
-4. 3 content angles.
-
-5. A strong first 20-30 second opening sequence.
-
-6. A short explanation of why the concept works.
-
-Make everything specific to the user's topic.
+After the 7 hooks, add a very short section:
+BEST USE: one sentence explaining when to use the strongest hook.
+Do NOT include a script, thumbnail ideas, titles, hashtags or unrelated content.
 """
 
-    elif platform_type == "instagram":
-
+    elif content_type == "script":
         task = """
-Create a complete Instagram Reels package.
+Create ONLY one topic-specific short-form script.
 
-Include:
+Structure:
+1. HOOK
+2. SETUP
+3. MAIN BODY
+4. PAYOFF
+5. CTA
 
-1. EXACTLY 3 different 3-second hooks.
+Make it natural to speak, specific to the searched topic, and based on verified
+current information when applicable.
 
-2. A 15-30 second script.
-
-3. On-screen text suggestions.
-
-4. 3 caption ideas.
-
-5. 5 relevant hashtags.
-
-6. 3 alternative content angles.
-
-Keep everything practical and easy to film.
+Do NOT include a list of hooks, thumbnail concepts, title ideas or hashtags.
+Do not repeat the same point in different wording.
 """
 
     else:
-
         task = """
-Create a useful creator-friendly answer.
+Create ONLY a thumbnail concept package for the searched topic.
 
-Include:
+Give exactly 3 distinct thumbnail concepts.
 
-1. Direct answer.
+For each concept include:
+1. CONCEPT NAME
+2. VISUAL COMPOSITION
+3. SUBJECT / CHARACTER FOCUS
+4. SHORT THUMBNAIL TEXT (3-6 words)
+5. EXPRESSION / EMOTION
+6. COLOR / LIGHTING DIRECTION
+7. WHY IT FITS THIS TOPIC
 
-2. Important actionable steps.
-
-3. 3 hooks.
-
-4. 5 title ideas.
-
-5. 3 thumbnail or visual concepts.
-
-6. 3 content angles.
-
-7. Practical next steps.
-
-If the user asked a normal factual question,
-answer that question first.
-
-Do not force creator assets when they are not useful.
+The concepts must be visually different and tied tightly to the user's topic.
+Do not include hooks, scripts, titles or hashtags.
 """
 
     return f"""
@@ -418,42 +310,29 @@ You are HookSpike's creative intelligence engine.
 USER REQUEST:
 {topic}
 
-PLATFORM:
-{platform_type}
+REQUESTED OUTPUT TYPE:
+{content_type}
 
-RESEARCH FROM GEMINI:
+VERIFIED RESEARCH:
 ---------------------
-
 {research}
-
 ---------------------
 
 {task}
 
-CREATIVE RULES:
-
-- Be highly specific to the user's topic.
-- Do not produce generic motivational filler.
-- Do not copy the research word-for-word.
-- Do not invent facts.
-- Do not invent statistics.
-- Do not invent sources.
-- Do not create fake urgency.
-- Do not use fake claims.
-- Keep uncertainty when research is uncertain.
-- Make every hook meaningfully different.
-- Avoid repetitive wording.
-- Make the result immediately usable.
-- Do not mention Gemini.
-- Do not mention OpenAI.
-- Do not mention HookSpike.
-- Do not mention internal systems.
-
-Output in clear English.
+QUALITY RULES:
+- The research is the factual source of truth.
+- Do not contradict verified facts.
+- Do not invent current claims, statistics, dates, names, quotes or announcements.
+- If the research says a claim is uncertain, preserve that uncertainty.
+- Make every item meaningfully different.
+- Avoid generic motivational filler.
+- Avoid repeated hooks or near-duplicate wording.
+- Do not mention Gemini, OpenAI, HookSpike or internal systems.
+- Output in clear English.
 """
 
 
-# ============================================================
 # GEMINI GENERATION
 # ============================================================
 
@@ -493,7 +372,7 @@ def _generate_gemini(
 
 def _gemini_research(
     topic,
-    platform_type,
+    content_type,
     use_search,
 ):
     keys = _get_gemini_keys()
@@ -529,7 +408,7 @@ def _gemini_research(
             for search_mode in search_modes:
 
                 prompt = _build_research_prompt(
-                    platform_type=platform_type,
+                    content_type=content_type,
                     topic=topic,
                     use_search=search_mode,
                 )
@@ -697,7 +576,7 @@ def _generate_openai(
 
 def _openai_creative(
     topic,
-    platform_type,
+    content_type,
     research,
 ):
     keys = _get_openai_keys()
@@ -709,7 +588,7 @@ def _openai_creative(
         )
 
     prompt = _build_creative_prompt(
-        platform_type=platform_type,
+        content_type=content_type,
         topic=topic,
         research=research,
     )
@@ -783,205 +662,184 @@ def _openai_creative(
 
 
 # ============================================================
+# THUMBNAIL IMAGE GENERATION
+# ============================================================
+
+def generate_thumbnail_image(topic, thumbnail_text):
+    """
+    Generate one thumbnail visual ONLY when the user explicitly asks for it.
+
+    The image request uses a dedicated image key when configured. If that
+    variable is missing, the existing OpenAI backup key is used. Failure is
+    intentionally returned to the UI as an image-only error; it never replaces
+    or damages the already-generated thumbnail text.
+    """
+    api_key = (
+        OPENAI_IMAGE_API_KEY
+        or OPENAI_BACKUP_KEY
+    )
+
+    if not api_key:
+        return {
+            "ok": False,
+            "image": None,
+            "error": "⚠️ Image server is busy — thumbnail image can't be generated right now."
+        }
+
+    prompt = f"""
+Create a high-impact YouTube/social-media thumbnail concept image.
+
+Topic: {topic}
+
+Thumbnail direction:
+{thumbnail_text}
+
+IMPORTANT:
+- This is an illustrative thumbnail IDEA, not a factual photograph.
+- Use a clean, dramatic, creator-friendly composition.
+- Make the main subject immediately readable on a phone screen.
+- Leave sensible space for a short text overlay.
+- Do not add fake logos, fake official announcements, or misleading claims.
+- Do not rely on tiny unreadable text inside the image.
+- No watermark.
+"""
+
+    try:
+        client = _get_openai_client(api_key)
+        response = client.images.generate(
+            model=os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2"),
+            prompt=prompt,
+            size="1536x1024",
+            quality="low",
+        )
+        data = getattr(response, "data", None) or []
+        if data:
+            b64 = getattr(data[0], "b64_json", None)
+            if b64:
+                return {
+                    "ok": True,
+                    "image": "data:image/png;base64," + b64,
+                    "error": None,
+                }
+
+            url = getattr(data[0], "url", None)
+            if url:
+                return {
+                    "ok": True,
+                    "image": url,
+                    "error": None,
+                }
+
+    except Exception as exc:
+        print(f"Thumbnail image generation failed: {exc}")
+
+    return {
+        "ok": False,
+        "image": None,
+        "error": "⚠️ Image server is busy — thumbnail image can't be generated right now. Please try again later.",
+    }
+
+
 # MAIN PUBLIC FUNCTION
 # ============================================================
 
 def get_ai_response(
-    platform_type,
+    content_type,
     topic,
 ):
     """
     Main function used by main.py.
 
-    Normal pipeline:
+    content_type:
+        hooks | script | thumbnail
 
-        Gemini
-           |
-           v
-        Research
-           |
-           v
-        OpenAI
-           |
-           v
-        Final answer
-
-    Fallback:
-
-        Gemini fails
-             |
-             v
-        OpenAI works directly
-        from user's topic
-
-    If OpenAI fails:
-
-        Gemini research is returned.
-
-    If everything fails:
-
-        Friendly temporary error.
+    Pipeline:
+        Gemini current-fact verification
+                    |
+                    v
+        OpenAI generates ONLY requested asset
+                    |
+                    v
+        Thumbnail requests optionally receive one AI visual example
     """
 
-    # --------------------------------------------------------
-    # Validate topic
-    # --------------------------------------------------------
-
     if not topic:
-        return (
-            "❌ Please enter a question "
-            "or topic first."
-        )
+        return "❌ Please enter a question or topic first."
 
     topic = str(topic).strip()
 
     if not topic:
-        return (
-            "❌ Please enter a question "
-            "or topic first."
-        )
+        return "❌ Please enter a question or topic first."
 
     if len(topic) > MAX_TOPIC_CHARS:
         topic = topic[:MAX_TOPIC_CHARS]
 
-    # --------------------------------------------------------
-    # Validate platform
-    # --------------------------------------------------------
+    content_type = str(content_type or "hooks").strip().lower()
 
-    platform_type = (
-        platform_type
-        or "global_ai"
-    )
+    if content_type not in {"hooks", "script", "thumbnail"}:
+        content_type = "hooks"
 
-    platform_type = (
-        str(platform_type)
-        .strip()
-        .lower()
-    )
-
-    allowed_platforms = {
-        "youtube",
-        "instagram",
-        "global_ai",
-    }
-
-    if platform_type not in allowed_platforms:
-        platform_type = "global_ai"
-
-    # --------------------------------------------------------
-    # Decide whether Google Search is needed
-    # --------------------------------------------------------
-
-    use_search = _should_use_search(
-        platform_type=platform_type,
-        topic=topic,
-    )
-
-    # --------------------------------------------------------
-    # PHASE 1
-    # GEMINI RESEARCH
-    # --------------------------------------------------------
+    # Current verification is deliberately enabled for creator topics.
+    use_search = True
 
     research = None
     research_error = None
 
     try:
-
-        research, research_error = (
-            _gemini_research(
-                topic=topic,
-                platform_type=platform_type,
-                use_search=use_search,
-            )
+        research, research_error = _gemini_research(
+            topic=topic,
+            content_type=content_type,
+            use_search=use_search,
         )
-
     except Exception as exc:
-
-        research = None
-
-        research_error = (
-            f"Gemini research exception: {exc}"
-        )
-
-    # --------------------------------------------------------
-    # PHASE 2
-    # OPENAI CREATIVE ENGINE
-    # --------------------------------------------------------
+        research_error = f"Gemini research exception: {exc}"
 
     creative = None
     creative_error = None
 
     if research:
-
         try:
-
-            creative, creative_error = (
-                _openai_creative(
-                    topic=topic,
-                    platform_type=platform_type,
-                    research=research,
-                )
+            creative, creative_error = _openai_creative(
+                topic=topic,
+                content_type=content_type,
+                research=research,
             )
-
         except Exception as exc:
-
-            creative = None
-
-            creative_error = (
-                f"OpenAI creative exception: {exc}"
-            )
-
+            creative_error = f"OpenAI creative exception: {exc}"
     else:
-
-        # ----------------------------------------------------
-        # GEMINI FAILED
-        # OPENAI WORKS DIRECTLY FROM USER REQUEST
-        # ----------------------------------------------------
-
+        # Keep the service usable if research temporarily fails.
         fallback_research = """
-Gemini research was unavailable.
+Current web research was temporarily unavailable.
 
-Work directly from the user's exact request.
-
-Do not invent current facts,
-statistics, dates, prices, quotes,
-or sources.
-
-If current information is required,
-clearly state uncertainty.
+Work only from the user's exact request.
+Do not invent current facts, announcements, dates, statistics, quotes or sources.
+If a current claim cannot be verified, explicitly mark it as unverified.
 """
 
         try:
-
-            creative, creative_error = (
-                _openai_creative(
-                    topic=topic,
-                    platform_type=platform_type,
-                    research=fallback_research,
-                )
+            creative, creative_error = _openai_creative(
+                topic=topic,
+                content_type=content_type,
+                research=fallback_research,
             )
-
         except Exception as exc:
-
-            creative = None
-
-            creative_error = (
-                f"OpenAI creative exception: {exc}"
-            )
-
-    # --------------------------------------------------------
-    # BEST RESULT
-    # --------------------------------------------------------
+            creative_error = f"OpenAI creative exception: {exc}"
 
     if creative:
-        return creative
+        # Thumbnail images are deliberately NOT generated here.
+        # The UI asks for the image only after the user clicks the button.
+        return {
+            "text": creative,
+            "image": None,
+            "content_type": content_type,
+        }
 
     if research:
-        return research
-
-    # --------------------------------------------------------
-    # EVERYTHING FAILED
-    # --------------------------------------------------------
+        return {
+            "text": research,
+            "image": None,
+            "content_type": content_type,
+        }
 
     print(
         "[HookSpike AI FAILURE]",
@@ -997,7 +855,6 @@ clearly state uncertainty.
     )
 
 
-# ============================================================
 # STATUS HELPER
 # ============================================================
 

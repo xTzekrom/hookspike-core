@@ -118,6 +118,8 @@ HTML_TEMPLATE = """
 
     <title>HookSpike AI ⚡ - Ultra-Growth Creative Engine</title>
 
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/xTzekrom/hookspike-core/main/file_00000000fd8481fab2b4f371e41aa854.png">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"

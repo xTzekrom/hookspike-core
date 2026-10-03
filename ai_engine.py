@@ -103,9 +103,19 @@ MAX_RETRIES = 1
 
 MAX_TOPIC_CHARS = 12000
 
+# Gemini research can be useful but unnecessarily large research briefs make
+# the OpenAI creative request slower and more expensive. Keep the full
+# research available to Gemini, but send a compact slice to OpenAI.
 MAX_RESEARCH_CHARS = 24000
+MAX_RESEARCH_FOR_OPENAI_CHARS = 12000
 
 MAX_CREATIVE_CHARS = 30000
+
+# OpenAI gets more than the old 30-second window because the creative step can
+# receive verified research and may need a little time to produce structured
+# hooks/scripts/thumbnail concepts.
+OPENAI_TIMEOUT_SECONDS = 90.0
+OPENAI_SDK_RETRIES = 2
 
 
 # ============================================================
@@ -491,8 +501,8 @@ def _get_openai_client(api_key):
 
     return OpenAI(
         api_key=api_key,
-        timeout=30.0,
-        max_retries=0,
+        timeout=OPENAI_TIMEOUT_SECONDS,
+        max_retries=OPENAI_SDK_RETRIES,
     )
 
 
@@ -571,6 +581,54 @@ def _generate_openai(
 
 
 # ============================================================
+# OPENAI DEBUG / RESEARCH COMPACTION HELPERS
+# ============================================================
+
+def _compact_research_for_openai(research):
+    """Keep the creative request focused without throwing away all research."""
+    if not research:
+        return ""
+
+    text = str(research).strip()
+    if len(text) <= MAX_RESEARCH_FOR_OPENAI_CHARS:
+        return text
+
+    # Preserve the beginning (verified facts/status) and the ending (sources),
+    # while avoiding a huge middle section that can slow the creative call.
+    head_size = int(MAX_RESEARCH_FOR_OPENAI_CHARS * 0.72)
+    tail_size = MAX_RESEARCH_FOR_OPENAI_CHARS - head_size
+
+    return (
+        text[:head_size]
+        + "\n\n[Research middle section compacted for creative generation.]\n\n"
+        + text[-tail_size:]
+    )
+
+
+def _format_openai_error(exc):
+    """Return useful diagnostics without ever printing an API key."""
+    error_type = type(exc).__name__
+    message = str(exc).strip() or "No error message returned."
+
+    status = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(exc, "status", None)
+
+    code = getattr(exc, "code", None)
+    request_id = getattr(exc, "request_id", None)
+
+    parts = [error_type]
+    if status is not None:
+        parts.append(f"status={status}")
+    if code:
+        parts.append(f"code={code}")
+    if request_id:
+        parts.append(f"request_id={request_id}")
+
+    return f"{' | '.join(parts)} | message={message}"
+
+
+# ============================================================
 # OPENAI CREATIVE ENGINE
 # ============================================================
 
@@ -587,10 +645,17 @@ def _openai_creative(
             "OpenAI API key is not configured."
         )
 
+    compact_research = _compact_research_for_openai(research)
+
+    print(
+        f"[HookSpike OPENAI] Starting creative generation | "
+        f"type={content_type} | research_chars={len(compact_research)}"
+    )
+
     prompt = _build_creative_prompt(
         content_type=content_type,
         topic=topic,
-        research=research,
+        research=compact_research,
     )
 
     last_error = None
@@ -604,7 +669,11 @@ def _openai_creative(
 
         except Exception as exc:
             last_error = (
-                f"OpenAI client error: {exc}"
+                f"OpenAI client error: {_format_openai_error(exc)}"
+            )
+            print(
+                f"[HookSpike OPENAI ERROR] client setup | "
+                f"{last_error}"
             )
             continue
 
@@ -625,6 +694,11 @@ def _openai_creative(
 
                     if result:
 
+                        print(
+                            f"[HookSpike OPENAI] Success | model={model} | "
+                            f"output_chars={len(result)}"
+                        )
+
                         return (
                             result[
                                 :MAX_CREATIVE_CHARS
@@ -633,14 +707,23 @@ def _openai_creative(
                         )
 
                     last_error = (
-                        f"{model} returned "
-                        "an empty response."
+                        f"{model} returned an empty response."
+                    )
+                    print(
+                        f"[HookSpike OPENAI ERROR] model={model} | "
+                        f"empty response"
                     )
 
                 except Exception as exc:
 
                     last_error = (
-                        f"{model}: {exc}"
+                        f"{model}: {_format_openai_error(exc)}"
+                    )
+
+                    print(
+                        f"[HookSpike OPENAI ERROR] model={model} | "
+                        f"key_slot={keys.index(api_key) + 1} | "
+                        f"{last_error}"
                     )
 
                     if (
@@ -654,10 +737,15 @@ def _openai_creative(
 
                 break
 
+    final_error = last_error or "OpenAI creative generation failed."
+
+    print(
+        f"[HookSpike OPENAI FAILURE] {final_error}"
+    )
+
     return (
         None,
-        last_error
-        or "OpenAI creative generation failed."
+        final_error
     )
 
 

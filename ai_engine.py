@@ -37,6 +37,8 @@ import time
 from google import genai
 from google.genai import types
 
+print("[HookSpike] AI ENGINE DEBUG BUILD LOADED", flush=True)
+
 
 # ============================================================
 # CONFIG
@@ -587,8 +589,17 @@ def _creative_output_is_valid(content_type, text):
 
     if content_type == "hooks":
         import re
-        numbers = re.findall(r"(?m)^\s*(?:hook\s*)?(\d)\s*[.)\-:]\s+", text, re.IGNORECASE)
-        return sorted(set(numbers)) == ["1", "2", "3", "4", "5", "6", "7"]
+        # Accept normal numbering plus common Markdown forms such as **1.**.
+        numbers = re.findall(
+            r"(?m)^\s*(?:\*\*)?\s*(?:hook\s*)?([1-7])\s*(?:[.)\-:]|\*\*[.)\-:])",
+            text,
+            re.IGNORECASE,
+        )
+        unique = []
+        for n in numbers:
+            if n not in unique:
+                unique.append(n)
+        return unique == ["1", "2", "3", "4", "5", "6", "7"]
 
     if content_type == "script":
         required = ["HOOK", "SETUP", "MAIN BODY", "PAYOFF", "CTA"]
@@ -997,11 +1008,15 @@ If a current claim cannot be verified, explicitly mark it as unverified.
         research_error,
         "| OpenAI:",
         creative_error,
+        flush=True,
     )
 
+    # Temporary diagnostic message: it exposes only the provider error text,
+    # never the API key. This lets us identify the exact Render-side failure.
+    safe_error = creative_error or research_error or "Unknown AI engine error."
     return (
-        "⚠️ AI is temporarily busy right now. "
-        "Please try again in a few seconds."
+        "⚠️ AI is temporarily busy right now.\n\n"
+        f"DEBUG: {safe_error}"
     )
 
 

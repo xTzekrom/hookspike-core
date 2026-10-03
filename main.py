@@ -23,7 +23,14 @@ from supabase_auth import SyncSupportedStorage
 # ============================================================
 
 try:
-    from ai_engine import get_ai_response, generate_thumbnail_image
+    from ai_engine import (
+        get_ai_response,
+        generate_thumbnail_image,
+        generate_creator_pack,
+        refine_creator_content,
+        analyze_hook,
+        discover_topics,
+    )
 except ImportError:
     print("CRITICAL ERROR: 'ai_engine.py' file not found!")
     sys.exit(1)
@@ -450,6 +457,33 @@ HTML_TEMPLATE = """
         .idea-note { background:rgba(245,158,11,.07); border:1px dashed rgba(245,158,11,.35); color:#cbd5e1; }
         .research-note { background:rgba(102,252,241,.045); border:1px solid rgba(102,252,241,.12); color:#94a3b8; }
 
+
+        /* --- CREATOR STUDIO UI --- */
+        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:24px 0; }
+        .studio-card { text-align:left; padding:17px; border:1px solid #263244; border-radius:18px; background:linear-gradient(145deg,#0d111a,#111827); cursor:pointer; transition:.2s; }
+        .studio-card:hover { transform:translateY(-2px); border-color:#66fcf1; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+        .studio-card .icon { font-size:25px; }
+        .studio-card strong { display:block; color:#fff; margin-top:7px; font-size:14px; }
+        .studio-card span { display:block; color:#8b96a8; font-size:11px; line-height:1.45; margin-top:4px; }
+        .tool-panel { display:none; margin-top:18px; padding:18px; border:1px solid #263244; border-radius:18px; background:rgba(13,17,26,.75); text-align:left; }
+        .tool-panel.show { display:block; animation:fadeIn .25s ease; }
+        @keyframes fadeIn { from {opacity:0; transform:translateY(5px)} to {opacity:1; transform:translateY(0)} }
+        .tool-title { color:#66fcf1; font-weight:900; margin-bottom:10px; }
+        .tool-input { width:100%; min-height:100px; resize:vertical; padding:13px; box-sizing:border-box; border:1px solid #263244; border-radius:12px; background:#080c14; color:#fff; outline:none; }
+        .tool-select { width:100%; padding:13px; border:1px solid #263244; border-radius:12px; background:#080c14; color:#fff; margin:8px 0 12px; }
+        .tool-action { width:100%; padding:12px; border-radius:12px; border:1px solid #374151; background:linear-gradient(90deg,#66fcf1,#45a29e); color:#030712; font-weight:900; cursor:pointer; text-transform:none; font-size:14px; }
+        .tool-output { margin-top:14px; padding:14px; border-radius:14px; background:#080c14; border:1px solid #1f2937; white-space:pre-wrap; line-height:1.65; font-size:13px; color:#dbe4ee; }
+        .quick-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; }
+        .quick-btn { width:auto; padding:9px 12px; border-radius:999px; border:1px solid #334155; background:#111827; color:#dbe4ee; font-size:12px; cursor:pointer; text-transform:none; }
+        .quick-btn:hover { border-color:#66fcf1; color:#66fcf1; }
+        .pack-banner { margin-top:18px; padding:16px; border-radius:18px; background:linear-gradient(135deg,rgba(102,252,241,.08),rgba(124,58,237,.10)); border:1px solid rgba(102,252,241,.18); text-align:left; }
+        .pack-banner strong { color:#fff; }
+        .pack-banner span { display:block; color:#94a3b8; font-size:12px; line-height:1.5; margin-top:5px; }
+        .history-list { max-height:220px; overflow:auto; margin-top:10px; }
+        .history-item { padding:10px; border-bottom:1px solid #1f2937; cursor:pointer; color:#cbd5e1; font-size:12px; }
+        .history-item:hover { color:#66fcf1; }
+        @media(max-width:560px){ .studio-grid{grid-template-columns:1fr;} }
+
         /* --- PREMIUM COMMERCIAL PAYWALL SUITE --- */
         .paywall-box {
             margin-top: 30px;
@@ -735,6 +769,119 @@ HTML_TEMPLATE = """
         }
 
 
+        function safeText(value) {
+            return String(value || "").replace(/[&<>"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]); });
+        }
+
+        function saveCreatorMemory() {
+            try {
+                const topic = document.querySelector('input[name="topic"]');
+                const type = document.querySelector('input[name="content_type"]:checked');
+                if (!topic || !topic.value.trim()) return;
+                const history = JSON.parse(localStorage.getItem("hookspike_history") || "[]");
+                const item = { topic: topic.value.trim(), type: type ? type.value : "hooks", at: Date.now() };
+                const filtered = history.filter(x => !(x.topic === item.topic && x.type === item.type));
+                filtered.unshift(item);
+                localStorage.setItem("hookspike_history", JSON.stringify(filtered.slice(0,20)));
+            } catch(e) {}
+        }
+
+        function openStudioPanel(id) {
+            document.querySelectorAll('.tool-panel').forEach(x => x.classList.remove('show'));
+            const el = document.getElementById(id);
+            if (el) el.classList.add('show');
+            if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+            renderHistory();
+        }
+
+        function setTopicAndType(type) {
+            const topic = document.querySelector('input[name="topic"]');
+            const radio = document.querySelector('input[name="content_type"][value="'+type+'"]');
+            if (radio) radio.checked = true;
+            if (topic) topic.focus();
+        }
+
+        async function runStudioAction(endpoint, payload, outputId, button) {
+            const old = button.innerText;
+            button.disabled = true;
+            button.innerText = "⏳ Working...";
+            const output = document.getElementById(outputId);
+            if (output) { output.style.display = "block"; output.innerText = "✨ HookSpike is working..."; }
+            try {
+                const res = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+                const data = await res.json();
+                if (output) output.innerText = data.ok ? (data.text || data.result || "Done.") : (data.error || "⚠️ Something went wrong.");
+            } catch(e) {
+                if (output) output.innerText = "⚠️ Tool is temporarily unavailable. Please try again.";
+            } finally { button.disabled = false; button.innerText = old; }
+        }
+
+        function currentResultText() {
+            const el = document.getElementById('rawText');
+            return el ? (el.innerText || el.textContent || '').trim() : '';
+        }
+
+        function runRefine(action) {
+            const topic = document.querySelector('input[name="topic"]');
+            const output = currentResultText();
+            const btn = document.activeElement || document.body;
+            runStudioAction('/refine-content', {topic: topic ? topic.value : '', content: output, action: action, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'refineOutput', btn);
+        }
+
+        function runPack() {
+            const topic = document.querySelector('input[name="topic"]');
+            if (!topic || !topic.value.trim()) { topic && topic.focus(); return; }
+            runStudioAction('/generate-pack', {topic: topic.value, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'packOutput', document.getElementById('packBtn'));
+        }
+
+        function runAnalyzer() {
+            const input = document.getElementById('hookAnalyzerInput');
+            const topic = document.querySelector('input[name="topic"]');
+            const btn = document.getElementById('analyzeBtn');
+            runStudioAction('/analyze-hook', {hook: input ? input.value : '', topic: topic ? topic.value : ''}, 'analyzerOutput', btn);
+        }
+
+        function runDiscover() {
+            const category = document.getElementById('discoverCategory');
+            const btn = document.getElementById('discoverBtn');
+            runStudioAction('/discover-topics', {category: category ? category.value : 'general'}, 'discoverOutput', btn);
+        }
+
+        function saveBrandVoice() {
+            const value = document.getElementById('brandVoice').value.trim();
+            localStorage.setItem('hookspike_brand_voice', value);
+            document.getElementById('brandSaved').innerText = value ? '✅ Brand voice saved on this device.' : 'ℹ️ Brand voice cleared.';
+        }
+
+        function loadBrandVoice() {
+            try { const v = localStorage.getItem('hookspike_brand_voice') || ''; const el=document.getElementById('brandVoice'); if(el) el.value=v; } catch(e){}
+        }
+
+        function renderHistory() {
+            const box = document.getElementById('historyList');
+            if (!box) return;
+            try {
+                const history = JSON.parse(localStorage.getItem('hookspike_history') || '[]');
+                box.innerHTML = history.length ? history.map(x => `<div class="history-item" onclick="useHistory(${JSON.stringify(x.topic).replace(/</g,'\\u003c')},${JSON.stringify(x.type)})">${safeText(x.type.toUpperCase())} • ${safeText(x.topic)}</div>`).join('') : '<div class="history-item">No saved topics yet. Your generated topics will appear here.</div>';
+            } catch(e) { box.innerHTML = '<div class="history-item">History unavailable.</div>'; }
+        }
+
+        function useHistory(topic, type) {
+            const input=document.querySelector('input[name="topic"]'); if(input) input.value=topic;
+            const radio=document.querySelector('input[name="content_type"][value="'+type+'"]'); if(radio) radio.checked=true;
+            window.scrollTo({top:0,behavior:'smooth'});
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            loadBrandVoice(); renderHistory();
+            const form=document.querySelector('form[action="/"]');
+            if(form) form.addEventListener('submit', function(){
+                saveCreatorMemory();
+                try { const v=localStorage.getItem('hookspike_brand_voice')||''; const h=document.getElementById('brandVoiceHidden'); if(h) h.value=v; } catch(e) {}
+            });
+        });
+
+
     </script>
 
 </head>
@@ -928,6 +1075,8 @@ HTML_TEMPLATE = """
 
                 <label>Enter Topic / Search:</label>
 
+                <input type="hidden" id="brandVoiceHidden" name="brand_voice" value="">
+
                 <input
                     type="text"
                     name="topic"
@@ -944,6 +1093,74 @@ HTML_TEMPLATE = """
 
         {% endif %}
 
+
+
+        {% if not show_paywall %}
+            <div class="pack-banner">
+                <strong>🚀 One Topic → Complete Creator Pack</strong>
+                <span>Get titles, 7 hooks, one script, 3 thumbnail concepts, description, hashtags and keywords from one verified research pass.</span>
+                <button id="packBtn" class="tool-action" type="button" onclick="runPack()" style="margin-top:12px;">✨ Build My Complete Pack</button>
+                <div id="packOutput" class="tool-output" style="display:none;"></div>
+            </div>
+
+            <div class="studio-grid">
+                <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current content opportunities with web-verified research.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your result for curiosity, natural tone, Shorts and more.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Get concrete feedback and a stronger rewrite.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>My Creator Voice</strong><span>Save your preferred tone on this device for future sessions.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Quickly reuse your latest topics and content modes.</span></div>
+                <div class="studio-card" onclick="setTopicAndType('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Switch to Script and use the Shorts remix after generation.</span></div>
+            </div>
+
+            <div id="refinePanel" class="tool-panel">
+                <div class="tool-title">✨ Make this result better</div>
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="runRefine('more-curious')">🧲 More Curiosity</button>
+                    <button class="quick-btn" onclick="runRefine('more-viral')">🔥 Punchier</button>
+                    <button class="quick-btn" onclick="runRefine('more-natural')">🗣️ Natural</button>
+                    <button class="quick-btn" onclick="runRefine('shorter')">⚡ Shorter</button>
+                    <button class="quick-btn" onclick="runRefine('cinematic')">🎬 Cinematic</button>
+                    <button class="quick-btn" onclick="runRefine('shorts')">📱 Shorts</button>
+                    <button class="quick-btn" onclick="runRefine('gaming')">🎮 Gaming</button>
+                    <button class="quick-btn" onclick="runRefine('anime')">🍥 Anime</button>
+                    <button class="quick-btn" onclick="runRefine('thumbnail-clickable')">🖼️ Thumbnail</button>
+                </div>
+                <div id="refineOutput" class="tool-output">Generate a result first, then choose a transformation.</div>
+            </div>
+
+            <div id="analyzerPanel" class="tool-panel">
+                <div class="tool-title">🧲 Hook Analyzer</div>
+                <textarea id="hookAnalyzerInput" class="tool-input" placeholder="Paste a hook here..."></textarea>
+                <button id="analyzeBtn" class="tool-action" type="button" onclick="runAnalyzer()">🔍 Analyze Hook</button>
+                <div id="analyzerOutput" class="tool-output">You’ll get clarity, curiosity, first-seconds impact, specificity and one improved version.</div>
+            </div>
+
+            <div id="discoverPanel" class="tool-panel">
+                <div class="tool-title">🔥 Fresh Topic Radar</div>
+                <select id="discoverCategory" class="tool-select">
+                    <option value="general">🌐 General Creator Trends</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="anime">🍥 Anime</option>
+                    <option value="tech">🤖 Tech & AI</option>
+                    <option value="movies">🎬 Movies & Entertainment</option>
+                    <option value="sports">⚽ Sports</option>
+                </select>
+                <button id="discoverBtn" class="tool-action" type="button" onclick="runDiscover()">🔎 Find Current Topics</button>
+                <div id="discoverOutput" class="tool-output">Fresh ideas will appear here.</div>
+            </div>
+
+            <div id="brandPanel" class="tool-panel">
+                <div class="tool-title">🎙️ My Creator Voice</div>
+                <textarea id="brandVoice" class="tool-input" placeholder="Example: Hinglish, energetic, short sentences, gaming audience, no corporate wording..."></textarea>
+                <button class="tool-action" type="button" onclick="saveBrandVoice()">💾 Save My Style</button>
+                <div id="brandSaved" class="tool-output">Saved locally on this device. We keep your existing backend unchanged.</div>
+            </div>
+
+            <div id="historyPanel" class="tool-panel">
+                <div class="tool-title">🗂️ Recent Ideas</div>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        {% endif %}
 
         <div
             id="loaderIcon"
@@ -1208,6 +1425,12 @@ def index():
             .strip()
         )
 
+        brand_voice = (
+            request.form
+            .get("brand_voice", "")
+            .strip()
+        )
+
 
         if not topic:
 
@@ -1234,6 +1457,7 @@ def index():
                 result = get_ai_response(
                     content_type,
                     topic,
+                    brand_voice=brand_voice[:4000],
                 )
 
                 elapsed = time.perf_counter() - started_at
@@ -1545,6 +1769,111 @@ def logout():
     return redirect(
         url_for("index")
     )
+
+
+# ============================================================
+# CREATOR STUDIO ROUTES
+# ============================================================
+
+def _studio_token_allowed():
+    user_id = session.get("user_id")
+    email = session.get("user_email", "")
+    if not user_id:
+        return None, 401, {"ok": False, "error": "⚠️ Please log in first."}
+    tokens = get_user_tokens(user_id, email)
+    if tokens <= 0:
+        return None, 402, {"ok": False, "error": "🔒 You are out of creator tokens. Please add more tokens to continue."}
+    return (user_id, email), 200, None
+
+
+def _studio_finish(user_id, email, result):
+    if result:
+        decrease_user_token(user_id)
+        return get_user_tokens(user_id, email)
+    return get_user_tokens(user_id, email)
+
+
+@app.route("/generate-pack", methods=["POST"])
+def generate_pack_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        topic = str(data.get("topic", "")).strip()
+        if not topic:
+            return jsonify({"ok": False, "error": "⚠️ Please enter a topic first."}), 400
+        result, err = generate_creator_pack(topic, str(data.get("brand_voice", ""))[:4000])
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Creator pack is temporarily unavailable. Please try again."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Creator pack route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Creator pack is temporarily unavailable."}), 200
+
+
+@app.route("/refine-content", methods=["POST"])
+def refine_content_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        result, err = refine_creator_content(
+            topic=str(data.get("topic", "")),
+            content=str(data.get("content", "")),
+            action=str(data.get("action", "")),
+            brand_voice=str(data.get("brand_voice", ""))[:4000],
+        )
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ This improvement is temporarily unavailable. Please try again."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Refine route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Improvement tool is temporarily unavailable."}), 200
+
+
+@app.route("/analyze-hook", methods=["POST"])
+def analyze_hook_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        result, err = analyze_hook(
+            hook=str(data.get("hook", "")),
+            topic=str(data.get("topic", "")),
+        )
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Hook analysis is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Hook analyzer route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Hook analyzer is temporarily unavailable."}), 200
+
+
+@app.route("/discover-topics", methods=["POST"])
+def discover_topics_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        result, err = discover_topics(str(data.get("category", "general")))
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Topic radar is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Topic discovery route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Topic radar is temporarily unavailable."}), 200
 
 
 # ============================================================

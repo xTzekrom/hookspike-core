@@ -34,8 +34,7 @@ Optional:
 
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
+import hashlib
 from google import genai
 from google.genai import types
 
@@ -50,15 +49,24 @@ BACKUP_KEY = os.environ.get("BACKUP_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_BACKUP_KEY = os.environ.get("OPENAI_BACKUP_KEY")
 
-GEMINI_MODELS = [
-    os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
+# Stable model order with Render environment-variable override.
+_GEMINI_PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+GEMINI_MODELS = list(dict.fromkeys([
+    _GEMINI_PRIMARY_MODEL,
     "gemini-3.7-flash",
     "gemini-3.6-flash",
-]
+    "gemini-3.5-flash-lite",
+]))
 
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_MODELS = list(dict.fromkeys([
+    OPENAI_MODEL,
+    "gpt-4.1-mini",
+    "gpt-4o-mini",
+]))
 
-MAX_RETRIES_PER_MODEL = 2
+# A single retry keeps the web app responsive.
+MAX_RETRIES_PER_MODEL = 1
 MAX_TOPIC_CHARS = 12000
 MAX_RESEARCH_CHARS = 24000
 
@@ -178,11 +186,22 @@ def _should_use_search(platform_type, topic):
     if any(signal in text for signal in current_signals):
         return True
 
-    # Global AI questions benefit more from grounding by default.
+    # General AI questions should be grounded by default because
+    # HookSpike is intended to answer real/current questions reliably.
     if platform_type == "global_ai":
         return True
 
     return False
+
+
+# ============================================================
+# REQUEST FINGERPRINT
+# ============================================================
+
+def _request_fingerprint(platform_type, topic):
+    """Create a stable per-request fingerprint for prompt isolation."""
+    raw = f"{platform_type}|{topic.strip()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
 
 
 # ============================================================
@@ -206,8 +225,13 @@ information. Do not invent facts or sources.
 """
     )
 
+    request_id = _request_fingerprint(platform_type, topic)
+
     return f"""
 You are HookSpike's RESEARCH INTELLIGENCE agent.
+
+REQUEST ID:
+{request_id}
 
 Your job is NOT to write the final creator-facing answer.
 Your job is to produce a compact, useful research brief that another
@@ -400,10 +424,10 @@ def _generate_gemini(client, model, prompt, use_search):
         )
 
     config = types.GenerateContentConfig(
-        max_output_tokens=8192,
+        max_output_tokens=4096,
         tools=tools if tools else None,
         thinking_config=types.ThinkingConfig(
-            thinking_level="medium"
+            thinking_level="low"
         ),
     )
 
@@ -420,48 +444,62 @@ def _gemini_research(topic, platform_type, use_search):
     if not keys:
         return None, "Gemini API key is not configured."
 
-    prompt = _build_research_prompt(
-        platform_type=platform_type,
-        topic=topic,
-        use_search=use_search,
-    )
-
     last_error = None
 
     for api_key in keys:
         try:
             client = genai.Client(api_key=api_key)
         except Exception as exc:
-            last_error = str(exc)
+            last_error = f"Gemini client error: {exc}"
             continue
 
         for model in GEMINI_MODELS:
-            for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
-                try:
-                    response = _generate_gemini(
-                        client=client,
-                        model=model,
-                        prompt=prompt,
-                        use_search=use_search,
-                    )
+            # If Search grounding fails, immediately retry the same model
+            # without Search instead of failing the whole request.
+            search_modes = [use_search] if not use_search else [True, False]
 
-                    text = getattr(response, "text", None)
+            for search_mode in search_modes:
+                prompt = _build_research_prompt(
+                    platform_type=platform_type,
+                    topic=topic,
+                    use_search=search_mode,
+                )
+                if not search_mode and use_search:
+                    prompt += """
+IMPORTANT FALLBACK:
+Web grounding was unavailable for this attempt. Do not pretend that
+you searched the web. Answer only from reliable model knowledge and
+clearly qualify information that may have changed.
+"""
 
-                    if text and text.strip():
-                        return text.strip()[:MAX_RESEARCH_CHARS], None
+                for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
+                    try:
+                        response = _generate_gemini(
+                            client=client,
+                            model=model,
+                            prompt=prompt,
+                            use_search=search_mode,
+                        )
 
-                    last_error = f"{model} returned an empty response."
-                    break
+                        text = getattr(response, "text", None)
 
-                except Exception as exc:
-                    last_error = str(exc)
+                        if text and text.strip():
+                            return text.strip()[:MAX_RESEARCH_CHARS], None
 
-                    if _looks_like_temporary_error(last_error):
-                        if attempt < MAX_RETRIES_PER_MODEL:
+                        last_error = f"{model} returned an empty response."
+                        break
+
+                    except Exception as exc:
+                        last_error = f"{model}: {exc}"
+
+                        if (
+                            _looks_like_temporary_error(last_error)
+                            and attempt < MAX_RETRIES_PER_MODEL
+                        ):
                             _sleep_backoff(attempt)
                             continue
 
-                    break
+                        break
 
     return None, last_error or "Gemini research failed."
 
@@ -484,12 +522,12 @@ def _get_openai_client(api_key):
             "and redeploy on Render."
         )
 
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, timeout=30.0, max_retries=0)
 
 
-def _generate_openai(client, prompt):
+def _generate_openai(client, prompt, model=None):
     response = client.responses.create(
-        model=OPENAI_MODEL,
+        model=model or OPENAI_MODEL,
         instructions=(
             "You are HookSpike's creative intelligence layer. "
             "Be accurate, original, practical, concise, and useful."
@@ -539,26 +577,30 @@ def _openai_creative(topic, platform_type, research):
         try:
             client = _get_openai_client(api_key)
         except Exception as exc:
-            last_error = str(exc)
+            last_error = f"OpenAI client error: {exc}"
             continue
 
-        for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
-            try:
-                text = _generate_openai(
-                    client=client,
-                    prompt=prompt,
-                )
+        for model in OPENAI_MODELS:
+            for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
+                try:
+                    text = _generate_openai(
+                        client=client,
+                        prompt=prompt,
+                        model=model,
+                    )
 
-                if text:
-                    return text, None
+                    if text:
+                        return text, None
 
-                last_error = "OpenAI returned an empty response."
+                    last_error = f"{model} returned an empty response."
 
-            except Exception as exc:
-                last_error = str(exc)
+                except Exception as exc:
+                    last_error = f"{model}: {exc}"
 
-                if _looks_like_temporary_error(last_error):
-                    if attempt < MAX_RETRIES_PER_MODEL:
+                    if (
+                        _looks_like_temporary_error(last_error)
+                        and attempt < MAX_RETRIES_PER_MODEL
+                    ):
                         _sleep_backoff(attempt)
                         continue
 
@@ -597,21 +639,23 @@ def _final_synthesis(topic, platform_type, research, creative):
         except Exception:
             continue
 
-        for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
-            try:
-                result = _generate_openai(
-                    client=client,
-                    prompt=prompt,
-                )
+        for model in OPENAI_MODELS:
+            for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
+                try:
+                    result = _generate_openai(
+                        client=client,
+                        prompt=prompt,
+                        model=model,
+                    )
 
-                if result:
-                    return result
+                    if result:
+                        return result
 
-            except Exception as exc:
-                if _looks_like_temporary_error(str(exc)):
-                    if attempt < MAX_RETRIES_PER_MODEL:
-                        _sleep_backoff(attempt)
-                        continue
+                except Exception as exc:
+                    if _looks_like_temporary_error(str(exc)):
+                        if attempt < MAX_RETRIES_PER_MODEL:
+                            _sleep_backoff(attempt)
+                            continue
 
                 break
 
@@ -695,59 +739,4 @@ def get_ai_response(platform_type, topic):
             topic=topic,
             platform_type=platform_type,
             research=(
-                "Gemini research was unavailable. "
-                "Work directly from the user's request and clearly avoid "
-                "unsupported current/factual claims."
-            ),
-        )
-
-    # --------------------------------------------------------
-    # FAST FINAL OUTPUT
-    #
-    # The OpenAI creative agent already receives the Gemini research
-    # and is instructed to produce the complete creator-facing answer.
-    # We return it directly instead of making a third API call.
-    # This keeps the normal request to two model calls:
-    # Gemini -> research
-    # OpenAI -> final creative answer
-    # --------------------------------------------------------
-
-    if creative:
-        return creative
-
-    if research:
-        return research
-
-    # --------------------------------------------------------
-    # FINAL ERROR
-    # --------------------------------------------------------
-
-    print(
-        "HookSpike AI failure:",
-        "Gemini:", research_error,
-        "| OpenAI:", creative_error,
-    )
-
-    return (
-        "⚠️ AI is temporarily busy right now. "
-        "Please try again in a few seconds."
-    )
-
-
-# ============================================================
-# OPTIONAL STATUS HELPER
-# ============================================================
-
-def get_ai_engine_status():
-    """
-    Safe diagnostic helper.
-    Never returns actual API keys.
-    """
-
-    return {
-        "gemini_configured": bool(_get_gemini_keys()),
-        "openai_configured": bool(_get_openai_keys()),
-        "gemini_model": GEMINI_MODELS[0],
-        "openai_model": OPENAI_MODEL,
-        "search_available": bool(_get_gemini_keys()),
-    }
+          

@@ -384,98 +384,135 @@ HTML_TEMPLATE = """
             font-weight: 800;
         }
 
+        /* --- PREMIUM COMMERCIAL PAYWALL SUITE --- */
         .paywall-box {
-            margin-top: 20px;
-            padding: 30px;
-            background:
-                linear-gradient(
-                    135deg,
-                    #1f0b0f 0%,
-                    #0b0507 100%
-                );
-            border: 2px dashed #f43f5e;
-            border-radius: 24px;
+            margin-top: 30px;
+            padding: 40px 25px;
+            background: linear-gradient(135deg, #0b1528 0%, #030712 100%);
+            border: 2px solid #ef4444;
+            border-radius: 28px;
+            box-shadow: 0 0 35px rgba(239, 68, 68, 0.15);
+            position: relative;
+            overflow: hidden;
         }
-
+        .paywall-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, #ef4444, #f59e0b);
+        }
         .paywall-box h2 {
-            color: #f43f5e;
-            font-size: 26px;
+            color: #ef4444;
+            font-size: 24px;
             font-weight: 900;
             text-transform: uppercase;
+            letter-spacing: 1px;
             margin-top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
-
-        .paywall-box p {
-            color: #e5e7eb;
+        .paywall-box p.pay-desc {
+            color: #9ca3af;
             font-size: 14px;
-            margin-bottom: 25px;
+            line-height: 1.6;
+            margin-bottom: 30px;
         }
-
         .pricing-plan {
             display: flex;
-            justify-content: space-around;
-            margin-bottom: 25px;
-            gap: 15px;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 35px;
         }
-
         .plan-card {
             background: #0d111a;
-            padding: 18px;
-            border-radius: 14px;
-            border: 1px solid #374151;
-            width: 48%;
-            border-top: 3px solid #66fcf1;
+            padding: 22px;
+            border-radius: 18px;
+            border: 1px solid #1f2937;
+            text-align: left;
+            position: relative;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            width: 100% !important;
         }
-
+        .plan-card:hover {
+            border-color: #66fcf1;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
+        }
+        .plan-card.popular {
+            border: 2px solid #f59e0b;
+        }
+        .plan-badge {
+            position: absolute;
+            top: -12px; right: 15px;
+            background: #f59e0b;
+            color: #030712;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
         .plan-card h4 {
             margin: 0;
             color: #66fcf1;
-            text-transform: uppercase;
-            font-size: 13px;
+            font-size: 16px;
+            font-weight: 800;
         }
-
-        .plan-card p {
-            margin: 8px 0 0 0;
-            font-size: 24px;
-            font-weight: bold;
+        .plan-card p.plan-sub {
+            margin: 4px 0 12px 0;
+            color: #6b7280;
+            font-size: 12px;
         }
-
+        .plan-price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .plan-card p.price {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 900;
+            color: #ffffff;
+        }
+        .plan-card span.duration {
+            color: #9ca3af;
+            font-size: 14px;
+        }
         .upi-details {
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 15px;
+            font-weight: 700;
             color: #66fcf1;
-            background: #030712;
-            padding: 14px;
-            border-radius: 12px;
+            background: rgba(17, 24, 39, 0.8);
+            padding: 16px;
+            border-radius: 14px;
             border: 1px solid #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
         .pay-btn {
             display: block;
             width: 100%;
-            padding: 16px;
-            background:
-                linear-gradient(
-                    90deg,
-                    #00ffcc,
-                    #00b399
-                );
+            padding: 18px;
+            background: linear-gradient(90deg, #66fcf1, #45a29e);
             color: #030712;
             text-decoration: none;
-            border-radius: 14px;
-            font-weight: bold;
+            border-radius: 16px;
+            font-weight: 800;
             font-size: 16px;
-            margin-top: 15px;
             text-transform: uppercase;
-            box-shadow:
-                0 4px 15px rgba(
-                    0,
-                    255,
-                    204,
-                    0.2
-                );
+            box-shadow: 0 4px 20px rgba(102, 252, 241, 0.2);
             box-sizing: border-box;
+            transition: all 0.2s ease;
         }
+        .pay-btn:hover {
+            box-shadow: 0 6px 25px rgba(102, 252, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
 
     </style>
 
@@ -670,63 +707,53 @@ HTML_TEMPLATE = """
             <div class="paywall-box">
 
                 <h2>
-                    🔒 Commercial License Locked
+                    🔒 Commercial Pipeline Locked
                 </h2>
 
-                <p>
-                    Your free creator tokens
-                    have expired. Choose a package
-                    to activate unlimited generation
-                    pipelines instantly:
+                <p class="pay-desc">
+                    Your trial parameters have expired. Select an enterprise tier below to lift engine execution rate-limits instantly.
                 </p>
-
 
                 <div class="pricing-plan">
 
+                    <!-- Plan 1: Pro Suite -->
                     <div class="plan-card">
-
-                        <h4>
-                            Weekly Pack
-                        </h4>
-
-                        <p>
-                            ₹23
-                        </p>
-
+                        <h4>Creator Pro Plan</h4>
+                        <p class="plan-sub">Perfect for rising independent streamers & video editors</p>
+                        <div class="plan-price-row">
+                            <p class="price">₹1,499</p>
+                            <span class="duration">/ monthly subscription</span>
+                        </div>
                     </div>
 
-
-                    <div class="plan-card">
-
-                        <h4>
-                            Monthly Pro
-                        </h4>
-
-                        <p>
-                            ₹49
-                        </p>
-
+                    <!-- Plan 2: Agency Suite (Popular) -->
+                    <div class="plan-card popular">
+                        <div class="plan-badge">Most Popular</div>
+                        <h4>Agency Growth Suite</h4>
+                        <p class="plan-sub">Full speed access with multi-platform deep tracking vectors</p>
+                        <div class="plan-price-row">
+                            <p class="price">₹1,999</p>
+                            <span class="duration">/ monthly subscription</span>
+                        </div>
                     </div>
 
                 </div>
-
 
                 <div class="upi-details">
-
-                    💥 UPI ID:
-                    9657119506@axl
-
+                    <span>💥 Merchant UPI Anchor:</span>
+                    <span style="color: #fff; font-family: monospace;">9657119506@axl</span>
                 </div>
 
-
+                <!-- Open UPI Gateway intent string configuration mapped to professional plan pricing -->
                 <a
-                    href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=49&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end"
+                    href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=1499&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end"
                     class="pay-btn"
                 >
-                    📱 Open GPay / PhonePe to Pay
+                    📱 Initialize Secure Gateway Payment
                 </a>
 
             </div>
+            
 
 
         {% else %}

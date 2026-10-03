@@ -2,3 +2,4 @@ Flask==3.0.3
 supabase
 supabase_auth
 google-genai
+openai>=1.0.0

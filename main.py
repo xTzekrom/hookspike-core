@@ -138,6 +138,39 @@ HTML_TEMPLATE = """
             color: #f3f4f6;
             margin: 0;
         }
+        /* --- Naya Creative Feature CSS --- */
+        .hook-card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 15px;
+            border-left: 4px solid #f59e0b;
+            transition: all 0.3s ease;
+        }
+        .hook-card:hover {
+            border-color: #66fcf1;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.2);
+        }
+        .cue-box {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px dashed rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #9ca3af;
+            text-align: left;
+        }
+        .cue-box strong {
+            color: #f59e0b;
+        }
+        .copy-btn.copied {
+            background: linear-gradient(90deg, #10b981, #059669) !important;
+            color: white !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+        
 
         .container {
             max-width: 500px;
@@ -473,90 +506,77 @@ HTML_TEMPLATE = """
         }
 
 
-        function copyText() {
+         function copyText() {
+            var element = document.getElementById("rawText");
+            if (!element) return;
 
-            var element =
-                document.getElementById("rawText");
+            var text = element.innerText || element.textContent;
 
-            if (!element) {
-                return;
+            // --- AI Text Enhancer Engine (Auto Formatting & Emojis) ---
+            let formattedText = text;
+            const boostWords = {
+                "problem": "⚠️ MASSIVE PROBLEM",
+                "delay": "🚨 UNANNOUNCED DELAY",
+                "secret": "🤫 SECRET DETAIL",
+                "leak": "🔥 CONFIDENTIAL LEAK",
+                "gta 6": "🎮 GTA 6",
+                "rockstar": "⭐ Rockstar"
+            };
+
+            for (let [word, replaceWith] of Object.entries(boostWords)) {
+                let regex = new RegExp(word, "gi");
+                formattedText = formattedText.replace(regex, replaceWith);
             }
 
-            var text =
-                element.innerText || element.textContent;
-
+            // Copy Action
             if (navigator.clipboard) {
-
-                navigator.clipboard.writeText(text)
-                    .then(function () {
-
-                        var btn =
-                            document.getElementById(
-                                "copyBtnText"
-                            );
-
-                        if (btn) {
-
-                            btn.innerText =
-                                "Copied! ✓";
-
-                            setTimeout(
-                                function () {
-                                    btn.innerText =
-                                        "📋 Copy Strategy Data";
-                                },
-                                2000
-                            );
-                        }
-
-                    })
-                    .catch(function () {
-                        fallbackCopy(element);
-                    });
-
+                navigator.clipboard.writeText(formattedText).then(function () {
+                    triggerCopySuccess();
+                }).catch(function () {
+                    fallbackCopy(formattedText);
+                });
             } else {
-                fallbackCopy(element);
+                fallbackCopy(formattedText);
             }
         }
 
-
-        function fallbackCopy(element) {
-
-            var range =
-                document.createRange();
-
-            range.selectNode(element);
-
-            window.getSelection()
-                .removeAllRanges();
-
-            window.getSelection()
-                .addRange(range);
-
-            document.execCommand("copy");
-
-            window.getSelection()
-                .removeAllRanges();
-
-            var btn =
-                document.getElementById(
-                    "copyBtnText"
-                );
-
+        function triggerCopySuccess() {
+            var btn = document.getElementById("copyBtnText");
             if (btn) {
+                btn.innerText = "🟢 Copied with Strategy Matrix! ✓";
+                btn.classList.add("copied");
 
-                btn.innerText =
-                    "Copied! ✓";
+                // Tech sound effect logic
+                try {
+                    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    let oscillator = audioCtx.createOscillator();
+                    let gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.1);
+                } catch(e) {}
 
-                setTimeout(
-                    function () {
-                        btn.innerText =
-                            "📋 Copy Strategy Data";
-                    },
-                    2000
-                );
+                setTimeout(function () {
+                    btn.innerText = "📋 Copy Strategy Data";
+                    btn.classList.remove("copied");
+                }, 2000);
             }
         }
+
+        function fallbackCopy(text) {
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            triggerCopySuccess();
+        }
+
 
     </script>
 
@@ -791,8 +811,15 @@ HTML_TEMPLATE = """
                     📊 Engine Output Matrix Unlocked:
                 </h3>
 
-                <div id="rawText">
-                    {{ result }}
+                <!-- Naya Visual Gaming Card Hook Wrapper -->
+                <div class="hook-card">
+                    <div id="rawText">{{ result }}</div>
+                    
+                    <!-- Dynamic Creator Video/Audio Guidance Box -->
+                    <div class="cue-box">
+                        🎬 <strong>Visual Cue Suggestion:</strong> Show high-paced B-roll mapping to the core query concept. Apply a 3-second aggressive frame zoom to disrupt viewer scrolling patterns.<br><br>
+                        🎵 <strong>Audio Cue Suggestion:</strong> Layer a low-frequency cinematic sub-bass drop or 'Vine Boom' element exactly at the hook delivery timestamp.
+                    </div>
                 </div>
 
                 <button

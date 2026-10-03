@@ -37,8 +37,6 @@ import time
 from google import genai
 from google.genai import types
 
-print("[HookSpike] AI ENGINE DEBUG BUILD LOADED", flush=True)
-
 
 # ============================================================
 # CONFIG
@@ -1011,12 +1009,9 @@ If a current claim cannot be verified, explicitly mark it as unverified.
         flush=True,
     )
 
-    # Temporary diagnostic message: it exposes only the provider error text,
-    # never the API key. This lets us identify the exact Render-side failure.
-    safe_error = creative_error or research_error or "Unknown AI engine error."
     return (
-        "⚠️ AI is temporarily busy right now.\n\n"
-        f"DEBUG: {safe_error}"
+        "⚠️ AI is temporarily busy right now. "
+        "Please try again in a few seconds."
     )
 
 

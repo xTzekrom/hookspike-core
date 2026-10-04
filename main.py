@@ -30,6 +30,11 @@ try:
         refine_creator_content,
         analyze_hook,
         discover_topics,
+        generate_packaging_lab,
+        generate_ab_packs,
+        performance_coach,
+        generate_content_plan,
+        repurpose_creator_content,
     )
 except ImportError:
     print("CRITICAL ERROR: 'ai_engine.py' file not found!")
@@ -614,6 +619,99 @@ HTML_TEMPLATE = """
         }
 
 
+
+
+        /* ====================================================
+           HOOKSPIKE PREMIUM CREATOR COMMAND CENTER
+           ==================================================== */
+        :root{
+            --hs-bg:#060812;
+            --hs-panel:rgba(13,17,30,.82);
+            --hs-panel2:rgba(18,24,40,.88);
+            --hs-line:rgba(148,163,184,.16);
+            --hs-text:#f8fafc;
+            --hs-muted:#94a3b8;
+            --hs-cyan:#67e8f9;
+            --hs-purple:#a78bfa;
+            --hs-pink:#f472b6;
+            --hs-green:#34d399;
+        }
+        body{
+            background:
+              radial-gradient(900px 500px at 10% -5%,rgba(103,232,249,.12),transparent 60%),
+              radial-gradient(800px 500px at 95% 0%,rgba(167,139,250,.13),transparent 58%),
+              linear-gradient(180deg,#060812 0%,#03040a 100%);
+            padding:18px;
+        }
+        .container{
+            max-width:1040px;
+            margin:18px auto 50px;
+            padding:28px;
+            background:rgba(7,10,19,.78);
+            border:1px solid rgba(148,163,184,.14);
+            border-radius:30px;
+            box-shadow:0 30px 100px rgba(0,0,0,.55),0 0 80px rgba(103,232,249,.05);
+        }
+        .logo{font-size:34px;letter-spacing:-1.5px}
+        .logo span{background:linear-gradient(90deg,var(--hs-cyan),var(--hs-purple),var(--hs-pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+        p.tagline{font-size:10px;letter-spacing:3.5px;color:#7dd3fc;margin-bottom:18px}
+        .user-profile{text-align:right;color:#94a3b8;margin-bottom:8px}
+        .counter-badge{background:linear-gradient(135deg,rgba(103,232,249,.08),rgba(167,139,250,.08));border:1px solid rgba(103,232,249,.25);color:#a5f3fc;box-shadow:0 0 30px rgba(103,232,249,.06)}
+
+        .creator-hero{
+            position:relative;text-align:left;padding:28px;margin:10px 0 18px;border:1px solid rgba(103,232,249,.16);
+            border-radius:26px;background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(12,16,29,.82));overflow:hidden;
+        }
+        .creator-hero:after{content:'';position:absolute;width:220px;height:220px;right:-80px;top:-100px;background:radial-gradient(circle,rgba(167,139,250,.22),transparent 68%);pointer-events:none}
+        .hero-kicker{font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#a5f3fc}
+        .hero-title{font-size:34px;line-height:1.05;letter-spacing:-1.4px;margin:8px 0;color:#fff}
+        .hero-copy{max-width:700px;color:#94a3b8;line-height:1.6;font-size:14px;margin:0}
+        .hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+        .hero-pill{padding:7px 10px;border:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.025);border-radius:999px;color:#cbd5e1;font-size:11px;font-weight:800}
+
+        form[action="/"]{text-align:left;background:rgba(10,14,25,.7);border:1px solid rgba(148,163,184,.12);border-radius:24px;padding:22px;margin-top:12px}
+        form[action="/"] > label{color:#c4b5fd;font-size:10px;letter-spacing:1.7px}
+        .content-selector{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:18px}
+        .content-option label{min-height:92px;padding:15px;background:linear-gradient(145deg,rgba(15,23,42,.95),rgba(11,15,26,.95));border-color:rgba(148,163,184,.14)}
+        .content-option input:checked + label{border-color:rgba(103,232,249,.55);background:linear-gradient(145deg,rgba(8,47,73,.42),rgba(30,27,75,.34));box-shadow:0 0 35px rgba(103,232,249,.08)}
+        input[type="text"],select{background:#070a12;border-color:rgba(148,163,184,.16)}
+        form[action="/"] button[type="submit"]{background:linear-gradient(100deg,#67e8f9,#818cf8 55%,#f472b6);box-shadow:0 12px 35px rgba(99,102,241,.2);color:#020617}
+
+        .studio-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+        .studio-card{min-height:112px;background:linear-gradient(145deg,rgba(15,23,42,.9),rgba(8,12,22,.92));border-color:rgba(148,163,184,.14);box-shadow:inset 0 1px rgba(255,255,255,.03)}
+        .studio-card:hover{border-color:rgba(103,232,249,.5);box-shadow:0 16px 40px rgba(0,0,0,.25),0 0 28px rgba(103,232,249,.07)}
+        .studio-card strong{font-size:14px}.studio-card span{font-size:11px}
+        .studio-card .icon{filter:drop-shadow(0 4px 12px rgba(103,232,249,.12))}
+        .pack-banner{padding:22px;border-radius:22px;background:linear-gradient(135deg,rgba(103,232,249,.08),rgba(167,139,250,.08));border-color:rgba(103,232,249,.2)}
+        .pack-banner strong{font-size:18px}
+        .tool-panel{background:rgba(8,12,22,.9);border-color:rgba(148,163,184,.15);border-radius:22px}
+        .tool-title{font-size:16px;color:#a5f3fc}
+        .tool-action{background:linear-gradient(100deg,#67e8f9,#818cf8);box-shadow:0 10px 28px rgba(99,102,241,.15)}
+        .quick-btn:hover{border-color:#818cf8;color:#c4b5fd;background:rgba(129,140,248,.07)}
+
+        .paywall-box{
+            margin-top:24px;padding:32px 24px;border:1px solid rgba(167,139,250,.3);border-radius:28px;
+            background:radial-gradient(circle at 50% -30%,rgba(167,139,250,.16),transparent 55%),linear-gradient(145deg,#0d1222,#070a12);
+            box-shadow:0 25px 80px rgba(0,0,0,.42),0 0 60px rgba(167,139,250,.06);text-align:center;
+        }
+        .paywall-box:before{background:linear-gradient(90deg,#67e8f9,#818cf8,#f472b6);height:3px}
+        .paywall-box h2{color:#fff;text-transform:none;letter-spacing:-.4px;font-size:28px;margin-bottom:8px}
+        .paywall-box p.pay-desc{max-width:650px;margin:0 auto 22px;color:#94a3b8}
+        .pricing-plan{display:block;margin:0 auto 20px;max-width:520px}
+        .plan-card{padding:26px;border:1px solid rgba(103,232,249,.35);background:linear-gradient(145deg,rgba(15,23,42,.98),rgba(18,24,40,.9));box-shadow:0 18px 50px rgba(0,0,0,.3)}
+        .plan-card.popular{border:1px solid rgba(167,139,250,.65);box-shadow:0 0 45px rgba(167,139,250,.12)}
+        .plan-card h4{font-size:18px;color:#fff}.plan-card p.plan-sub{color:#94a3b8;line-height:1.5}
+        .plan-card p.price{font-size:46px;letter-spacing:-2px;background:linear-gradient(90deg,#67e8f9,#a78bfa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+        .plan-badge{background:linear-gradient(90deg,#67e8f9,#a78bfa);color:#020617}
+        .plan-benefits{display:grid;grid-template-columns:1fr 1fr;gap:9px;text-align:left;margin:18px 0 22px}
+        .plan-benefit{padding:10px;border:1px solid rgba(148,163,184,.1);border-radius:12px;background:rgba(255,255,255,.025);color:#cbd5e1;font-size:12px}
+        .upi-details{margin-bottom:14px;background:rgba(255,255,255,.025);border-color:rgba(148,163,184,.12)}
+        .pay-btn{background:linear-gradient(100deg,#67e8f9,#818cf8 55%,#f472b6);box-shadow:0 14px 38px rgba(99,102,241,.2);text-transform:none;color:#020617}
+        .result-box{background:linear-gradient(145deg,rgba(12,17,30,.96),rgba(7,10,18,.96));border-top:1px solid rgba(103,232,249,.35);border-radius:22px}
+        .hook-card{background:rgba(255,255,255,.025);border-color:rgba(148,163,184,.12);border-left-color:#818cf8}
+        .copy-btn{background:linear-gradient(90deg,#67e8f9,#818cf8);color:#020617}
+        @media(max-width:760px){.container{padding:16px;border-radius:22px}.content-selector,.studio-grid{grid-template-columns:1fr}.hero-title{font-size:28px}.plan-benefits{grid-template-columns:1fr}.paywall-box{padding:26px 16px}}
+
     </style>
 
     <script>
@@ -872,6 +970,37 @@ HTML_TEMPLATE = """
             window.scrollTo({top:0,behavior:'smooth'});
         }
 
+
+        function currentTopic(){
+            const el=document.querySelector('input[name="topic"]');
+            return el ? el.value.trim() : '';
+        }
+        function runPackaging(){
+            const btn=document.getElementById('packagingBtn');
+            runStudioAction('/packaging-lab',{topic:currentTopic(),brand_voice:localStorage.getItem('hookspike_brand_voice')||''},'packagingOutput',btn);
+        }
+        function runAB(){
+            const btn=document.getElementById('abBtn');
+            runStudioAction('/ab-packs',{topic:currentTopic(),brand_voice:localStorage.getItem('hookspike_brand_voice')||''},'abOutput',btn);
+        }
+        function runPerformance(){
+            const btn=document.getElementById('performanceBtn');
+            const metrics=document.getElementById('metricsInput');
+            runStudioAction('/performance-coach',{topic:currentTopic(),metrics:metrics?metrics.value:''},'performanceOutput',btn);
+        }
+        function runPlanner(){
+            const btn=document.getElementById('plannerBtn');
+            const niche=document.getElementById('plannerNiche');
+            const goal=document.getElementById('plannerGoal');
+            runStudioAction('/content-planner',{niche:niche?niche.value:'',goal:goal?goal.value:'growth'},'plannerOutput',btn);
+        }
+        function runRepurpose(){
+            const btn=document.getElementById('repurposeBtn');
+            const content=document.getElementById('repurposeInput');
+            const target=document.getElementById('repurposeTarget');
+            runStudioAction('/repurpose-content',{content:content?content.value:'',source_platform:'YouTube',target_platform:target?target.value:'Instagram Reels'},'repurposeOutput',btn);
+        }
+
         document.addEventListener('DOMContentLoaded', function(){
             loadBrandVoice(); renderHistory();
             const form=document.querySelector('form[action="/"]');
@@ -896,9 +1025,19 @@ HTML_TEMPLATE = """
     </div>
 
     <p class="tagline">
-        Hyper-Growth Retention Suite
+        CREATOR COMMAND CENTER · RESEARCH → CREATE → PACKAGE → REPURPOSE
     </p>
 
+    {% if logged_in %}
+    <section class="creator-hero">
+        <div class="hero-kicker">⚡ One workspace for your next upload</div>
+        <div class="hero-title">Turn one idea into a publish-ready content system.</div>
+        <p class="hero-copy">HookSpike researches the topic when freshness matters, then turns it into hooks, scripts, packaging and creator-ready variations — so you spend less time jumping between tools.</p>
+        <div class="hero-pills">
+            <span class="hero-pill">🔎 Fresh research</span><span class="hero-pill">🪝 Hooks</span><span class="hero-pill">🎬 Script</span><span class="hero-pill">🖼️ Thumbnail direction</span><span class="hero-pill">📈 Performance coaching</span><span class="hero-pill">♻️ Repurpose</span>
+        </div>
+    </section>
+    {% endif %}
 
     {% if not logged_in %}
 
@@ -972,56 +1111,41 @@ HTML_TEMPLATE = """
         {% if show_paywall %}
 
             <div class="paywall-box">
-
-                <h2>
-                    🔒 Commercial Pipeline Locked
-                </h2>
-
-                <p class="pay-desc">
-                    Your trial parameters have expired. Select an enterprise tier below to lift engine execution rate-limits instantly.
-                </p>
+                <div class="plan-badge" style="position:static;display:inline-block;margin-bottom:12px;">⚡ CREATOR PRO</div>
+                <h2>Keep creating. Upgrade when you're ready.</h2>
+                <p class="pay-desc">Your 5 starter tokens are finished. Unlock the full HookSpike creator workspace for one simple monthly price — no confusing tiers.</p>
 
                 <div class="pricing-plan">
-
-                    <!-- Plan 1: Pro Suite -->
-                    <div class="plan-card">
-                        <h4>Creator Pro Plan</h4>
-                        <p class="plan-sub">Perfect for rising independent streamers & video editors</p>
-                        <div class="plan-price-row">
-                            <p class="price">₹1,499</p>
-                            <span class="duration">/ monthly subscription</span>
-                        </div>
-                    </div>
-
-                    <!-- Plan 2: Agency Suite (Popular) -->
                     <div class="plan-card popular">
-                        <div class="plan-badge">Most Popular</div>
-                        <h4>Agency Growth Suite</h4>
-                        <p class="plan-sub">Full speed access with multi-platform deep tracking vectors</p>
+                        <div class="plan-badge">BEST VALUE</div>
+                        <h4>HookSpike Creator Pro</h4>
+                        <p class="plan-sub">For creators who want one place to research, create, package and improve content.</p>
                         <div class="plan-price-row">
-                            <p class="price">₹1,999</p>
-                            <span class="duration">/ monthly subscription</span>
+                            <p class="price">₹899</p><span class="duration">/ month</span>
+                        </div>
+                        <div class="plan-benefits">
+                            <div class="plan-benefit">🚀 Complete Creator Packs</div>
+                            <div class="plan-benefit">🔎 Current-topic research</div>
+                            <div class="plan-benefit">🧲 Hook & packaging analysis</div>
+                            <div class="plan-benefit">🅰️ A/B content angles</div>
+                            <div class="plan-benefit">📈 Performance Coach</div>
+                            <div class="plan-benefit">♻️ Repurpose for platforms</div>
+                            <div class="plan-benefit">🎙️ Creator Voice</div>
+                            <div class="plan-benefit">🖼️ Manual AI thumbnail generation</div>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="upi-details">
-                    <span>💥 Merchant UPI Anchor:</span>
-                    <span style="color: #fff; font-family: monospace;">9657119506@axl</span>
+                    <span>💳 Secure UPI payment</span>
+                    <span style="color:#fff;font-family:monospace;">9657119506@axl</span>
                 </div>
 
-                <!-- Open UPI Gateway intent string configuration mapped to professional plan pricing -->
-                <a
-                    href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=1499&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end"
-                    class="pay-btn"
-                >
-                    📱 Initialize Secure Gateway Payment
+                <a href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=899&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end" class="pay-btn">
+                    ⚡ Unlock Creator Pro · ₹899/month
                 </a>
-
+                <p style="color:#64748b;font-size:11px;margin:13px 0 0;">One plan. One clear value proposition. Cancel/renew through your current payment process.</p>
             </div>
-            
-
 
         {% else %}
 
@@ -1110,6 +1234,61 @@ HTML_TEMPLATE = """
                 <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>My Creator Voice</strong><span>Save your preferred tone on this device for future sessions.</span></div>
                 <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Quickly reuse your latest topics and content modes.</span></div>
                 <div class="studio-card" onclick="setTopicAndType('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Switch to Script and use the Shorts remix after generation.</span></div>
+            </div>
+
+            <div class="pack-banner" style="margin-top:12px;">
+                <strong>💎 Pro Creator Lab</strong>
+                <span>Go beyond generation: test packaging, diagnose performance, plan your week and adapt content for another platform.</span>
+            </div>
+            <div class="studio-grid">
+                <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Video Packaging Lab</strong><span>Title + thumbnail + hook as one coordinated package.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Three distinct creative angles to test instead of one guess.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Paste CTR, retention and views; get a prioritized diagnosis.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Content Planner</strong><span>Turn your niche and goal into a realistic weekly plan.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your best idea for another platform, not just copy-paste it.</span></div>
+            </div>
+
+            <div id="packagingPanel" class="tool-panel">
+                <div class="tool-title">📦 Video Packaging Lab</div>
+                <p style="color:#94a3b8;font-size:12px;line-height:1.5;">One verified topic → coordinated title, hook and thumbnail direction.</p>
+                <button id="packagingBtn" class="tool-action" type="button" onclick="runPackaging()">🚀 Build My Packaging</button>
+                <div id="packagingOutput" class="tool-output">Your packaging analysis will appear here.</div>
+            </div>
+
+            <div id="abPanel" class="tool-panel">
+                <div class="tool-title">🅰️ A/B Pack Generator</div>
+                <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Get three different psychological angles — curiosity, search/authority and bold/contrarian.</p>
+                <button id="abBtn" class="tool-action" type="button" onclick="runAB()">🧪 Generate 3 Test Packs</button>
+                <div id="abOutput" class="tool-output">Your A/B packs will appear here.</div>
+            </div>
+
+            <div id="performancePanel" class="tool-panel">
+                <div class="tool-title">📈 Performance Coach</div>
+                <textarea id="metricsInput" class="tool-input" placeholder="Example:
+Views: 12,400
+CTR: 3.8%
+Average view duration: 2:14
+Video length: 8:20
+Retention at 30s: 61%
+Likes: 520"></textarea>
+                <button id="performanceBtn" class="tool-action" type="button" onclick="runPerformance()">📊 Diagnose My Video</button>
+                <div id="performanceOutput" class="tool-output">Paste real metrics for a more useful diagnosis.</div>
+            </div>
+
+            <div id="plannerPanel" class="tool-panel">
+                <div class="tool-title">🗓️ 7-Day Content Planner</div>
+                <input id="plannerNiche" class="tool-select" style="box-sizing:border-box;" type="text" placeholder="Your niche / content area">
+                <select id="plannerGoal" class="tool-select"><option value="growth">📈 Growth</option><option value="consistency">🗓️ Consistency</option><option value="short-form">📱 Short-form growth</option><option value="authority">🏆 Authority</option></select>
+                <button id="plannerBtn" class="tool-action" type="button" onclick="runPlanner()">🗓️ Build My Week</button>
+                <div id="plannerOutput" class="tool-output">Your 7-day plan will appear here.</div>
+            </div>
+
+            <div id="repurposePanel" class="tool-panel">
+                <div class="tool-title">♻️ Content Repurposer</div>
+                <textarea id="repurposeInput" class="tool-input" placeholder="Paste your existing script, video summary or post..."></textarea>
+                <select id="repurposeTarget" class="tool-select"><option value="Instagram Reels">📸 Instagram Reels</option><option value="YouTube Shorts">▶️ YouTube Shorts</option><option value="TikTok">🎵 TikTok</option><option value="X">𝕏 X</option><option value="LinkedIn">💼 LinkedIn</option></select>
+                <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose Content</button>
+                <div id="repurposeOutput" class="tool-output">Your platform-native version will appear here.</div>
             </div>
 
             <div id="refinePanel" class="tool-panel">
@@ -1875,6 +2054,111 @@ def discover_topics_route():
         print(f"Topic discovery route error: {repr(exc)}")
         return jsonify({"ok": False, "error": "⚠️ Topic radar is temporarily unavailable."}), 200
 
+
+
+@app.route("/packaging-lab", methods=["POST"])
+def packaging_lab_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        topic = str(data.get("topic", "")).strip()
+        if not topic:
+            return jsonify({"ok": False, "error": "⚠️ Enter a topic first."}), 400
+        result, err = generate_packaging_lab(topic, str(data.get("brand_voice", ""))[:4000])
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Packaging Lab is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Packaging route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Packaging Lab is temporarily unavailable."}), 200
+
+
+@app.route("/ab-packs", methods=["POST"])
+def ab_packs_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        topic = str(data.get("topic", "")).strip()
+        if not topic:
+            return jsonify({"ok": False, "error": "⚠️ Enter a topic first."}), 400
+        result, err = generate_ab_packs(topic, str(data.get("brand_voice", ""))[:4000])
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ A/B Pack Generator is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"A/B route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ A/B Pack Generator is temporarily unavailable."}), 200
+
+
+@app.route("/performance-coach", methods=["POST"])
+def performance_coach_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        metrics = str(data.get("metrics", "")).strip()
+        if not metrics:
+            return jsonify({"ok": False, "error": "⚠️ Paste your video metrics first."}), 400
+        result, err = performance_coach(str(data.get("topic", "")), metrics)
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Performance Coach is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Performance route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Performance Coach is temporarily unavailable."}), 200
+
+
+@app.route("/content-planner", methods=["POST"])
+def content_planner_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        niche = str(data.get("niche", "")).strip()
+        if not niche:
+            return jsonify({"ok": False, "error": "⚠️ Enter your niche first."}), 400
+        result, err = generate_content_plan(niche, str(data.get("goal", "growth")))
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Content Planner is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Planner route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Content Planner is temporarily unavailable."}), 200
+
+
+@app.route("/repurpose-content", methods=["POST"])
+def repurpose_content_route():
+    identity, status, error = _studio_token_allowed()
+    if error:
+        return jsonify(error), status
+    user_id, email = identity
+    try:
+        data = request.get_json(silent=True) or {}
+        content = str(data.get("content", "")).strip()
+        if not content:
+            return jsonify({"ok": False, "error": "⚠️ Paste content to repurpose first."}), 400
+        result, err = repurpose_creator_content(content, str(data.get("source_platform", "YouTube")), str(data.get("target_platform", "Instagram Reels")))
+        if not result:
+            return jsonify({"ok": False, "error": "⚠️ Repurposer is temporarily unavailable."}), 200
+        _studio_finish(user_id, email, result)
+        return jsonify({"ok": True, "text": result})
+    except Exception as exc:
+        print(f"Repurpose route error: {repr(exc)}")
+        return jsonify({"ok": False, "error": "⚠️ Repurposer is temporarily unavailable."}), 200
 
 # ============================================================
 # ON-DEMAND THUMBNAIL IMAGE

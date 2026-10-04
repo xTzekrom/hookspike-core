@@ -989,6 +989,123 @@ HTML_TEMPLATE = """
         .hook-card{background:#171c21 !important;border-color:#2b323a !important;border-left-color:#71879b !important;}
         .hero-title,.hero-copy,.hero-kicker,.hero-pill{display:none !important;}
 
+        /* ===== HookSpike 2.0 visual system ===== */
+        :root{
+            --ui-bg:#080a0d;
+            --ui-shell:#0e1115;
+            --ui-panel:#12161b;
+            --ui-panel-2:#161b21;
+            --ui-border:#252c34;
+            --ui-border-strong:#39434e;
+            --ui-text:#edf1f4;
+            --ui-muted:#8d97a3;
+            --ui-soft:#69737e;
+            --ui-accent:#9aabbc;
+            --ui-accent-strong:#b7c5d2;
+        }
+        html{background:var(--ui-bg)!important;}
+        body{background:var(--ui-bg)!important;color:var(--ui-text)!important;}
+        .container{max-width:1040px!important;margin:18px auto!important;padding:24px!important;background:var(--ui-shell)!important;border:1px solid #20262d!important;border-radius:24px!important;box-shadow:0 24px 80px rgba(0,0,0,.32)!important;}
+        .logo{font-size:31px!important;letter-spacing:-1.4px!important;color:#eef2f5!important;}
+        .logo span{color:#eef2f5!important;background:none!important;-webkit-text-fill-color:#eef2f5!important;}
+        p.tagline{color:#707a86!important;letter-spacing:2.4px!important;font-size:9px!important;margin-top:5px!important;}
+        .user-profile{color:#9ba4ae!important;margin-top:24px!important;}
+        .logout-link{color:#c3ccd5!important;}
+        .counter-badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;min-width:250px!important;box-sizing:border-box!important;margin:8px auto 0!important;padding:10px 16px!important;background:#151a20!important;border:1px solid #2a3139!important;border-radius:999px!important;color:#cbd3dc!important;box-shadow:none!important;font-size:12px!important;}
+
+        /* Dashboard */
+        form[action="/"]{margin-top:28px!important;padding:24px!important;background:#11151a!important;border:1px solid #272e36!important;border-radius:22px!important;box-shadow:none!important;}
+        form[action="/"] > label{color:#9da7b2!important;font-size:10px!important;letter-spacing:1.7px!important;text-transform:uppercase!important;}
+        .content-selector{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;margin:12px 0 20px!important;}
+        .content-option label{min-height:104px!important;padding:16px!important;background:#171c22!important;border:1px solid #2a3139!important;border-radius:16px!important;box-shadow:none!important;}
+        .content-option label:hover{background:#1b2026!important;border-color:#46515f!important;transform:none!important;}
+        .content-option input:checked+label{background:#1d252d!important;border-color:#778b9e!important;box-shadow:0 0 0 1px rgba(183,197,210,.12)!important;}
+        .option-title{color:#eef1f4!important;font-size:15px!important;}
+        .option-sub{color:#858f9a!important;}
+        .option-icon{filter:none!important;}
+        .creation-prompt{margin:0 0 16px!important;padding:16px!important;background:#0d1115!important;border:1px solid #252c34!important;border-radius:16px!important;}
+        .creation-prompt-label{color:#b0bac5!important;font-size:10px!important;letter-spacing:1.7px!important;text-transform:uppercase!important;}
+        .creation-prompt input[name="topic"]{background:#151a20!important;border:1px solid #303842!important;color:#eef1f4!important;border-radius:13px!important;min-height:50px!important;}
+        .creation-prompt input[name="topic"]::placeholder{color:#59636e!important;}
+        .creation-prompt-help{color:#68727e!important;}
+        #submitBtn{position:relative!important;width:100%!important;min-height:54px!important;margin-top:0!important;border:1px solid #6f8294!important;border-radius:14px!important;background:#71879b!important;color:#081016!important;box-shadow:none!important;font-size:14px!important;font-weight:950!important;letter-spacing:.3px!important;}
+        #submitBtn:hover{background:#8499aa!important;}
+        .create-label{display:none;}
+        form:has(#typeHooks:checked) #submitBtn .create-label-hooks,
+        form:has(#typeScript:checked) #submitBtn .create-label-script,
+        form:has(#typeThumbnail:checked) #submitBtn .create-label-thumbnail{display:inline;}
+        .creator-studio-cta{margin-top:18px!important;padding:22px!important;background:#12171c!important;border:1px solid #29313a!important;border-radius:20px!important;box-shadow:none!important;}
+        .creator-studio-cta strong{color:#edf1f4!important;}
+        .creator-studio-cta>span:not(.workspace-kicker){color:#858f9a!important;}
+        .studio-open-btn{background:#71879b!important;border-color:#6f8294!important;color:#081016!important;}
+
+        /* Creator Studio overview */
+        .studio-page-head{margin-top:22px!important;padding:28px!important;background:#11161b!important;border:1px solid #29313a!important;border-radius:22px!important;box-shadow:none!important;}
+        .studio-page-head h2{font-size:31px!important;letter-spacing:-.8px!important;color:#eef1f4!important;}
+        .studio-page-head p{color:#858f9a!important;max-width:700px!important;}
+        .studio-topic{background:#0c1014!important;border-color:#303842!important;border-radius:13px!important;min-height:48px!important;}
+        .studio-back-link{color:#aab7c3!important;}
+        .studio-nav{gap:7px!important;margin-top:12px!important;padding:5px!important;background:#0d1115!important;border:1px solid #242b33!important;border-radius:13px!important;}
+        .studio-nav a{background:transparent!important;border:0!important;border-radius:9px!important;color:#77818d!important;padding:8px 12px!important;}
+        .studio-nav a:hover{background:#181d23!important;color:#e5e9ed!important;border:0!important;}
+        .studio-section{margin-top:34px!important;}
+        .studio-section-head{margin-bottom:14px!important;}
+        .studio-section-head h3{font-size:22px!important;color:#edf1f4!important;}
+        .studio-section-head p{color:#747e89!important;}
+        .studio-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:11px!important;}
+        .studio-card,.studio-card.featured{min-height:152px!important;padding:18px!important;background:#12171c!important;border:1px solid #29313a!important;border-radius:18px!important;box-shadow:none!important;}
+        .studio-card.featured{grid-column:span 2!important;background:#161c22!important;border-color:#36404a!important;}
+        .studio-card:hover{background:#171d23!important;border-color:#52606e!important;box-shadow:0 14px 36px rgba(0,0,0,.24)!important;transform:translateY(-2px)!important;}
+        .studio-card .icon{background:#191f25!important;border-color:#2d353e!important;filter:none!important;}
+        .studio-card strong{color:#edf1f4!important;font-size:14px!important;}
+        .studio-card span{color:#7d8792!important;}
+        .studio-card .card-tag{color:#9aa9b7!important;}
+        .studio-card::after{background:#1a2026!important;color:#8896a3!important;}
+
+        /* Dedicated workspace */
+        body.studio-workspace-route .container{max-width:900px!important;}
+        body.studio-workspace-route .studio-workspace-shell{max-width:820px!important;margin:26px auto 0!important;}
+        .studio-workspace-top{margin-bottom:12px!important;}
+        .workspace-close{float:none!important;display:inline-flex!important;align-items:center!important;padding:9px 13px!important;background:#14191f!important;border:1px solid #2b333c!important;color:#aeb9c4!important;border-radius:999px!important;}
+        .workspace-close:hover{background:#1b2026!important;border-color:#485461!important;color:#edf1f4!important;}
+        .workspace-meta{color:#606b77!important;}
+        .workspace-hero{padding:25px!important;background:#11161b!important;border:1px solid #29313a!important;border-radius:22px!important;}
+        .workspace-hero h1{margin:4px 0 7px!important;color:#eef1f4!important;font-size:30px!important;letter-spacing:-.7px!important;}
+        .workspace-hero>p{margin:0!important;color:#7e8995!important;font-size:13px!important;line-height:1.55!important;}
+        .workspace-context{margin-top:19px!important;padding:13px!important;background:#0c1014!important;border:1px solid #252d35!important;border-radius:15px!important;}
+        .workspace-context label{color:#8f9aa5!important;letter-spacing:1.5px!important;}
+        .workspace-topic-input{min-height:46px!important;padding:12px 13px!important;background:#151a20!important;border:1px solid #303842!important;border-radius:12px!important;color:#eef1f4!important;}
+        .workspace-topic-input::placeholder{color:#59636e!important;}
+        .workspace-context span{display:block!important;margin-top:7px!important;color:#5f6974!important;font-size:10px!important;}
+        body.studio-workspace-route .tool-panel{max-width:820px!important;margin:12px auto 0!important;padding:24px!important;background:#11161b!important;border:1px solid #29313a!important;border-radius:20px!important;box-shadow:none!important;}
+        body.studio-workspace-route .tool-panel.show{animation:workspaceCleanIn .22s ease!important;}
+        .tool-title{font-size:19px!important;color:#e9edf1!important;margin-bottom:8px!important;}
+        .tool-action{background:#71879b!important;border-color:#6f8294!important;color:#081016!important;border-radius:12px!important;box-shadow:none!important;}
+        .tool-action:hover{background:#8499aa!important;}
+        .tool-input,.tool-select,.tool-output{background:#0c1014!important;border-color:#283039!important;color:#e9edf1!important;border-radius:12px!important;}
+        .tool-output{color:#c7d0d9!important;}
+        .quick-btn{background:#161b21!important;border-color:#2c343d!important;color:#bdc6cf!important;}
+        .quick-btn:hover{background:#1d2329!important;border-color:#596875!important;color:#edf1f4!important;}
+        .pack-banner{background:#12171c!important;border-color:#29313a!important;box-shadow:none!important;}
+        .pack-banner strong{color:#e8edf1!important;}
+        .pack-banner span{color:#7f8995!important;}
+        .studio-section-divider{background:#242b33!important;}
+        @keyframes workspaceCleanIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+        @media(max-width:760px){
+            .container{margin:10px auto!important;padding:15px!important;border-radius:19px!important;}
+            .logo{font-size:28px!important;}
+            .content-selector{grid-template-columns:1fr!important;}
+            .content-option label{min-height:84px!important;}
+            .studio-page-head{padding:21px!important;}
+            .studio-page-head h2{font-size:27px!important;}
+            .studio-grid{grid-template-columns:1fr!important;}
+            .studio-card.featured{grid-column:auto!important;}
+            .workspace-hero{padding:20px!important;}
+            .workspace-hero h1{font-size:27px!important;}
+            body.studio-workspace-route .tool-panel{padding:20px!important;}
+        }
+
     </style>
 
     <script>
@@ -1285,6 +1402,8 @@ HTML_TEMPLATE = """
 
 
         function currentTopic(){
+            const workspace=document.getElementById('workspaceTopicInput');
+            if (workspace && workspace.value.trim()) return workspace.value.trim();
             const studio=document.getElementById('studioTopic');
             if (studio && studio.value.trim()) return studio.value.trim();
             const el=document.querySelector('input[name="topic"]');
@@ -1296,8 +1415,6 @@ HTML_TEMPLATE = """
             const btn = document.getElementById('submitBtn');
             if (!btn) return;
             const value = selected ? selected.value : 'hooks';
-            const labels = {hooks:'HOOKS', script:'SCRIPT', thumbnail:'THUMBNAIL'};
-            btn.textContent = 'CREATE MY ' + (labels[value] || 'CONTENT') + ' 🚀';
             btn.dataset.contentType = value;
         }
 
@@ -1523,8 +1640,8 @@ HTML_TEMPLATE = """
 
                     <div class="content-option">
                         <input type="radio" id="typeScript" name="content_type" value="script"
-                            {% if content_type == "script" %}checked{% endif %}>
-                        <label for="typeScript" onclick="setContentTypeAndButton('script')">
+                            {% if content_type == "script" %}checked{% endif %} onchange="updateCreateButton()">
+                        <label for="typeScript">
                             <span class="option-icon">🎬</span>
                             <span class="option-copy">
                                 <span class="option-title">Script</span>
@@ -1535,8 +1652,8 @@ HTML_TEMPLATE = """
 
                     <div class="content-option">
                         <input type="radio" id="typeThumbnail" name="content_type" value="thumbnail"
-                            {% if content_type == "thumbnail" %}checked{% endif %}>
-                        <label for="typeThumbnail" onclick="setContentTypeAndButton('thumbnail')">
+                            {% if content_type == "thumbnail" %}checked{% endif %} onchange="updateCreateButton()">
+                        <label for="typeThumbnail">
                             <span class="option-icon">🖼️</span>
                             <span class="option-copy">
                                 <span class="option-title">Thumbnail</span>
@@ -1562,7 +1679,9 @@ HTML_TEMPLATE = """
                 </div>
 
                 <button type="submit" id="submitBtn" data-content-type="{{ content_type or 'hooks' }}">
-                    CREATE MY {{ (content_type or "hooks")|upper }} 🚀
+                    <span class="create-label create-label-hooks">CREATE MY HOOKS 🚀</span>
+                    <span class="create-label create-label-script">CREATE MY SCRIPT 🎬</span>
+                    <span class="create-label create-label-thumbnail">CREATE MY THUMBNAIL 🖼️</span>
                 </button>
 
             </form>
@@ -1640,6 +1759,38 @@ HTML_TEMPLATE = """
                     <div class="studio-workspace-top">
                         <a class="workspace-close" href="/creator-studio{% if topic %}?topic={{ topic|urlencode }}{% endif %}">← Back to Creator Studio</a>
                         <span class="workspace-meta">Focused workspace</span>
+                    </div>
+                    <div class="workspace-hero">
+                        {% if studio_tool == 'packPanel' %}
+                            <span class="workspace-kicker">01 · CREATE</span><h1>Complete Creator Pack</h1><p>One topic, one verified research pass, one publish-ready content system.</p>
+                        {% elif studio_tool == 'discoverPanel' %}
+                            <span class="workspace-kicker">02 · RESEARCH</span><h1>Fresh Topic Radar</h1><p>Find timely opportunities worth creating around right now.</p>
+                        {% elif studio_tool == 'shortsPanel' %}
+                            <span class="workspace-kicker">03 · CREATE</span><h1>Shorts Mode</h1><p>Turn an idea into a tight, platform-native short-form concept.</p>
+                        {% elif studio_tool == 'refinePanel' %}
+                            <span class="workspace-kicker">04 · IMPROVE</span><h1>Make It Better</h1><p>Push an existing result toward stronger curiosity, clarity and impact.</p>
+                        {% elif studio_tool == 'analyzerPanel' %}
+                            <span class="workspace-kicker">05 · IMPROVE</span><h1>Hook Analyzer</h1><p>See exactly what is working in your hook—and what to change.</p>
+                        {% elif studio_tool == 'packagingPanel' %}
+                            <span class="workspace-kicker">06 · IMPROVE</span><h1>Packaging Lab</h1><p>Coordinate the title, hook and thumbnail direction before you publish.</p>
+                        {% elif studio_tool == 'abPanel' %}
+                            <span class="workspace-kicker">07 · IMPROVE</span><h1>A/B Pack Generator</h1><p>Create distinct creative angles instead of betting everything on one idea.</p>
+                        {% elif studio_tool == 'performancePanel' %}
+                            <span class="workspace-kicker">08 · GROW</span><h1>Performance Coach</h1><p>Turn your real metrics into a prioritized list of improvements.</p>
+                        {% elif studio_tool == 'plannerPanel' %}
+                            <span class="workspace-kicker">09 · GROW</span><h1>7-Day Content Planner</h1><p>Build a realistic week around your niche, goal and publishing rhythm.</p>
+                        {% elif studio_tool == 'repurposePanel' %}
+                            <span class="workspace-kicker">10 · GROW</span><h1>Content Repurposer</h1><p>Adapt your best idea for another platform without making it feel copied.</p>
+                        {% elif studio_tool == 'brandPanel' %}
+                            <span class="workspace-kicker">11 · PERSONALIZE</span><h1>Creator Voice</h1><p>Give HookSpike a consistent writing style that feels like you.</p>
+                        {% elif studio_tool == 'historyPanel' %}
+                            <span class="workspace-kicker">12 · LIBRARY</span><h1>Recent Ideas</h1><p>Return to topics you have already explored and keep momentum.</p>
+                        {% endif %}
+                        <div class="workspace-context">
+                            <label for="workspaceTopicInput">WORKING TOPIC</label>
+                            <input id="workspaceTopicInput" class="workspace-topic-input" type="text" value="{{ topic }}" placeholder="Topic, game, update, trend or idea..." autocomplete="off">
+                            <span>Use this workspace with the topic you are currently building.</span>
+                        </div>
                     </div>
                 </div>
             {% endif %}
@@ -2592,116 +2743,5 @@ def content_planner_route():
 
 
 @app.route("/repurpose-content", methods=["POST"])
-def repurpose_content_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email = identity
-    try:
-        data = request.get_json(silent=True) or {}
-        content = str(data.get("content", "")).strip()
-        if not content:
-            return jsonify({"ok": False, "error": "⚠️ Paste content to repurpose first."}), 400
-        result, err = repurpose_creator_content(content, str(data.get("source_platform", "YouTube")), str(data.get("target_platform", "Instagram Reels")))
-        if not result:
-            return jsonify({"ok": False, "error": "⚠️ Repurposer is temporarily unavailable."}), 200
-        _studio_finish(user_id, email, result)
-        return jsonify({"ok": True, "text": result})
-    except Exception as exc:
-        print(f"Repurpose route error: {repr(exc)}")
-        return jsonify({"ok": False, "error": "⚠️ Repurposer is temporarily unavailable."}), 200
-
-# ============================================================
-# ON-DEMAND THUMBNAIL IMAGE
-# ============================================================
-
-@app.route("/generate-thumbnail", methods=["POST"])
-def generate_thumbnail_route():
-
-    if not session.get("user_id"):
-        return jsonify({
-            "ok": False,
-            "image": None,
-            "error": "⚠️ Please log in first."
-        }), 401
-
-    try:
-        data = request.get_json(silent=True) or {}
-        topic = str(data.get("topic", "")).strip()
-        thumbnail_text = str(data.get("thumbnail_text", "")).strip()
-
-        if not topic or not thumbnail_text:
-            return jsonify({
-                "ok": False,
-                "image": None,
-                "error": "⚠️ Thumbnail details are missing. Please generate the thumbnail concepts again."
-            }), 400
-
-        result = generate_thumbnail_image(
-            topic=topic[:12000],
-            thumbnail_text=thumbnail_text[:30000],
-        )
-
-        return jsonify(result)
-
-    except Exception as exc:
-        print(f"On-demand thumbnail route error: {repr(exc)}")
-        return jsonify({
-            "ok": False,
-            "image": None,
-            "error": "⚠️ Image server is busy — thumbnail image can't be generated right now."
-        }), 200
-
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
-@app.after_request
-def add_no_cache_headers(response):
-    # AI results are dynamic; never let an intermediary/browser serve
-    # an old generated page as a new result.
-    response.headers["Cache-Control"] = (
-        "no-store, no-cache, must-revalidate, max-age=0"
-    )
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
-
-@app.route("/favicon.png")
-def favicon():
-    return send_file(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "file_00000000fd8481fab2b4f371e41aa854.png"
-        ),
-        mimetype="image/png"
-        )
-@app.route("/health")
-def health():
-
-    return {
-        "status": "ok",
-        "app": "HookSpike AI",
-        "ai_engine": "v2",
-    }
-
-
-# ============================================================
-# START SERVER
-# ============================================================
-
-if __name__ == "__main__":
-
-    port = int(
-        os.environ.get(
-            "PORT",
-            5000,
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-    )
-
+def repurpose_content_route
+Preview truncated for large file

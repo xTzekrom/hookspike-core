@@ -464,14 +464,21 @@ HTML_TEMPLATE = """
 
 
         /* --- CREATOR STUDIO UI --- */
-        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:24px 0; }
-        .studio-card { text-align:left; padding:17px; border:1px solid #263244; border-radius:18px; background:linear-gradient(145deg,#0d111a,#111827); cursor:pointer; transition:.2s; }
-        .studio-card:hover { transform:translateY(-2px); border-color:#66fcf1; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:20px 0; }
+        .studio-card { position:relative; text-align:left; padding:20px; min-height:132px; box-sizing:border-box; border:1px solid #263244; border-radius:20px; background:linear-gradient(145deg,#0d111a,#111827); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; -webkit-tap-highlight-color:transparent; user-select:none; }
+        .studio-card:hover { transform:translateY(-2px); border-color:#66fcf1; box-shadow:0 12px 32px rgba(0,0,0,.28); }
+        .studio-card:active { transform:scale(.985); }
+        .studio-card::after { content:'Open →'; position:absolute; right:16px; bottom:15px; color:#67e8f9; font-size:11px; font-weight:800; opacity:.72; }
         .studio-card .icon { font-size:25px; }
         .studio-card strong { display:block; color:#fff; margin-top:7px; font-size:14px; }
         .studio-card span { display:block; color:#8b96a8; font-size:11px; line-height:1.45; margin-top:4px; }
-        .tool-panel { display:none; margin-top:18px; padding:18px; border:1px solid #263244; border-radius:18px; background:rgba(13,17,26,.75); text-align:left; }
-        .tool-panel.show { display:block; animation:fadeIn .25s ease; }
+        .tool-panel { display:none; position:fixed; left:50%; top:50%; width:min(760px,calc(100vw - 28px)); max-height:calc(100dvh - 28px); box-sizing:border-box; overflow:auto; transform:translate(-50%,-50%); margin:0; padding:24px; border:1px solid rgba(103,232,249,.22); border-radius:26px; background:linear-gradient(145deg,rgba(9,14,26,.99),rgba(5,8,16,.99)); text-align:left; z-index:10001; box-shadow:0 30px 90px rgba(0,0,0,.7),0 0 50px rgba(103,232,249,.08); }
+        .tool-panel.show { display:block; animation:workspaceIn .22s ease; }
+        .studio-backdrop { display:none; position:fixed; inset:0; background:rgba(1,4,10,.78); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); z-index:10000; }
+        .studio-backdrop.show { display:block; }
+        .workspace-close { width:auto !important; padding:8px 12px !important; border-radius:999px !important; background:rgba(255,255,255,.05) !important; border:1px solid rgba(148,163,184,.18) !important; color:#cbd5e1 !important; font-size:12px !important; text-transform:none !important; box-shadow:none !important; float:right; margin:-4px 0 14px 10px; }
+        .workspace-kicker { display:block; color:#67e8f9; font-size:10px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; }
+        @keyframes workspaceIn { from {opacity:0; transform:translate(-50%,-47%) scale(.985)} to {opacity:1; transform:translate(-50%,-50%) scale(1)} }
         @keyframes fadeIn { from {opacity:0; transform:translateY(5px)} to {opacity:1; transform:translateY(0)} }
         .tool-title { color:#66fcf1; font-weight:900; margin-bottom:10px; }
         .tool-input { width:100%; min-height:100px; resize:vertical; padding:13px; box-sizing:border-box; border:1px solid #263244; border-radius:12px; background:#080c14; color:#fff; outline:none; }
@@ -487,7 +494,11 @@ HTML_TEMPLATE = """
         .history-list { max-height:220px; overflow:auto; margin-top:10px; }
         .history-item { padding:10px; border-bottom:1px solid #1f2937; cursor:pointer; color:#cbd5e1; font-size:12px; }
         .history-item:hover { color:#66fcf1; }
-        @media(max-width:560px){ .studio-grid{grid-template-columns:1fr;} }
+        button, .studio-card, label, a { -webkit-tap-highlight-color:transparent; }
+        button:focus-visible, .studio-card:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid rgba(103,232,249,.65); outline-offset:2px; }
+        button:disabled { opacity:.65; cursor:wait; }
+        body.studio-open { overflow:hidden; }
+        @media(max-width:560px){ .studio-grid{grid-template-columns:1fr;} .studio-card{min-height:118px;padding:18px;} .tool-panel{padding:20px;border-radius:22px;} }
 
         /* --- PREMIUM COMMERCIAL PAYWALL SUITE --- */
         .paywall-box {
@@ -717,27 +728,18 @@ HTML_TEMPLATE = """
     <script>
 
         function showLoading() {
-
-            var submitBtn =
-                document.getElementById("submitBtn");
-
-            var loader =
-                document.getElementById("loaderIcon");
-
-            var loaderText =
-                document.getElementById("loaderText");
-
-            if (submitBtn) {
-                submitBtn.style.display = "none";
+            var submitBtn = document.getElementById("submitBtn");
+            var loader = document.getElementById("loaderIcon");
+            var loaderText = document.getElementById("loaderText");
+            var topic = document.querySelector('input[name="topic"]');
+            if (!topic || !topic.value.trim()) {
+                if (topic) { topic.focus(); topic.style.borderColor = '#f472b6'; }
+                return false;
             }
-
-            if (loader) {
-                loader.style.display = "block";
-            }
-
-            if (loaderText) {
-                loaderText.style.display = "block";
-            }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = '⏳ Building your result...'; }
+            if (loader) loader.style.display = "block";
+            if (loaderText) loaderText.style.display = "block";
+            return true;
         }
 
 
@@ -885,21 +887,42 @@ HTML_TEMPLATE = """
         }
 
         function openStudioPanel(id) {
+            const backdrop = document.getElementById('studioBackdrop');
             document.querySelectorAll('.tool-panel').forEach(x => x.classList.remove('show'));
             const el = document.getElementById(id);
-            if (el) el.classList.add('show');
-            if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+            if (!el) return;
+            if (!el.querySelector('.workspace-close')) {
+                const close = document.createElement('button');
+                close.type = 'button';
+                close.className = 'workspace-close';
+                close.innerText = '← Back to Studio';
+                close.onclick = closeStudioPanel;
+                el.prepend(close);
+            }
+            if (backdrop) backdrop.classList.add('show');
+            document.body.classList.add('studio-open');
+            el.classList.add('show');
+            el.scrollTop = 0;
             renderHistory();
         }
 
+        function closeStudioPanel() {
+            document.querySelectorAll('.tool-panel').forEach(x => x.classList.remove('show'));
+            const backdrop = document.getElementById('studioBackdrop');
+            if (backdrop) backdrop.classList.remove('show');
+            document.body.classList.remove('studio-open');
+        }
+
         function setTopicAndType(type) {
-            const topic = document.querySelector('input[name="topic"]');
             const radio = document.querySelector('input[name="content_type"][value="'+type+'"]');
             if (radio) radio.checked = true;
-            if (topic) topic.focus();
+            const topic = document.querySelector('input[name="topic"]');
+            window.scrollTo({top:0,behavior:'smooth'});
+            setTimeout(function(){ if (topic) topic.focus(); }, 350);
         }
 
         async function runStudioAction(endpoint, payload, outputId, button) {
+            if (!button) return;
             const old = button.innerText;
             button.disabled = true;
             button.innerText = "⏳ Working...";
@@ -907,10 +930,13 @@ HTML_TEMPLATE = """
             if (output) { output.style.display = "block"; output.innerText = "✨ HookSpike is working..."; }
             try {
                 const res = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-                const data = await res.json();
+                const raw = await res.text();
+                let data = {};
+                try { data = JSON.parse(raw); } catch(_) { throw new Error('Server returned an invalid response.'); }
                 if (output) output.innerText = data.ok ? (data.text || data.result || "Done.") : (data.error || "⚠️ Something went wrong.");
             } catch(e) {
-                if (output) output.innerText = "⚠️ Tool is temporarily unavailable. Please try again.";
+                console.error('HookSpike tool error:', e);
+                if (output) output.innerText = "⚠️ This tool could not complete the request. Please try again.";
             } finally { button.disabled = false; button.innerText = old; }
         }
 
@@ -1003,6 +1029,7 @@ HTML_TEMPLATE = """
 
         document.addEventListener('DOMContentLoaded', function(){
             loadBrandVoice(); renderHistory();
+            document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeStudioPanel(); });
             const form=document.querySelector('form[action="/"]');
             if(form) form.addEventListener('submit', function(){
                 saveCreatorMemory();
@@ -1152,7 +1179,7 @@ HTML_TEMPLATE = """
             <form
                 method="POST"
                 action="/"
-                onsubmit="showLoading()"
+                onsubmit="return showLoading()"
             >
 
                 <label>What do you want to create?</label>
@@ -1221,24 +1248,31 @@ HTML_TEMPLATE = """
 
         {% if not show_paywall %}
             <div class="pack-banner">
+                <span class="workspace-kicker">⭐ Recommended starting point</span>
                 <strong>🚀 One Topic → Complete Creator Pack</strong>
-                <span>Get titles, 7 hooks, one script, 3 thumbnail concepts, description, hashtags and keywords from one verified research pass.</span>
-                <button id="packBtn" class="tool-action" type="button" onclick="runPack()" style="margin-top:12px;">✨ Build My Complete Pack</button>
+                <span>Titles, 7 hooks, script, thumbnail concepts, description, hashtags and keywords — built from one research pass.</span>
+                <button id="packBtn" class="tool-action" type="button" onclick="runPack()" style="margin-top:14px;">✨ Build My Complete Pack</button>
                 <div id="packOutput" class="tool-output" style="display:none;"></div>
             </div>
 
+            <div class="section-heading" style="margin-top:28px;text-align:left;">
+                <span class="workspace-kicker">Creator Toolkit</span>
+                <h3 style="margin:0;color:#fff;font-size:20px;">Choose a workspace</h3>
+                <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Tap a tool to open its own focused workspace. Nothing else gets in the way.</p>
+            </div>
             <div class="studio-grid">
-                <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current content opportunities with web-verified research.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your result for curiosity, natural tone, Shorts and more.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Get concrete feedback and a stronger rewrite.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>My Creator Voice</strong><span>Save your preferred tone on this device for future sessions.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Quickly reuse your latest topics and content modes.</span></div>
-                <div class="studio-card" onclick="setTopicAndType('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Switch to Script and use the Shorts remix after generation.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your latest result into a stronger version.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Score a hook and get a stronger rewrite.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Save the tone HookSpike should write in.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Reuse your latest topics and modes.</span></div>
+                <div class="studio-card" onclick="setTopicAndType('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form script creation.</span></div>
             </div>
 
-            <div class="pack-banner" style="margin-top:12px;">
-                <strong>💎 Pro Creator Lab</strong>
-                <span>Go beyond generation: test packaging, diagnose performance, plan your week and adapt content for another platform.</span>
+            <div class="section-heading" style="margin-top:34px;text-align:left;">
+                <span class="workspace-kicker">💎 Pro workspace</span>
+                <h3 style="margin:0;color:#fff;font-size:20px;">Creator Command Center</h3>
+                <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Packaging, testing, performance, planning and repurposing — each opens as a dedicated workspace.</p>
             </div>
             <div class="studio-grid">
                 <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Video Packaging Lab</strong><span>Title + thumbnail + hook as one coordinated package.</span></div>
@@ -1247,6 +1281,8 @@ HTML_TEMPLATE = """
                 <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Content Planner</strong><span>Turn your niche and goal into a realistic weekly plan.</span></div>
                 <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your best idea for another platform, not just copy-paste it.</span></div>
             </div>
+
+            <div id="studioBackdrop" class="studio-backdrop" onclick="closeStudioPanel()"></div>
 
             <div id="packagingPanel" class="tool-panel">
                 <div class="tool-title">📦 Video Packaging Lab</div>

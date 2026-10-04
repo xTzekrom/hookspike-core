@@ -1245,6 +1245,202 @@ Return only the concise creator list with useful emojis as section markers.
                 continue
     return None, last_error or "Topic discovery failed."
 
+
+def _creator_research(topic, content_type="creator_workflow"):
+    """Get a compact, verified research brief for premium workflows."""
+    topic = str(topic or "").strip()[:MAX_TOPIC_CHARS]
+    if not topic:
+        return None, "Please enter a topic first."
+    research, error = _gemini_research(
+        topic=topic,
+        content_type=content_type,
+        use_search=True,
+    )
+    return research, error
+
+
+def generate_packaging_lab(topic, brand_voice=""):
+    """Title + thumbnail + hook packaging system, backed by verified research."""
+    research, research_error = _creator_research(topic, "packaging_lab")
+    if not research:
+        return None, research_error or "Packaging research failed."
+    prompt = f"""
+Build a YouTube/video PACKAGING LAB for this topic.
+
+TOPIC:
+{topic}
+
+CREATOR VOICE:
+{brand_voice or 'Natural, confident, creator-friendly.'}
+
+VERIFIED RESEARCH:
+{_compact_research_for_openai(research)}
+
+Return ONLY:
+🎯 PACKAGING ANGLE
+One sentence describing the core promise.
+
+🏆 BEST TITLE
+One strongest title.
+
+🔁 TITLE A/B/C
+Three genuinely different title directions: Curiosity, Search, Bold.
+
+🪝 OPENING HOOK
+One 1-2 sentence opening.
+
+🖼️ THUMBNAIL CONCEPT
+ONE clear visual idea, 3-5 words of thumbnail text, subject/emotion, composition and contrast direction.
+
+⚠️ PACKAGING CHECK
+- Title promise:
+- Thumbnail promise:
+- Hook promise:
+- Biggest mismatch/risk:
+
+STRICT: Never invent current facts. Do not claim guaranteed CTR or virality. Keep title and thumbnail complementary, not duplicates.
+"""
+    return _openai_freeform(prompt, "packaging lab")
+
+
+def generate_ab_packs(topic, brand_voice=""):
+    """Create three meaningfully different title+thumbnail+hook packages."""
+    research, research_error = _creator_research(topic, "ab_pack")
+    if not research:
+        return None, research_error or "A/B research failed."
+    prompt = f"""
+Create 3 distinct content packaging tests for this topic.
+
+TOPIC: {topic}
+CREATOR VOICE: {brand_voice or 'Natural creator voice.'}
+VERIFIED RESEARCH:
+{_compact_research_for_openai(research)}
+
+Return exactly:
+🅰️ PACK A — Curiosity
+Title:
+Hook:
+Thumbnail text (3-5 words):
+Visual direction:
+Why this angle:
+
+🅱️ PACK B — Search / Authority
+Title:
+Hook:
+Thumbnail text (3-5 words):
+Visual direction:
+Why this angle:
+
+🆎 PACK C — Contrarian / Bold
+Title:
+Hook:
+Thumbnail text (3-5 words):
+Visual direction:
+Why this angle:
+
+Rules: No fake claims, no guaranteed performance, and each pack must have a clearly different psychological angle.
+"""
+    return _openai_freeform(prompt, "A/B packaging lab")
+
+
+def performance_coach(topic, metrics):
+    """Diagnose supplied creator metrics without pretending to have channel access."""
+    topic = str(topic or "").strip()[:4000]
+    metrics = str(metrics or "").strip()[:8000]
+    if not metrics:
+        return None, "Please enter your video metrics first."
+    prompt = f"""
+Act as a creator performance coach.
+
+TOPIC: {topic or 'Not provided'}
+CREATOR METRICS:
+{metrics}
+
+Return ONLY:
+📊 DIAGNOSIS
+Identify the most likely bottleneck from the supplied numbers.
+
+🚨 TOP 3 FIXES
+Rank the three highest-impact actions.
+
+🧲 PACKAGING FIX
+What to change in title/thumbnail/hook.
+
+🎬 RETENTION FIX
+What to change in the opening or structure.
+
+🧪 NEXT TEST
+One concrete A/B test for the next upload.
+
+Be explicit when data is missing. Never pretend to access YouTube Analytics or predict exact views.
+"""
+    return _openai_freeform(prompt, "performance coach")
+
+
+def generate_content_plan(niche, goal="growth"):
+    """Build a practical 7-day creator plan."""
+    niche = str(niche or "").strip()[:2000]
+    goal = str(goal or "growth").strip()[:200]
+    if not niche:
+        return None, "Please enter your niche or content area."
+    prompt = f"""
+Create a realistic 7-day content plan for a creator.
+NICHE: {niche}
+GOAL: {goal}
+
+For each day give:
+📅 Day
+🎯 Topic
+🪝 Hook angle
+🎬 Format (long-form/Short/Reel/community)
+🖼️ Thumbnail direction
+⏱️ Suggested effort level (low/medium/high)
+
+Also finish with:
+🔥 WEEKLY CONTENT THESIS — one sentence
+♻️ REPURPOSE ROUTE — how to turn the strongest idea into 3 short-form posts
+
+Avoid invented current events. Keep the workload realistic for one creator.
+"""
+    return _openai_freeform(prompt, "7-day content planner")
+
+
+def repurpose_creator_content(content, source_platform="YouTube", target_platform="Instagram Reels"):
+    """Adapt existing creator content for another platform rather than blindly reposting."""
+    content = str(content or "").strip()[:MAX_CREATIVE_CHARS]
+    source_platform = str(source_platform or "YouTube")[:80]
+    target_platform = str(target_platform or "Instagram Reels")[:80]
+    if not content:
+        return None, "Please paste the content you want to repurpose."
+    prompt = f"""
+Repurpose this creator content from {source_platform} to {target_platform}.
+
+ORIGINAL:
+{content}
+
+Return ONLY:
+🎯 NEW ANGLE
+One sentence explaining how the target-platform version should differ.
+
+🪝 NEW HOOK
+A platform-native opening.
+
+🎬 SCRIPT / POST
+A ready-to-use adapted version.
+
+📝 CAPTION
+Ready to paste.
+
+#️⃣ HASHTAGS
+Relevant, not spammy.
+
+📌 EDITING NOTES
+3-5 concrete pacing/visual suggestions appropriate for the target platform.
+
+Rules: Preserve factual meaning. Do not invent claims. Adapt the format and tone instead of simply shortening the original.
+"""
+    return _openai_freeform(prompt, "content repurposer")
+
 # STATUS HELPER
 # ============================================================
 

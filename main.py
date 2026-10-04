@@ -464,55 +464,14 @@ HTML_TEMPLATE = """
 
 
         /* --- CREATOR STUDIO UI --- */
-        .studio-section { margin-top:30px; }
-        .studio-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:12px; }
-        .studio-section-head .section-copy { min-width:0; }
-        .studio-section-head h3 { margin:2px 0 3px; color:#fff; font-size:20px; letter-spacing:-.25px; }
-        .studio-section-head p { margin:0; color:#7f8ba0; font-size:11px; line-height:1.45; }
-        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0; }
-        .studio-card { text-decoration:none; color:inherit; display:block; position:relative; text-align:left; padding:16px; min-height:126px; box-sizing:border-box; border:1px solid rgba(148,163,184,.12); border-radius:18px; background:linear-gradient(145deg,#0b101a,#0f1624); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease; -webkit-tap-highlight-color:transparent; user-select:none; overflow:hidden; }
-        .studio-card::after { content:'→'; position:absolute; right:14px; top:14px; width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:rgba(103,232,249,.07); color:#67e8f9; font-size:13px; opacity:.72; }
-        .studio-card:hover { transform:translateY(-2px); border-color:rgba(103,232,249,.38); background:linear-gradient(145deg,#0d1522,#111a2a); box-shadow:0 14px 34px rgba(0,0,0,.28); }
-        .studio-card:active { transform:scale(.985); }
-        .studio-card .icon { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:rgba(103,232,249,.07); border:1px solid rgba(103,232,249,.10); font-size:21px; }
-        .studio-card strong { display:block; color:#f8fafc; margin-top:11px; font-size:13px; line-height:1.2; padding-right:22px; }
-        .studio-card span { display:block; color:#7f8ba0; font-size:10.5px; line-height:1.42; margin-top:5px; padding-right:10px; }
-        .studio-card .card-tag { display:inline-block; margin-top:9px; color:#67e8f9; font-size:8px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
-        .tool-panel { display:none; width:100%; max-width:920px; box-sizing:border-box; margin:22px auto 0; padding:30px; border:1px solid rgba(103,232,249,.16); border-radius:26px; background:linear-gradient(145deg,rgba(9,14,26,.98),rgba(5,8,16,.98)); text-align:left; box-shadow:0 24px 70px rgba(0,0,0,.30); }
-        .tool-panel.show { display:block; animation:workspaceIn .22s ease; }
-        .workspace-context{margin-top:16px;padding:14px;border:1px solid rgba(103,232,249,.12);border-radius:18px;background:rgba(255,255,255,.025);text-align:left}
-        .workspace-context label{display:block;margin:0 0 7px;color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:2px}
-        .workspace-topic-input{margin:0!important;width:100%;box-sizing:border-box}
-        body.studio-workspace-route .studio-workspace-shell{max-width:920px;margin:20px auto 0}
-        body.studio-workspace-route .tool-panel{margin-top:12px}
-        .studio-backdrop { display:none; }
-        .studio-workspace-shell { max-width:920px; margin:22px auto 0; }
-        .studio-workspace-top { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
-        .workspace-close { color:#67e8f9!important; text-decoration:none!important; font-size:12px; font-weight:900; }
-        .workspace-meta { color:#64748b; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1.4px; }
-        .studio-nav { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
-        .studio-nav a { color:#94a3b8; text-decoration:none; font-size:11px; font-weight:800; padding:8px 11px; border-radius:10px; border:1px solid rgba(148,163,184,.10); background:rgba(255,255,255,.025); }
-        .studio-nav a:hover { color:#fff; border-color:rgba(103,232,249,.25); }
-        .studio-section { margin-top:28px; }
-        .studio-section + .studio-section { margin-top:34px; }
-        .studio-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:12px; }
-        .studio-section-head h3 { margin:2px 0 3px; color:#fff; font-size:20px; letter-spacing:-.25px; }
-        .studio-section-head p { margin:0; color:#7f8ba0; font-size:11px; line-height:1.45; }
-        .studio-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0; }
-        .studio-card { min-height:142px; }
-        .studio-card.featured { grid-column:span 2; min-height:170px; background:linear-gradient(145deg,rgba(103,232,249,.09),rgba(167,139,250,.10)); border-color:rgba(103,232,249,.20); }
-        .studio-card.featured .icon { width:44px; height:44px; }
-        .studio-card.featured strong { font-size:15px; }
-        .studio-card.featured span { max-width:620px; }
-        .studio-section-divider { height:1px; background:rgba(148,163,184,.08); margin-top:32px; }
-        .studio-workspace-route .studio-page-head { max-width:920px; margin:18px auto 0; }
-        .studio-workspace-route .studio-section, .studio-workspace-route .pack-banner { display:none!important; }
-        .studio-workspace-route .tool-panel { display:none; position:static; transform:none; max-height:none; overflow:visible; z-index:auto; }
-        .studio-workspace-route .tool-panel.show { display:block!important; }
-        .studio-workspace-route .studio-workspace-shell { display:block; }
-        .workspace-close { width:auto !important; padding:8px 12px !important; border-radius:999px !important; background:rgba(255,255,255,.05) !important; border:1px solid rgba(148,163,184,.18) !important; color:#cbd5e1 !important; font-size:12px !important; text-transform:none !important; box-shadow:none !important; float:right; margin:-4px 0 14px 10px; }
-        .workspace-kicker { display:block; color:#67e8f9; font-size:10px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; }
-        @keyframes workspaceIn { from {opacity:0; transform:translate(-50%,-47%) scale(.985)} to {opacity:1; transform:translate(-50%,-50%) scale(1)} }
+        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:24px 0; }
+        .studio-card { text-align:left; padding:17px; border:1px solid #263244; border-radius:18px; background:linear-gradient(145deg,#0d111a,#111827); cursor:pointer; transition:.2s; }
+        .studio-card:hover { transform:translateY(-2px); border-color:#66fcf1; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+        .studio-card .icon { font-size:25px; }
+        .studio-card strong { display:block; color:#fff; margin-top:7px; font-size:14px; }
+        .studio-card span { display:block; color:#8b96a8; font-size:11px; line-height:1.45; margin-top:4px; }
+        .tool-panel { display:none; margin-top:18px; padding:18px; border:1px solid #263244; border-radius:18px; background:rgba(13,17,26,.75); text-align:left; }
+        .tool-panel.show { display:block; animation:fadeIn .25s ease; }
         @keyframes fadeIn { from {opacity:0; transform:translateY(5px)} to {opacity:1; transform:translateY(0)} }
         .tool-title { color:#66fcf1; font-weight:900; margin-bottom:10px; }
         .tool-input { width:100%; min-height:100px; resize:vertical; padding:13px; box-sizing:border-box; border:1px solid #263244; border-radius:12px; background:#080c14; color:#fff; outline:none; }
@@ -523,35 +482,12 @@ HTML_TEMPLATE = """
         .quick-btn { width:auto; padding:9px 12px; border-radius:999px; border:1px solid #334155; background:#111827; color:#dbe4ee; font-size:12px; cursor:pointer; text-transform:none; }
         .quick-btn:hover { border-color:#66fcf1; color:#66fcf1; }
         .pack-banner { margin-top:18px; padding:16px; border-radius:18px; background:linear-gradient(135deg,rgba(102,252,241,.08),rgba(124,58,237,.10)); border:1px solid rgba(102,252,241,.18); text-align:left; }
-        .creator-studio-cta{margin-top:20px;padding:22px;border-radius:22px;background:linear-gradient(135deg,rgba(103,232,249,.08),rgba(167,139,250,.10));border:1px solid rgba(103,232,249,.2);text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.18)}
-        .creator-studio-cta strong{display:block;color:#fff;font-size:21px;margin-top:7px}.creator-studio-cta>span:not(.workspace-kicker){display:block;color:#94a3b8;font-size:12px;line-height:1.55;margin-top:7px;max-width:680px}
-        .studio-open-btn{display:inline-flex!important;width:auto!important;margin-top:15px;text-decoration:none!important;align-items:center;justify-content:center}
-        .studio-page-head{margin-top:18px;padding:24px;border-radius:24px;background:linear-gradient(145deg,rgba(10,15,28,.96),rgba(7,10,18,.96));border:1px solid rgba(103,232,249,.14);text-align:left}
-        .studio-page-head h2{margin:8px 0 5px;color:#fff;font-size:27px;letter-spacing:-.5px}.studio-page-head p{margin:0 0 16px;color:#94a3b8;font-size:12px;line-height:1.55}
-        .studio-back-link{display:inline-block;color:#67e8f9;text-decoration:none;font-size:12px;font-weight:800;margin-bottom:4px}.studio-topic{margin:0!important;width:100%;box-sizing:border-box}
         .pack-banner strong { color:#fff; }
         .pack-banner span { display:block; color:#94a3b8; font-size:12px; line-height:1.5; margin-top:5px; }
         .history-list { max-height:220px; overflow:auto; margin-top:10px; }
         .history-item { padding:10px; border-bottom:1px solid #1f2937; cursor:pointer; color:#cbd5e1; font-size:12px; }
         .history-item:hover { color:#66fcf1; }
-        button, .studio-card, label, a { -webkit-tap-highlight-color:transparent; }
-        button:focus-visible, .studio-card:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid rgba(103,232,249,.65); outline-offset:2px; }
-        button:disabled { opacity:.65; cursor:wait; }
-        body.studio-open { overflow:hidden; }
-        /* Dedicated tool workspace: never stack every tool into the Studio page. */
-        body.studio-workspace-route .studio-section,
-        body.studio-workspace-route .pack-banner { display:none !important; }
-        body.studio-workspace-route .tool-panel {
-            display:none !important; position:static; left:auto; top:auto; width:100%; max-height:none;
-            overflow:visible; transform:none; margin:22px 0 0; box-sizing:border-box;
-            animation:none; box-shadow:0 24px 70px rgba(0,0,0,.28);
-        }
-        body.studio-workspace-route .tool-panel.show { display:block !important; animation:fadeIn .22s ease; }
-        body.studio-workspace-route .studio-page-head,
-        body.studio-workspace-route .studio-nav { display:none !important; }
-        body.studio-workspace-route .studio-page-head { margin-bottom:0; }
-        body.studio-workspace-route .studio-page-head h2 { margin-bottom:4px; }
-        @media(max-width:760px){ .studio-grid{grid-template-columns:1fr;gap:10px;} .studio-card{min-height:124px;padding:14px;border-radius:17px;} .studio-card strong{font-size:12px}.studio-card span{font-size:9.5px}.studio-card .icon{width:34px;height:34px;font-size:19px}.studio-card::after{right:10px;top:10px;width:21px;height:21px;font-size:11px}.studio-section-head h3{font-size:18px}.tool-panel{padding:20px;border-radius:22px;} }
+        @media(max-width:560px){ .studio-grid{grid-template-columns:1fr;} }
 
         /* --- PREMIUM COMMERCIAL PAYWALL SUITE --- */
         .paywall-box {
@@ -733,20 +669,16 @@ HTML_TEMPLATE = """
         .hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
         .hero-pill{padding:7px 10px;border:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.025);border-radius:999px;color:#cbd5e1;font-size:11px;font-weight:800}
 
-        form[action="/"]{text-align:left;background:linear-gradient(145deg,rgba(10,14,25,.94),rgba(15,23,42,.78));border:1px solid rgba(148,163,184,.13);border-radius:24px;padding:20px;margin-top:12px;box-shadow:0 18px 45px rgba(0,0,0,.18)}
+        form[action="/"]{text-align:left;background:rgba(10,14,25,.7);border:1px solid rgba(148,163,184,.12);border-radius:24px;padding:22px;margin-top:12px}
         form[action="/"] > label{color:#c4b5fd;font-size:10px;letter-spacing:1.7px}
         .content-selector{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:18px}
-        .creation-prompt{margin:4px 0 16px;padding:15px 16px;border:1px solid rgba(103,232,249,.11);border-radius:18px;background:rgba(2,6,23,.5)}
-        .creation-prompt-label{display:block;color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:1.7px;text-transform:uppercase;margin-bottom:7px}
-        .creation-prompt-help{display:block;color:#64748b;font-size:11px;margin-top:7px;line-height:1.45}
-        .creation-prompt input[name="topic"]{width:100%;box-sizing:border-box;margin:0;padding:14px 15px;border-radius:13px;border:1px solid #263244;background:#080c14;color:#fff;outline:none;font-size:15px;transition:border-color .2s,box-shadow .2s}
-        .creation-prompt input[name="topic"]:focus{border-color:#67e8f9;box-shadow:0 0 0 3px rgba(103,232,249,.08)}
         .content-option label{min-height:92px;padding:15px;background:linear-gradient(145deg,rgba(15,23,42,.95),rgba(11,15,26,.95));border-color:rgba(148,163,184,.14)}
         .content-option input:checked + label{border-color:rgba(103,232,249,.55);background:linear-gradient(145deg,rgba(8,47,73,.42),rgba(30,27,75,.34));box-shadow:0 0 35px rgba(103,232,249,.08)}
         input[type="text"],select{background:#070a12;border-color:rgba(148,163,184,.16)}
         form[action="/"] button[type="submit"]{background:linear-gradient(100deg,#67e8f9,#818cf8 55%,#f472b6);box-shadow:0 12px 35px rgba(99,102,241,.2);color:#020617}
 
-        .studio-card{background:linear-gradient(145deg,rgba(15,23,42,.9),rgba(8,12,22,.92));border-color:rgba(148,163,184,.14);box-shadow:inset 0 1px rgba(255,255,255,.03)}
+        .studio-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+        .studio-card{min-height:112px;background:linear-gradient(145deg,rgba(15,23,42,.9),rgba(8,12,22,.92));border-color:rgba(148,163,184,.14);box-shadow:inset 0 1px rgba(255,255,255,.03)}
         .studio-card:hover{border-color:rgba(103,232,249,.5);box-shadow:0 16px 40px rgba(0,0,0,.25),0 0 28px rgba(103,232,249,.07)}
         .studio-card strong{font-size:14px}.studio-card span{font-size:11px}
         .studio-card .icon{filter:drop-shadow(0 4px 12px rgba(103,232,249,.12))}
@@ -784,19 +716,52 @@ HTML_TEMPLATE = """
 
     <script>
 
-        function showLoading() {
-            var submitBtn = document.getElementById("submitBtn");
-            var loader = document.getElementById("loaderIcon");
-            var loaderText = document.getElementById("loaderText");
-            var topic = document.querySelector('input[name="topic"]');
-            if (!topic || !topic.value.trim()) {
-                if (topic) { topic.focus(); topic.style.borderColor = '#f472b6'; }
-                return false;
+        function updateCreateButton() {
+            const btn = document.getElementById("submitBtn");
+            if (!btn) return;
+
+            const selected = document.querySelector('input[name="content_type"]:checked');
+            const type = selected ? selected.value : "hooks";
+            const labels = {
+                hooks: "CREATE MY HOOKS 🚀",
+                script: "CREATE MY SCRIPT 🎬",
+                thumbnail: "CREATE MY THUMBNAIL 🖼️"
+            };
+            btn.textContent = labels[type] || labels.hooks;
+        }
+
+        function selectContentType(type) {
+            const radio = document.querySelector('input[name="content_type"][value="' + type + '"]');
+            if (radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event("change", {bubbles:true}));
             }
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = '⏳ Building your result...'; }
-            if (loader) loader.style.display = "block";
-            if (loaderText) loaderText.style.display = "block";
-            return true;
+            updateCreateButton();
+        }
+
+        function showLoading() {
+            updateCreateButton();
+
+            var submitBtn =
+                document.getElementById("submitBtn");
+
+            var loader =
+                document.getElementById("loaderIcon");
+
+            var loaderText =
+                document.getElementById("loaderText");
+
+            if (submitBtn) {
+                submitBtn.style.display = "none";
+            }
+
+            if (loader) {
+                loader.style.display = "block";
+            }
+
+            if (loaderText) {
+                loaderText.style.display = "block";
+            }
         }
 
 
@@ -943,49 +908,22 @@ HTML_TEMPLATE = """
             } catch(e) {}
         }
 
-        function mountStudioOverlays() {
-            // Workspaces now stay in the page flow; no fixed overlay mounting.
-        }
-
         function openStudioPanel(id) {
-            if (!id) return;
-            const topic = currentTopic();
-            let url = '/creator-studio?tool=' + encodeURIComponent(id);
-            if (topic) url += '&topic=' + encodeURIComponent(topic);
-            window.location.href = url;
-        }
-
-        function closeStudioPanel() {
             document.querySelectorAll('.tool-panel').forEach(x => x.classList.remove('show'));
-            const backdrop = document.getElementById('studioBackdrop');
-            if (backdrop) backdrop.classList.remove('show');
-            document.body.classList.remove('studio-open');
-        }
-
-        function selectContentType(type) {
-            const radio = document.querySelector('input[name="content_type"][value="'+type+'"]');
-            if (!radio) return;
-            radio.checked = true;
-            radio.dispatchEvent(new Event('change', {bubbles:true}));
-            updateCreateButton();
+            const el = document.getElementById(id);
+            if (el) el.classList.add('show');
+            if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+            renderHistory();
         }
 
         function setTopicAndType(type) {
-            const radio = document.querySelector('input[name="content_type"][value="'+type+'"]');
-            if (radio) { radio.checked = true; updateCreateButton(); }
             const topic = document.querySelector('input[name="topic"]');
-            window.scrollTo({top:0,behavior:'smooth'});
-            setTimeout(function(){ if (topic) topic.focus(); }, 350);
-        }
-
-        function goToCreate(type){
-            const topic=currentTopic();
-            const url='/?content_type='+encodeURIComponent(type)+(topic?'&topic='+encodeURIComponent(topic):'');
-            window.location.href=url;
+            const radio = document.querySelector('input[name="content_type"][value="'+type+'"]');
+            if (radio) radio.checked = true;
+            if (topic) topic.focus();
         }
 
         async function runStudioAction(endpoint, payload, outputId, button) {
-            if (!button) return;
             const old = button.innerText;
             button.disabled = true;
             button.innerText = "⏳ Working...";
@@ -993,54 +931,36 @@ HTML_TEMPLATE = """
             if (output) { output.style.display = "block"; output.innerText = "✨ HookSpike is working..."; }
             try {
                 const res = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-                const raw = await res.text();
-                let data = {};
-                try { data = JSON.parse(raw); } catch(_) { throw new Error('Server returned an invalid response.'); }
+                const data = await res.json();
                 if (output) output.innerText = data.ok ? (data.text || data.result || "Done.") : (data.error || "⚠️ Something went wrong.");
             } catch(e) {
-                console.error('HookSpike tool error:', e);
-                if (output) output.innerText = "⚠️ This tool could not complete the request. Please try again.";
+                if (output) output.innerText = "⚠️ Tool is temporarily unavailable. Please try again.";
             } finally { button.disabled = false; button.innerText = old; }
         }
 
         function currentResultText() {
             const el = document.getElementById('rawText');
-            const live = el ? (el.innerText || el.textContent || '').trim() : '';
-            if (live) { try { localStorage.setItem('hookspike_latest_result', live); } catch(e) {} return live; }
-            try { return (localStorage.getItem('hookspike_latest_result') || '').trim(); } catch(e) { return ''; }
-        }
-
-        function runShorts() {
-            const btn = document.getElementById('shortsBtn');
-            const topic = currentTopic();
-            if (!topic) {
-                const box = document.getElementById('workspaceTopic');
-                if (box) { box.focus(); box.style.borderColor = '#f472b6'; }
-                return;
-            }
-            runStudioAction('/refine-content', {topic: topic, content: topic, action: 'shorts', brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'shortsOutput', btn);
+            return el ? (el.innerText || el.textContent || '').trim() : '';
         }
 
         function runRefine(action) {
             const topic = document.querySelector('input[name="topic"]');
-            const topicValue = currentTopic();
             const output = currentResultText();
             const btn = document.activeElement || document.body;
-            runStudioAction('/refine-content', {topic: topicValue, content: output, action: action, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'refineOutput', btn);
+            runStudioAction('/refine-content', {topic: topic ? topic.value : '', content: output, action: action, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'refineOutput', btn);
         }
 
         function runPack() {
-            const value = currentTopic();
-            const topic = document.querySelector('input[name="topic"]') || document.getElementById('studioTopic');
-            if (!value) { if (topic) { topic.focus(); topic.style.borderColor = '#f472b6'; } return; }
-            runStudioAction('/generate-pack', {topic: value, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'packOutput', document.getElementById('packBtn'));
+            const topic = document.querySelector('input[name="topic"]');
+            if (!topic || !topic.value.trim()) { topic && topic.focus(); return; }
+            runStudioAction('/generate-pack', {topic: topic.value, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'packOutput', document.getElementById('packBtn'));
         }
 
         function runAnalyzer() {
             const input = document.getElementById('hookAnalyzerInput');
-            const topicValue = currentTopic();
+            const topic = document.querySelector('input[name="topic"]');
             const btn = document.getElementById('analyzeBtn');
-            runStudioAction('/analyze-hook', {hook: input ? input.value : '', topic: topicValue}, 'analyzerOutput', btn);
+            runStudioAction('/analyze-hook', {hook: input ? input.value : '', topic: topic ? topic.value : ''}, 'analyzerOutput', btn);
         }
 
         function runDiscover() {
@@ -1070,31 +990,14 @@ HTML_TEMPLATE = """
 
         function useHistory(topic, type) {
             const input=document.querySelector('input[name="topic"]'); if(input) input.value=topic;
-            const radio=document.querySelector('input[name="content_type"][value="'+type+'"]'); if(radio) { radio.checked=true; updateCreateButton(); }
+            const radio=document.querySelector('input[name="content_type"][value="'+type+'"]'); if(radio) radio.checked=true;
             window.scrollTo({top:0,behavior:'smooth'});
         }
 
 
         function currentTopic(){
-            const workspace=document.getElementById('workspaceTopic');
-            if (workspace && workspace.value.trim()) return workspace.value.trim();
-            const studio=document.getElementById('studioTopic');
-            if (studio && studio.value.trim()) return studio.value.trim();
             const el=document.querySelector('input[name="topic"]');
             return el ? el.value.trim() : '';
-        }
-
-        function updateCreateButton(){
-            const selected=document.querySelector('input[name="content_type"]:checked');
-            const btn=document.getElementById('submitBtn');
-            if(!selected || !btn) return;
-
-            const labels={hooks:'Hooks',script:'Script',thumbnail:'Thumbnail'};
-            const label=labels[selected.value] || 'Content';
-
-            // The button ALWAYS mirrors the selected creation mode.
-            btn.textContent='CREATE MY '+label.toUpperCase()+' 🚀';
-            btn.dataset.contentType=selected.value;
         }
         function runPackaging(){
             const btn=document.getElementById('packagingBtn');
@@ -1123,84 +1026,9 @@ HTML_TEMPLATE = """
         }
 
         document.addEventListener('DOMContentLoaded', function(){
-            mountStudioOverlays();
-            document.querySelectorAll('input[name="content_type"]').forEach(function(r){
-                r.addEventListener('change', updateCreateButton);
-            });
-            document.querySelectorAll('.content-option label').forEach(function(label){
-                label.addEventListener('click', function(){
-                    const id=label.getAttribute('for');
-                    const radio=id ? document.getElementById(id) : null;
-                    if(radio){
-                        radio.checked=true;
-                        radio.dispatchEvent(new Event('change', {bubbles:true}));
-                        updateCreateButton();
-                    }
-                });
-            });
-            document.querySelectorAll('input[name="content_type"]').forEach(function(radio){
-                radio.addEventListener('click', function(){ updateCreateButton(); });
-            });
-            requestAnimationFrame(updateCreateButton);
-            const studio=document.getElementById('studioTopic');
-            if(studio){
-                try {
-                    const q=new URLSearchParams(window.location.search).get('topic');
-                    if(q && !studio.value) studio.value=q;
-                } catch(e) {}
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function(){
-            const studioTool = new URLSearchParams(window.location.search).get('tool');
-            if (studioTool) {
-                document.querySelectorAll('.tool-panel').forEach(function(panel){ panel.classList.remove('show'); });
-                const selected = document.getElementById(studioTool);
-                if (selected) {
-                    selected.classList.add('show');
-                    const shell = document.createElement('div');
-                    shell.className = 'studio-workspace-shell';
-                    const top = document.createElement('div');
-                    top.className = 'studio-workspace-top';
-                    const back = document.createElement('a');
-                    back.href = '/creator-studio' + (currentTopic() ? '?topic=' + encodeURIComponent(currentTopic()) : '');
-                    back.className = 'workspace-close';
-                    back.innerText = '← Back to Creator Studio';
-                    const meta = document.createElement('span');
-                    meta.className = 'workspace-meta';
-                    meta.innerText = 'Focused workspace';
-                    top.appendChild(back); top.appendChild(meta); shell.appendChild(top);
-
-                    const context = document.createElement('div');
-                    context.className = 'workspace-context';
-                    const contextLabel = document.createElement('label');
-                    contextLabel.setAttribute('for', 'workspaceTopic');
-                    contextLabel.innerText = 'TOPIC / IDEA';
-                    const contextInput = document.createElement('input');
-                    contextInput.id = 'workspaceTopic';
-                    contextInput.className = 'tool-input workspace-topic-input';
-                    contextInput.type = 'text';
-                    contextInput.placeholder = 'Enter a topic, game, update, trend or idea...';
-                    contextInput.value = (new URLSearchParams(window.location.search).get('topic') || '');
-                    contextInput.addEventListener('input', function(){
-                        const hidden = document.getElementById('studioTopic');
-                        if (hidden) hidden.value = contextInput.value;
-                    });
-                    context.appendChild(contextLabel);
-                    context.appendChild(contextInput);
-                    shell.appendChild(context);
-
-                    selected.parentNode.insertBefore(shell, selected);
-                    shell.appendChild(selected);
-                }
-                document.getElementById('studioBackdrop')?.classList.remove('show');
-            }
-            loadBrandVoice(); renderHistory();
-            document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeStudioPanel(); });
+            loadBrandVoice(); renderHistory(); updateCreateButton();
             const form=document.querySelector('form[action="/"]');
             if(form) form.addEventListener('submit', function(){
-                // Final safety sync: the submitted radio value is the source of truth.
-                updateCreateButton();
                 saveCreatorMemory();
                 try { const v=localStorage.getItem('hookspike_brand_voice')||''; const h=document.getElementById('brandVoiceHidden'); if(h) h.value=v; } catch(e) {}
             });
@@ -1212,7 +1040,7 @@ HTML_TEMPLATE = """
 </head>
 
 
-<body class="{% if studio_page and studio_tool %}studio-workspace-route{% endif %}">
+<body>
 
 <div class="container">
 
@@ -1345,11 +1173,10 @@ HTML_TEMPLATE = """
 
         {% else %}
 
-            {% if not studio_page %}
             <form
                 method="POST"
                 action="/"
-                onsubmit="return showLoading()"
+                onsubmit="showLoading()"
             >
 
                 <label>What do you want to create?</label>
@@ -1358,7 +1185,7 @@ HTML_TEMPLATE = """
 
                     <div class="content-option">
                         <input type="radio" id="typeHooks" name="content_type" value="hooks"
-                            {% if content_type == "hooks" or not content_type %}checked{% endif %} onchange="updateCreateButton()" required>
+                            {% if content_type == "hooks" or not content_type %}checked{% endif %} required onchange="updateCreateButton()">
                         <label for="typeHooks" onclick="selectContentType('hooks')">
                             <span class="option-icon">🔥</span>
                             <span class="option-copy">
@@ -1394,201 +1221,148 @@ HTML_TEMPLATE = """
 
                 </div>
 
-                <div class="creation-prompt">
-                    <span class="creation-prompt-label">What’s the idea?</span>
-                    <input type="hidden" id="brandVoiceHidden" name="brand_voice" value="">
-                    <input
-                        type="text"
-                        name="topic"
-                        placeholder="e.g. GTA 6 latest update, One Piece theory, my next video idea..."
-                        value="{{ topic }}"
-                        autocomplete="off"
-                        required
-                    >
-                    <span class="creation-prompt-help">Topic, game, anime, trend, update or your rough idea — HookSpike will take it from there.</span>
-                </div>
+                <label>Enter Topic / Search:</label>
+
+                <input type="hidden" id="brandVoiceHidden" name="brand_voice" value="">
+
+                <input
+                    type="text"
+                    name="topic"
+                    placeholder="Search a topic, game, update, trend, or idea..."
+                    value="{{ topic }}"
+                    required
+                >
 
                 <button type="submit" id="submitBtn">
                     Create My {{ content_type|title if content_type else "Hooks" }} 🚀
                 </button>
 
             </form>
-            {% endif %}
 
         {% endif %}
 
 
 
         {% if not show_paywall %}
+            <div class="pack-banner">
+                <strong>🚀 One Topic → Complete Creator Pack</strong>
+                <span>Get titles, 7 hooks, one script, 3 thumbnail concepts, description, hashtags and keywords from one verified research pass.</span>
+                <button id="packBtn" class="tool-action" type="button" onclick="runPack()" style="margin-top:12px;">✨ Build My Complete Pack</button>
+                <div id="packOutput" class="tool-output" style="display:none;"></div>
+            </div>
 
-            {% if not studio_page %}
-                <div class="creator-studio-cta">
-                    <span class="workspace-kicker">⭐ Your creator workspace</span>
-                    <strong>🚀 Creator Studio</strong>
-                    <span>Complete Creator Pack + research, refinement, hook analysis, planning, packaging and repurposing — all inside one focused workspace.</span>
-                    <a class="tool-action studio-open-btn" href="/creator-studio{% if topic %}?topic={{ topic|urlencode }}{% endif %}">✨ Open Creator Studio →</a>
-                </div>
-            {% else %}
+            <div class="studio-grid">
+                <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current content opportunities with web-verified research.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your result for curiosity, natural tone, Shorts and more.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Get concrete feedback and a stronger rewrite.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>My Creator Voice</strong><span>Save your preferred tone on this device for future sessions.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Quickly reuse your latest topics and content modes.</span></div>
+                <div class="studio-card" onclick="setTopicAndType('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Switch to Script and use the Shorts remix after generation.</span></div>
+            </div>
 
-                <div class="studio-page-head">
-                    <a class="studio-back-link" href="/">← Back to Dashboard</a>
-                    <span class="workspace-kicker">💎 Creator Studio</span>
-                    <h2>Everything for your next upload.</h2>
-                    <p>One focused workspace instead of a wall of tools. Pick a workflow, enter your topic, and create.</p>
-                    <input id="studioTopic" class="tool-input studio-topic" type="text" placeholder="Enter your topic, game, update, trend or idea..." value="{{ topic }}">
-                </div>
+            <div class="pack-banner" style="margin-top:12px;">
+                <strong>💎 Pro Creator Lab</strong>
+                <span>Go beyond generation: test packaging, diagnose performance, plan your week and adapt content for another platform.</span>
+            </div>
+            <div class="studio-grid">
+                <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Video Packaging Lab</strong><span>Title + thumbnail + hook as one coordinated package.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Three distinct creative angles to test instead of one guess.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Paste CTR, retention and views; get a prioritized diagnosis.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Content Planner</strong><span>Turn your niche and goal into a realistic weekly plan.</span></div>
+                <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your best idea for another platform, not just copy-paste it.</span></div>
+            </div>
 
-                <div class="studio-nav" aria-label="Creator Studio sections">
-                    <a href="#create">Create</a><a href="#improve">Improve</a><a href="#grow">Grow</a><a href="#library">Library</a>
-                </div>
+            <div id="packagingPanel" class="tool-panel">
+                <div class="tool-title">📦 Video Packaging Lab</div>
+                <p style="color:#94a3b8;font-size:12px;line-height:1.5;">One verified topic → coordinated title, hook and thumbnail direction.</p>
+                <button id="packagingBtn" class="tool-action" type="button" onclick="runPackaging()">🚀 Build My Packaging</button>
+                <div id="packagingOutput" class="tool-output">Your packaging analysis will appear here.</div>
+            </div>
 
-                <div id="create" class="studio-section">
-                    <div class="studio-section-head">
-                        <div class="section-copy"><span class="workspace-kicker">01 · CREATE</span><h3>Make the content</h3><p>Start with the fastest path from idea to publish-ready content.</p></div>
-                    </div>
-                    <div class="studio-grid">
-                        <a class="studio-card featured" href="/creator-studio?tool=packPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🚀</div><strong>Complete Creator Pack</strong><span>One topic → research, titles, 7 hooks, script, thumbnail concepts, description, hashtags and keywords.</span><span class="card-tag">Recommended</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=discoverPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span><span class="card-tag">Research</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=shortsPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form creation.</span><span class="card-tag">Create</span></a>
-                    </div>
-                </div>
+            <div id="abPanel" class="tool-panel">
+                <div class="tool-title">🅰️ A/B Pack Generator</div>
+                <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Get three different psychological angles — curiosity, search/authority and bold/contrarian.</p>
+                <button id="abBtn" class="tool-action" type="button" onclick="runAB()">🧪 Generate 3 Test Packs</button>
+                <div id="abOutput" class="tool-output">Your A/B packs will appear here.</div>
+            </div>
 
-                <div id="improve" class="studio-section">
-                    <div class="studio-section-head"><div class="section-copy"><span class="workspace-kicker">02 · IMPROVE</span><h3>Make every idea stronger</h3><p>Polish the hook, packaging and creative angle before publishing.</p></div></div>
-                    <div class="studio-grid">
-                        <a class="studio-card" href="/creator-studio?tool=refinePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix an existing result into a stronger version.</span><span class="card-tag">Refine</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=analyzerPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Diagnose clarity, curiosity and first-seconds impact.</span><span class="card-tag">Optimize</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=packagingPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">📦</div><strong>Packaging Lab</strong><span>Coordinate title, hook and thumbnail direction.</span><span class="card-tag">Package</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=abPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Create genuinely different angles worth testing.</span><span class="card-tag">Test</span></a>
-                    </div>
-                </div>
-
-                <div id="grow" class="studio-section">
-                    <div class="studio-section-head"><div class="section-copy"><span class="workspace-kicker">03 · GROW</span><h3>Turn content into a system</h3><p>Use performance, planning and repurposing to build momentum.</p></div></div>
-                    <div class="studio-grid">
-                        <a class="studio-card" href="/creator-studio?tool=performancePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">📈</div><strong>Performance Coach</strong><span>Diagnose CTR, retention and views.</span><span class="card-tag">Diagnose</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=plannerPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🗓️</div><strong>7-Day Planner</strong><span>Build a realistic content week around your goal.</span><span class="card-tag">Plan</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=repurposePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt one piece of content for another platform.</span><span class="card-tag">Repurpose</span></a>
-                    </div>
-                </div>
-
-                <div id="library" class="studio-section">
-                    <div class="studio-section-head"><div class="section-copy"><span class="workspace-kicker">04 · PERSONALIZE & LIBRARY</span><h3>Make HookSpike yours</h3><p>Keep your creator voice and quickly return to previous ideas.</p></div></div>
-                    <div class="studio-grid">
-                        <a class="studio-card" href="/creator-studio?tool=brandPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Keep HookSpike writing in your preferred tone.</span><span class="card-tag">Personalize</span></a>
-                        <a class="studio-card" href="/creator-studio?tool=historyPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Jump back into topics you already explored.</span><span class="card-tag">Library</span></a>
-                    </div>
-                </div>
-
-                <div id="studioBackdrop" class="studio-backdrop" onclick="closeStudioPanel()"></div>
-
-                <div id="packPanel" class="tool-panel">
-                    <div class="tool-title">🚀 Complete Creator Pack</div>
-                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">One verified topic becomes a complete publish-ready content package.</p>
-                    <button id="packBtn" class="tool-action" type="button" onclick="runPack()">✨ Build My Complete Pack</button>
-                    <div id="packOutput" class="tool-output">Your complete creator pack will appear here.</div>
-                </div>
-
-                <div id="packagingPanel" class="tool-panel">
-                    <div class="tool-title">📦 Video Packaging Lab</div>
-                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">One verified topic → coordinated title, hook and thumbnail direction.</p>
-                    <button id="packagingBtn" class="tool-action" type="button" onclick="runPackaging()">🚀 Build My Packaging</button>
-                    <div id="packagingOutput" class="tool-output">Your packaging analysis will appear here.</div>
-                </div>
-
-                <div id="abPanel" class="tool-panel">
-                    <div class="tool-title">🅰️ A/B Pack Generator</div>
-                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Get three different psychological angles — curiosity, search/authority and bold/contrarian.</p>
-                    <button id="abBtn" class="tool-action" type="button" onclick="runAB()">🧪 Generate 3 Test Packs</button>
-                    <div id="abOutput" class="tool-output">Your A/B packs will appear here.</div>
-                </div>
-
-                <div id="performancePanel" class="tool-panel">
-                    <div class="tool-title">📈 Performance Coach</div>
-                    <textarea id="metricsInput" class="tool-input" placeholder="Example:
+            <div id="performancePanel" class="tool-panel">
+                <div class="tool-title">📈 Performance Coach</div>
+                <textarea id="metricsInput" class="tool-input" placeholder="Example:
 Views: 12,400
 CTR: 3.8%
 Average view duration: 2:14
 Video length: 8:20
 Retention at 30s: 61%
 Likes: 520"></textarea>
-                    <button id="performanceBtn" class="tool-action" type="button" onclick="runPerformance()">📊 Diagnose My Video</button>
-                    <div id="performanceOutput" class="tool-output">Paste real metrics for a more useful diagnosis.</div>
-                </div>
+                <button id="performanceBtn" class="tool-action" type="button" onclick="runPerformance()">📊 Diagnose My Video</button>
+                <div id="performanceOutput" class="tool-output">Paste real metrics for a more useful diagnosis.</div>
+            </div>
 
-                <div id="plannerPanel" class="tool-panel">
-                    <div class="tool-title">🗓️ 7-Day Content Planner</div>
-                    <input id="plannerNiche" class="tool-select" style="box-sizing:border-box;" type="text" placeholder="Your niche / content area">
-                    <select id="plannerGoal" class="tool-select"><option value="growth">📈 Growth</option><option value="consistency">🗓️ Consistency</option><option value="short-form">📱 Short-form growth</option><option value="authority">🏆 Authority</option></select>
-                    <button id="plannerBtn" class="tool-action" type="button" onclick="runPlanner()">🗓️ Build My Week</button>
-                    <div id="plannerOutput" class="tool-output">Your 7-day plan will appear here.</div>
-                </div>
+            <div id="plannerPanel" class="tool-panel">
+                <div class="tool-title">🗓️ 7-Day Content Planner</div>
+                <input id="plannerNiche" class="tool-select" style="box-sizing:border-box;" type="text" placeholder="Your niche / content area">
+                <select id="plannerGoal" class="tool-select"><option value="growth">📈 Growth</option><option value="consistency">🗓️ Consistency</option><option value="short-form">📱 Short-form growth</option><option value="authority">🏆 Authority</option></select>
+                <button id="plannerBtn" class="tool-action" type="button" onclick="runPlanner()">🗓️ Build My Week</button>
+                <div id="plannerOutput" class="tool-output">Your 7-day plan will appear here.</div>
+            </div>
 
-                <div id="repurposePanel" class="tool-panel">
-                    <div class="tool-title">♻️ Content Repurposer</div>
-                    <textarea id="repurposeInput" class="tool-input" placeholder="Paste your existing script, video summary or post..."></textarea>
-                    <select id="repurposeTarget" class="tool-select"><option value="Instagram Reels">📸 Instagram Reels</option><option value="YouTube Shorts">▶️ YouTube Shorts</option><option value="TikTok">🎵 TikTok</option><option value="X">𝕏 X</option><option value="LinkedIn">💼 LinkedIn</option></select>
-                    <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose Content</button>
-                    <div id="repurposeOutput" class="tool-output">Your platform-native version will appear here.</div>
-                </div>
+            <div id="repurposePanel" class="tool-panel">
+                <div class="tool-title">♻️ Content Repurposer</div>
+                <textarea id="repurposeInput" class="tool-input" placeholder="Paste your existing script, video summary or post..."></textarea>
+                <select id="repurposeTarget" class="tool-select"><option value="Instagram Reels">📸 Instagram Reels</option><option value="YouTube Shorts">▶️ YouTube Shorts</option><option value="TikTok">🎵 TikTok</option><option value="X">𝕏 X</option><option value="LinkedIn">💼 LinkedIn</option></select>
+                <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose Content</button>
+                <div id="repurposeOutput" class="tool-output">Your platform-native version will appear here.</div>
+            </div>
 
-                <div id="shortsPanel" class="tool-panel">
-                    <div class="tool-title">📱 Shorts Mode</div>
-                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Turn a topic or idea into a tight short-form version for YouTube Shorts, Reels or TikTok.</p>
-                    <button id="shortsBtn" class="tool-action" type="button" onclick="runShorts()">📱 Create My Short</button>
-                    <div id="shortsOutput" class="tool-output">Enter a topic in the workspace context above, then create your short.</div>
+            <div id="refinePanel" class="tool-panel">
+                <div class="tool-title">✨ Make this result better</div>
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="runRefine('more-curious')">🧲 More Curiosity</button>
+                    <button class="quick-btn" onclick="runRefine('more-viral')">🔥 Punchier</button>
+                    <button class="quick-btn" onclick="runRefine('more-natural')">🗣️ Natural</button>
+                    <button class="quick-btn" onclick="runRefine('shorter')">⚡ Shorter</button>
+                    <button class="quick-btn" onclick="runRefine('cinematic')">🎬 Cinematic</button>
+                    <button class="quick-btn" onclick="runRefine('shorts')">📱 Shorts</button>
+                    <button class="quick-btn" onclick="runRefine('gaming')">🎮 Gaming</button>
+                    <button class="quick-btn" onclick="runRefine('anime')">🍥 Anime</button>
+                    <button class="quick-btn" onclick="runRefine('thumbnail-clickable')">🖼️ Thumbnail</button>
                 </div>
+                <div id="refineOutput" class="tool-output">Generate a result first, then choose a transformation.</div>
+            </div>
 
-                <div id="refinePanel" class="tool-panel">
-                    <div class="tool-title">✨ Make this result better</div>
-                    <div class="quick-actions">
-                        <button class="quick-btn" onclick="runRefine('more-curious')">🧲 More Curiosity</button>
-                        <button class="quick-btn" onclick="runRefine('more-viral')">🔥 Punchier</button>
-                        <button class="quick-btn" onclick="runRefine('more-natural')">🗣️ Natural</button>
-                        <button class="quick-btn" onclick="runRefine('shorter')">⚡ Shorter</button>
-                        <button class="quick-btn" onclick="runRefine('cinematic')">🎬 Cinematic</button>
-                        <button class="quick-btn" onclick="runRefine('shorts')">📱 Shorts</button>
-                        <button class="quick-btn" onclick="runRefine('gaming')">🎮 Gaming</button>
-                        <button class="quick-btn" onclick="runRefine('anime')">🍥 Anime</button>
-                        <button class="quick-btn" onclick="runRefine('thumbnail-clickable')">🖼️ Thumbnail</button>
-                    </div>
-                    <div id="refineOutput" class="tool-output">Generate a result first, then choose a transformation.</div>
-                </div>
+            <div id="analyzerPanel" class="tool-panel">
+                <div class="tool-title">🧲 Hook Analyzer</div>
+                <textarea id="hookAnalyzerInput" class="tool-input" placeholder="Paste a hook here..."></textarea>
+                <button id="analyzeBtn" class="tool-action" type="button" onclick="runAnalyzer()">🔍 Analyze Hook</button>
+                <div id="analyzerOutput" class="tool-output">You’ll get clarity, curiosity, first-seconds impact, specificity and one improved version.</div>
+            </div>
 
-                <div id="analyzerPanel" class="tool-panel">
-                    <div class="tool-title">🧲 Hook Analyzer</div>
-                    <textarea id="hookAnalyzerInput" class="tool-input" placeholder="Paste a hook here..."></textarea>
-                    <button id="analyzeBtn" class="tool-action" type="button" onclick="runAnalyzer()">🔍 Analyze Hook</button>
-                    <div id="analyzerOutput" class="tool-output">You’ll get clarity, curiosity, first-seconds impact, specificity and one improved version.</div>
-                </div>
+            <div id="discoverPanel" class="tool-panel">
+                <div class="tool-title">🔥 Fresh Topic Radar</div>
+                <select id="discoverCategory" class="tool-select">
+                    <option value="general">🌐 General Creator Trends</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="anime">🍥 Anime</option>
+                    <option value="tech">🤖 Tech & AI</option>
+                    <option value="movies">🎬 Movies & Entertainment</option>
+                    <option value="sports">⚽ Sports</option>
+                </select>
+                <button id="discoverBtn" class="tool-action" type="button" onclick="runDiscover()">🔎 Find Current Topics</button>
+                <div id="discoverOutput" class="tool-output">Fresh ideas will appear here.</div>
+            </div>
 
-                <div id="discoverPanel" class="tool-panel">
-                    <div class="tool-title">🔥 Fresh Topic Radar</div>
-                    <select id="discoverCategory" class="tool-select">
-                        <option value="general">🌐 General Creator Trends</option>
-                        <option value="gaming">🎮 Gaming</option>
-                        <option value="anime">🍥 Anime</option>
-                        <option value="tech">🤖 Tech & AI</option>
-                        <option value="movies">🎬 Movies & Entertainment</option>
-                        <option value="sports">⚽ Sports</option>
-                    </select>
-                    <button id="discoverBtn" class="tool-action" type="button" onclick="runDiscover()">🔎 Find Current Topics</button>
-                    <div id="discoverOutput" class="tool-output">Fresh ideas will appear here.</div>
-                </div>
+            <div id="brandPanel" class="tool-panel">
+                <div class="tool-title">🎙️ My Creator Voice</div>
+                <textarea id="brandVoice" class="tool-input" placeholder="Example: Hinglish, energetic, short sentences, gaming audience, no corporate wording..."></textarea>
+                <button class="tool-action" type="button" onclick="saveBrandVoice()">💾 Save My Style</button>
+                <div id="brandSaved" class="tool-output">Saved locally on this device. We keep your existing backend unchanged.</div>
+            </div>
 
-                <div id="brandPanel" class="tool-panel">
-                    <div class="tool-title">🎙️ My Creator Voice</div>
-                    <textarea id="brandVoice" class="tool-input" placeholder="Example: Hinglish, energetic, short sentences, gaming audience, no corporate wording..."></textarea>
-                    <button class="tool-action" type="button" onclick="saveBrandVoice()">💾 Save My Style</button>
-                    <div id="brandSaved" class="tool-output">Saved locally on this device. We keep your existing backend unchanged.</div>
-                </div>
-
-                <div id="historyPanel" class="tool-panel">
-                    <div class="tool-title">🗂️ Recent Ideas</div>
-                    <div id="historyList" class="history-list"></div>
-                </div>
-            {% endif %}
-
+            <div id="historyPanel" class="tool-panel">
+                <div class="tool-title">🗂️ Recent Ideas</div>
+                <div id="historyList" class="history-list"></div>
+            </div>
         {% endif %}
 
         <div
@@ -1824,8 +1598,8 @@ def index():
     result = None
     result_text = None
     result_image = None
-    content_type = request.args.get("content_type", "hooks").strip().lower() if request.method == "GET" else "hooks"
-    topic = request.args.get("topic", "").strip() if request.method == "GET" else ""
+    content_type = "hooks"
+    topic = ""
 
     show_paywall = (
         tokens_left <= 0
@@ -1874,8 +1648,6 @@ def index():
                 topic="",
                 tokens_left=tokens_left,
                 show_paywall=show_paywall,
-                studio_page=False,
-                studio_tool="",
             )
 
 
@@ -1953,43 +1725,6 @@ def index():
         topic=topic,
         tokens_left=tokens_left,
         show_paywall=show_paywall,
-        studio_page=False,
-        studio_tool="",
-    )
-
-
-@app.route("/creator-studio", methods=["GET"])
-def creator_studio():
-    user_id = session.get("user_id")
-    email = session.get("user_email")
-    if not user_id:
-        return redirect("/")
-
-    tokens_left = get_user_tokens(user_id, email)
-    topic = request.args.get("topic", "").strip()
-    studio_tool = request.args.get("tool", "").strip().lower()
-    allowed_tools = {
-        "packPanel", "packagingPanel", "abPanel", "performancePanel", "plannerPanel",
-        "repurposePanel", "refinePanel", "analyzerPanel", "discoverPanel",
-        "brandPanel", "historyPanel", "shortsPanel"
-    }
-    # Query parameters are case-insensitive, but the DOM ids keep their
-    # readable camelCase names. Map the URL value back to the exact id.
-    tool_map = {name.lower(): name for name in allowed_tools}
-    studio_tool = tool_map.get(studio_tool.lower(), "")
-    return render_template_string(
-        HTML_TEMPLATE,
-        logged_in=True,
-        user_email=email,
-        result=None,
-        result_text=None,
-        result_image=None,
-        content_type="hooks",
-        topic=topic,
-        tokens_left=tokens_left,
-        show_paywall=(tokens_left <= 0),
-        studio_page=True,
-        studio_tool=studio_tool,
     )
 
 

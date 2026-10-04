@@ -470,7 +470,7 @@ HTML_TEMPLATE = """
         .studio-section-head h3 { margin:2px 0 3px; color:#fff; font-size:20px; letter-spacing:-.25px; }
         .studio-section-head p { margin:0; color:#7f8ba0; font-size:11px; line-height:1.45; }
         .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0; }
-        .studio-card { position:relative; text-align:left; padding:16px; min-height:126px; box-sizing:border-box; border:1px solid rgba(148,163,184,.12); border-radius:18px; background:linear-gradient(145deg,#0b101a,#0f1624); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease; -webkit-tap-highlight-color:transparent; user-select:none; overflow:hidden; }
+        .studio-card { text-decoration:none; color:inherit; display:block; position:relative; text-align:left; padding:16px; min-height:126px; box-sizing:border-box; border:1px solid rgba(148,163,184,.12); border-radius:18px; background:linear-gradient(145deg,#0b101a,#0f1624); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease; -webkit-tap-highlight-color:transparent; user-select:none; overflow:hidden; }
         .studio-card::after { content:'→'; position:absolute; right:14px; top:14px; width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:rgba(103,232,249,.07); color:#67e8f9; font-size:13px; opacity:.72; }
         .studio-card:hover { transform:translateY(-2px); border-color:rgba(103,232,249,.38); background:linear-gradient(145deg,#0d1522,#111a2a); box-shadow:0 14px 34px rgba(0,0,0,.28); }
         .studio-card:active { transform:scale(.985); }
@@ -480,6 +480,11 @@ HTML_TEMPLATE = """
         .studio-card .card-tag { display:inline-block; margin-top:9px; color:#67e8f9; font-size:8px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
         .tool-panel { display:none; width:100%; max-width:920px; box-sizing:border-box; margin:22px auto 0; padding:30px; border:1px solid rgba(103,232,249,.16); border-radius:26px; background:linear-gradient(145deg,rgba(9,14,26,.98),rgba(5,8,16,.98)); text-align:left; box-shadow:0 24px 70px rgba(0,0,0,.30); }
         .tool-panel.show { display:block; animation:workspaceIn .22s ease; }
+        .workspace-context{margin-top:16px;padding:14px;border:1px solid rgba(103,232,249,.12);border-radius:18px;background:rgba(255,255,255,.025);text-align:left}
+        .workspace-context label{display:block;margin:0 0 7px;color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:2px}
+        .workspace-topic-input{margin:0!important;width:100%;box-sizing:border-box}
+        body.studio-workspace-route .studio-workspace-shell{max-width:920px;margin:20px auto 0}
+        body.studio-workspace-route .tool-panel{margin-top:12px}
         .studio-backdrop { display:none; }
         .studio-workspace-shell { max-width:920px; margin:22px auto 0; }
         .studio-workspace-top { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
@@ -542,6 +547,8 @@ HTML_TEMPLATE = """
             animation:none; box-shadow:0 24px 70px rgba(0,0,0,.28);
         }
         body.studio-workspace-route .tool-panel.show { display:block !important; animation:fadeIn .22s ease; }
+        body.studio-workspace-route .studio-page-head,
+        body.studio-workspace-route .studio-nav { display:none !important; }
         body.studio-workspace-route .studio-page-head { margin-bottom:0; }
         body.studio-workspace-route .studio-page-head h2 { margin-bottom:4px; }
         @media(max-width:760px){ .studio-grid{grid-template-columns:1fr;gap:10px;} .studio-card{min-height:124px;padding:14px;border-radius:17px;} .studio-card strong{font-size:12px}.studio-card span{font-size:9.5px}.studio-card .icon{width:34px;height:34px;font-size:19px}.studio-card::after{right:10px;top:10px;width:21px;height:21px;font-size:11px}.studio-section-head h3{font-size:18px}.tool-panel{padding:20px;border-radius:22px;} }
@@ -726,9 +733,14 @@ HTML_TEMPLATE = """
         .hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
         .hero-pill{padding:7px 10px;border:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.025);border-radius:999px;color:#cbd5e1;font-size:11px;font-weight:800}
 
-        form[action="/"]{text-align:left;background:rgba(10,14,25,.7);border:1px solid rgba(148,163,184,.12);border-radius:24px;padding:22px;margin-top:12px}
+        form[action="/"]{text-align:left;background:linear-gradient(145deg,rgba(10,14,25,.94),rgba(15,23,42,.78));border:1px solid rgba(148,163,184,.13);border-radius:24px;padding:20px;margin-top:12px;box-shadow:0 18px 45px rgba(0,0,0,.18)}
         form[action="/"] > label{color:#c4b5fd;font-size:10px;letter-spacing:1.7px}
         .content-selector{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:18px}
+        .creation-prompt{margin:4px 0 16px;padding:15px 16px;border:1px solid rgba(103,232,249,.11);border-radius:18px;background:rgba(2,6,23,.5)}
+        .creation-prompt-label{display:block;color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:1.7px;text-transform:uppercase;margin-bottom:7px}
+        .creation-prompt-help{display:block;color:#64748b;font-size:11px;margin-top:7px;line-height:1.45}
+        .creation-prompt input[name="topic"]{width:100%;box-sizing:border-box;margin:0;padding:14px 15px;border-radius:13px;border:1px solid #263244;background:#080c14;color:#fff;outline:none;font-size:15px;transition:border-color .2s,box-shadow .2s}
+        .creation-prompt input[name="topic"]:focus{border-color:#67e8f9;box-shadow:0 0 0 3px rgba(103,232,249,.08)}
         .content-option label{min-height:92px;padding:15px;background:linear-gradient(145deg,rgba(15,23,42,.95),rgba(11,15,26,.95));border-color:rgba(148,163,184,.14)}
         .content-option input:checked + label{border-color:rgba(103,232,249,.55);background:linear-gradient(145deg,rgba(8,47,73,.42),rgba(30,27,75,.34));box-shadow:0 0 35px rgba(103,232,249,.08)}
         input[type="text"],select{background:#070a12;border-color:rgba(148,163,184,.16)}
@@ -998,6 +1010,17 @@ HTML_TEMPLATE = """
             try { return (localStorage.getItem('hookspike_latest_result') || '').trim(); } catch(e) { return ''; }
         }
 
+        function runShorts() {
+            const btn = document.getElementById('shortsBtn');
+            const topic = currentTopic();
+            if (!topic) {
+                const box = document.getElementById('workspaceTopic');
+                if (box) { box.focus(); box.style.borderColor = '#f472b6'; }
+                return;
+            }
+            runStudioAction('/refine-content', {topic: topic, content: topic, action: 'shorts', brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'shortsOutput', btn);
+        }
+
         function runRefine(action) {
             const topic = document.querySelector('input[name="topic"]');
             const topicValue = currentTopic();
@@ -1053,6 +1076,8 @@ HTML_TEMPLATE = """
 
 
         function currentTopic(){
+            const workspace=document.getElementById('workspaceTopic');
+            if (workspace && workspace.value.trim()) return workspace.value.trim();
             const studio=document.getElementById('studioTopic');
             if (studio && studio.value.trim()) return studio.value.trim();
             const el=document.querySelector('input[name="topic"]');
@@ -1106,8 +1131,15 @@ HTML_TEMPLATE = """
                 label.addEventListener('click', function(){
                     const id=label.getAttribute('for');
                     const radio=id ? document.getElementById(id) : null;
-                    if(radio){ radio.checked=true; updateCreateButton(); }
+                    if(radio){
+                        radio.checked=true;
+                        radio.dispatchEvent(new Event('change', {bubbles:true}));
+                        updateCreateButton();
+                    }
                 });
+            });
+            document.querySelectorAll('input[name="content_type"]').forEach(function(radio){
+                radio.addEventListener('click', function(){ updateCreateButton(); });
             });
             requestAnimationFrame(updateCreateButton);
             const studio=document.getElementById('studioTopic');
@@ -1138,6 +1170,26 @@ HTML_TEMPLATE = """
                     meta.className = 'workspace-meta';
                     meta.innerText = 'Focused workspace';
                     top.appendChild(back); top.appendChild(meta); shell.appendChild(top);
+
+                    const context = document.createElement('div');
+                    context.className = 'workspace-context';
+                    const contextLabel = document.createElement('label');
+                    contextLabel.setAttribute('for', 'workspaceTopic');
+                    contextLabel.innerText = 'TOPIC / IDEA';
+                    const contextInput = document.createElement('input');
+                    contextInput.id = 'workspaceTopic';
+                    contextInput.className = 'tool-input workspace-topic-input';
+                    contextInput.type = 'text';
+                    contextInput.placeholder = 'Enter a topic, game, update, trend or idea...';
+                    contextInput.value = (new URLSearchParams(window.location.search).get('topic') || '');
+                    contextInput.addEventListener('input', function(){
+                        const hidden = document.getElementById('studioTopic');
+                        if (hidden) hidden.value = contextInput.value;
+                    });
+                    context.appendChild(contextLabel);
+                    context.appendChild(contextInput);
+                    shell.appendChild(context);
+
                     selected.parentNode.insertBefore(shell, selected);
                     shell.appendChild(selected);
                 }
@@ -1342,17 +1394,19 @@ HTML_TEMPLATE = """
 
                 </div>
 
-                <label>Enter Topic / Search:</label>
-
-                <input type="hidden" id="brandVoiceHidden" name="brand_voice" value="">
-
-                <input
-                    type="text"
-                    name="topic"
-                    placeholder="Search a topic, game, update, trend, or idea..."
-                    value="{{ topic }}"
-                    required
-                >
+                <div class="creation-prompt">
+                    <span class="creation-prompt-label">What’s the idea?</span>
+                    <input type="hidden" id="brandVoiceHidden" name="brand_voice" value="">
+                    <input
+                        type="text"
+                        name="topic"
+                        placeholder="e.g. GTA 6 latest update, One Piece theory, my next video idea..."
+                        value="{{ topic }}"
+                        autocomplete="off"
+                        required
+                    >
+                    <span class="creation-prompt-help">Topic, game, anime, trend, update or your rough idea — HookSpike will take it from there.</span>
+                </div>
 
                 <button type="submit" id="submitBtn">
                     Create My {{ content_type|title if content_type else "Hooks" }} 🚀
@@ -1393,36 +1447,36 @@ HTML_TEMPLATE = """
                         <div class="section-copy"><span class="workspace-kicker">01 · CREATE</span><h3>Make the content</h3><p>Start with the fastest path from idea to publish-ready content.</p></div>
                     </div>
                     <div class="studio-grid">
-                        <div class="studio-card featured" role="button" tabindex="0" onclick="openStudioPanel('packPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('packPanel')"><div class="icon">🚀</div><strong>Complete Creator Pack</strong><span>One topic → research, titles, 7 hooks, script, thumbnail concepts, description, hashtags and keywords.</span><span class="card-tag">Recommended</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('discoverPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span><span class="card-tag">Research</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="goToCreate('script')" onkeydown="if(event.key==='Enter'||event.key===' ')goToCreate('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form creation.</span><span class="card-tag">Create</span></div>
+                        <a class="studio-card featured" href="/creator-studio?tool=packPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🚀</div><strong>Complete Creator Pack</strong><span>One topic → research, titles, 7 hooks, script, thumbnail concepts, description, hashtags and keywords.</span><span class="card-tag">Recommended</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=discoverPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span><span class="card-tag">Research</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=shortsPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form creation.</span><span class="card-tag">Create</span></a>
                     </div>
                 </div>
 
                 <div id="improve" class="studio-section">
                     <div class="studio-section-head"><div class="section-copy"><span class="workspace-kicker">02 · IMPROVE</span><h3>Make every idea stronger</h3><p>Polish the hook, packaging and creative angle before publishing.</p></div></div>
                     <div class="studio-grid">
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('refinePanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix an existing result into a stronger version.</span><span class="card-tag">Refine</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('analyzerPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Diagnose clarity, curiosity and first-seconds impact.</span><span class="card-tag">Optimize</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('packagingPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Packaging Lab</strong><span>Coordinate title, hook and thumbnail direction.</span><span class="card-tag">Package</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('abPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Create genuinely different angles worth testing.</span><span class="card-tag">Test</span></div>
+                        <a class="studio-card" href="/creator-studio?tool=refinePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix an existing result into a stronger version.</span><span class="card-tag">Refine</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=analyzerPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Diagnose clarity, curiosity and first-seconds impact.</span><span class="card-tag">Optimize</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=packagingPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">📦</div><strong>Packaging Lab</strong><span>Coordinate title, hook and thumbnail direction.</span><span class="card-tag">Package</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=abPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Create genuinely different angles worth testing.</span><span class="card-tag">Test</span></a>
                     </div>
                 </div>
 
                 <div id="grow" class="studio-section">
                     <div class="studio-section-head"><div class="section-copy"><span class="workspace-kicker">03 · GROW</span><h3>Turn content into a system</h3><p>Use performance, planning and repurposing to build momentum.</p></div></div>
                     <div class="studio-grid">
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('performancePanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Diagnose CTR, retention and views.</span><span class="card-tag">Diagnose</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('plannerPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Planner</strong><span>Build a realistic content week around your goal.</span><span class="card-tag">Plan</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('repurposePanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt one piece of content for another platform.</span><span class="card-tag">Repurpose</span></div>
+                        <a class="studio-card" href="/creator-studio?tool=performancePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">📈</div><strong>Performance Coach</strong><span>Diagnose CTR, retention and views.</span><span class="card-tag">Diagnose</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=plannerPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🗓️</div><strong>7-Day Planner</strong><span>Build a realistic content week around your goal.</span><span class="card-tag">Plan</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=repurposePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt one piece of content for another platform.</span><span class="card-tag">Repurpose</span></a>
                     </div>
                 </div>
 
                 <div id="library" class="studio-section">
                     <div class="studio-section-head"><div class="section-copy"><span class="workspace-kicker">04 · PERSONALIZE & LIBRARY</span><h3>Make HookSpike yours</h3><p>Keep your creator voice and quickly return to previous ideas.</p></div></div>
                     <div class="studio-grid">
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('brandPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Keep HookSpike writing in your preferred tone.</span><span class="card-tag">Personalize</span></div>
-                        <div class="studio-card" role="button" tabindex="0" onclick="openStudioPanel('historyPanel')" onkeydown="if(event.key==='Enter'||event.key===' ')openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Jump back into topics you already explored.</span><span class="card-tag">Library</span></div>
+                        <a class="studio-card" href="/creator-studio?tool=brandPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Keep HookSpike writing in your preferred tone.</span><span class="card-tag">Personalize</span></a>
+                        <a class="studio-card" href="/creator-studio?tool=historyPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Jump back into topics you already explored.</span><span class="card-tag">Library</span></a>
                     </div>
                 </div>
 
@@ -1476,6 +1530,13 @@ Likes: 520"></textarea>
                     <select id="repurposeTarget" class="tool-select"><option value="Instagram Reels">📸 Instagram Reels</option><option value="YouTube Shorts">▶️ YouTube Shorts</option><option value="TikTok">🎵 TikTok</option><option value="X">𝕏 X</option><option value="LinkedIn">💼 LinkedIn</option></select>
                     <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose Content</button>
                     <div id="repurposeOutput" class="tool-output">Your platform-native version will appear here.</div>
+                </div>
+
+                <div id="shortsPanel" class="tool-panel">
+                    <div class="tool-title">📱 Shorts Mode</div>
+                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Turn a topic or idea into a tight short-form version for YouTube Shorts, Reels or TikTok.</p>
+                    <button id="shortsBtn" class="tool-action" type="button" onclick="runShorts()">📱 Create My Short</button>
+                    <div id="shortsOutput" class="tool-output">Enter a topic in the workspace context above, then create your short.</div>
                 </div>
 
                 <div id="refinePanel" class="tool-panel">
@@ -1910,10 +1971,12 @@ def creator_studio():
     allowed_tools = {
         "packPanel", "packagingPanel", "abPanel", "performancePanel", "plannerPanel",
         "repurposePanel", "refinePanel", "analyzerPanel", "discoverPanel",
-        "brandPanel", "historyPanel"
+        "brandPanel", "historyPanel", "shortsPanel"
     }
-    if studio_tool not in allowed_tools:
-        studio_tool = ""
+    # Query parameters are case-insensitive, but the DOM ids keep their
+    # readable camelCase names. Map the URL value back to the exact id.
+    tool_map = {name.lower(): name for name in allowed_tools}
+    studio_tool = tool_map.get(studio_tool.lower(), "")
     return render_template_string(
         HTML_TEMPLATE,
         logged_in=True,

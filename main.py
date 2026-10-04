@@ -464,14 +464,20 @@ HTML_TEMPLATE = """
 
 
         /* --- CREATOR STUDIO UI --- */
-        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:20px 0; }
-        .studio-card { position:relative; text-align:left; padding:20px; min-height:132px; box-sizing:border-box; border:1px solid #263244; border-radius:20px; background:linear-gradient(145deg,#0d111a,#111827); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; -webkit-tap-highlight-color:transparent; user-select:none; }
-        .studio-card:hover { transform:translateY(-2px); border-color:#66fcf1; box-shadow:0 12px 32px rgba(0,0,0,.28); }
+        .studio-section { margin-top:30px; }
+        .studio-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:12px; }
+        .studio-section-head .section-copy { min-width:0; }
+        .studio-section-head h3 { margin:2px 0 3px; color:#fff; font-size:20px; letter-spacing:-.25px; }
+        .studio-section-head p { margin:0; color:#7f8ba0; font-size:11px; line-height:1.45; }
+        .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0; }
+        .studio-card { position:relative; text-align:left; padding:16px; min-height:126px; box-sizing:border-box; border:1px solid rgba(148,163,184,.12); border-radius:18px; background:linear-gradient(145deg,#0b101a,#0f1624); cursor:pointer; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease; -webkit-tap-highlight-color:transparent; user-select:none; overflow:hidden; }
+        .studio-card::after { content:'→'; position:absolute; right:14px; top:14px; width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:rgba(103,232,249,.07); color:#67e8f9; font-size:13px; opacity:.72; }
+        .studio-card:hover { transform:translateY(-2px); border-color:rgba(103,232,249,.38); background:linear-gradient(145deg,#0d1522,#111a2a); box-shadow:0 14px 34px rgba(0,0,0,.28); }
         .studio-card:active { transform:scale(.985); }
-        .studio-card::after { content:'Open →'; position:absolute; right:16px; bottom:15px; color:#67e8f9; font-size:11px; font-weight:800; opacity:.72; }
-        .studio-card .icon { font-size:25px; }
-        .studio-card strong { display:block; color:#fff; margin-top:7px; font-size:14px; }
-        .studio-card span { display:block; color:#8b96a8; font-size:11px; line-height:1.45; margin-top:4px; }
+        .studio-card .icon { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:rgba(103,232,249,.07); border:1px solid rgba(103,232,249,.10); font-size:21px; }
+        .studio-card strong { display:block; color:#f8fafc; margin-top:11px; font-size:13px; line-height:1.2; padding-right:22px; }
+        .studio-card span { display:block; color:#7f8ba0; font-size:10.5px; line-height:1.42; margin-top:5px; padding-right:10px; }
+        .studio-card .card-tag { display:inline-block; margin-top:9px; color:#67e8f9; font-size:8px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
         .tool-panel { display:none; position:fixed; left:50%; top:50%; width:min(760px,calc(100vw - 28px)); max-height:calc(100dvh - 28px); box-sizing:border-box; overflow:auto; transform:translate(-50%,-50%); margin:0; padding:24px; border:1px solid rgba(103,232,249,.22); border-radius:26px; background:linear-gradient(145deg,rgba(9,14,26,.99),rgba(5,8,16,.99)); text-align:left; z-index:10001; box-shadow:0 30px 90px rgba(0,0,0,.7),0 0 50px rgba(103,232,249,.08); }
         .tool-panel.show { display:block; animation:workspaceIn .22s ease; }
         .studio-backdrop { display:none; position:fixed; inset:0; background:rgba(1,4,10,.78); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); z-index:10000; }
@@ -504,7 +510,7 @@ HTML_TEMPLATE = """
         button:focus-visible, .studio-card:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid rgba(103,232,249,.65); outline-offset:2px; }
         button:disabled { opacity:.65; cursor:wait; }
         body.studio-open { overflow:hidden; }
-        @media(max-width:560px){ .studio-grid{grid-template-columns:1fr;} .studio-card{min-height:118px;padding:18px;} .tool-panel{padding:20px;border-radius:22px;} }
+        @media(max-width:560px){ .studio-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} .studio-card{min-height:122px;padding:14px;border-radius:17px;} .studio-card strong{font-size:12px}.studio-card span{font-size:9.5px}.studio-card .icon{width:34px;height:34px;font-size:19px}.studio-card::after{right:10px;top:10px;width:21px;height:21px;font-size:11px}.studio-section-head h3{font-size:18px}.tool-panel{padding:20px;border-radius:22px;} }
 
         /* --- PREMIUM COMMERCIAL PAYWALL SUITE --- */
         .paywall-box {
@@ -921,7 +927,7 @@ HTML_TEMPLATE = """
 
         function setTopicAndType(type) {
             const radio = document.querySelector('input[name="content_type"][value="'+type+'"]');
-            if (radio) radio.checked = true;
+            if (radio) { radio.checked = true; updateCreateButton(); }
             const topic = document.querySelector('input[name="topic"]');
             window.scrollTo({top:0,behavior:'smooth'});
             setTimeout(function(){ if (topic) topic.focus(); }, 350);
@@ -1007,7 +1013,7 @@ HTML_TEMPLATE = """
 
         function useHistory(topic, type) {
             const input=document.querySelector('input[name="topic"]'); if(input) input.value=topic;
-            const radio=document.querySelector('input[name="content_type"][value="'+type+'"]'); if(radio) radio.checked=true;
+            const radio=document.querySelector('input[name="content_type"][value="'+type+'"]'); if(radio) { radio.checked=true; updateCreateButton(); }
             window.scrollTo({top:0,behavior:'smooth'});
         }
 
@@ -1215,6 +1221,7 @@ HTML_TEMPLATE = """
 
         {% else %}
 
+            {% if not studio_page %}
             <form
                 method="POST"
                 action="/"
@@ -1227,7 +1234,7 @@ HTML_TEMPLATE = """
 
                     <div class="content-option">
                         <input type="radio" id="typeHooks" name="content_type" value="hooks"
-                            {% if content_type == "hooks" or not content_type %}checked{% endif %} required>
+                            {% if content_type == "hooks" or not content_type %}checked{% endif %} onchange="updateCreateButton()" required>
                         <label for="typeHooks">
                             <span class="option-icon">🔥</span>
                             <span class="option-copy">
@@ -1239,7 +1246,7 @@ HTML_TEMPLATE = """
 
                     <div class="content-option">
                         <input type="radio" id="typeScript" name="content_type" value="script"
-                            {% if content_type == "script" %}checked{% endif %}>
+                            {% if content_type == "script" %}checked{% endif %} onchange="updateCreateButton()">
                         <label for="typeScript">
                             <span class="option-icon">🎬</span>
                             <span class="option-copy">
@@ -1251,7 +1258,7 @@ HTML_TEMPLATE = """
 
                     <div class="content-option">
                         <input type="radio" id="typeThumbnail" name="content_type" value="thumbnail"
-                            {% if content_type == "thumbnail" %}checked{% endif %}>
+                            {% if content_type == "thumbnail" %}checked{% endif %} onchange="updateCreateButton()">
                         <label for="typeThumbnail">
                             <span class="option-icon">🖼️</span>
                             <span class="option-copy">
@@ -1280,6 +1287,7 @@ HTML_TEMPLATE = """
                 </button>
 
             </form>
+            {% endif %}
 
         {% endif %}
 
@@ -1312,31 +1320,51 @@ HTML_TEMPLATE = """
                     <div id="packOutput" class="tool-output" style="display:none;"></div>
                 </div>
 
-                <div class="section-heading" style="margin-top:28px;text-align:left;">
-                    <span class="workspace-kicker">Creator Toolkit</span>
-                    <h3 style="margin:0;color:#fff;font-size:20px;">Choose a workspace</h3>
-                    <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Each tool opens in its own focused workspace.</p>
-                </div>
-                <div class="studio-grid">
-                    <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your latest result into a stronger version.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Score a hook and get a stronger rewrite.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Save the tone HookSpike should write in.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Reuse your latest topics and modes.</span></div>
-                    <div class="studio-card" onclick="goToCreate('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form script creation.</span></div>
+                <div class="studio-section">
+                    <div class="studio-section-head">
+                        <div class="section-copy">
+                            <span class="workspace-kicker">01 · CREATE</span>
+                            <h3>Find your next idea</h3>
+                            <p>Research a fresh topic or start from your latest result.</p>
+                        </div>
+                    </div>
+                    <div class="studio-grid">
+                        <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Current opportunities with web-verified research.</span><span class="card-tag">Research</span></div>
+                        <div class="studio-card" onclick="goToCreate('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form creation.</span><span class="card-tag">Create</span></div>
+                    </div>
                 </div>
 
-                <div class="section-heading" style="margin-top:34px;text-align:left;">
-                    <span class="workspace-kicker">💎 Pro workspace</span>
-                    <h3 style="margin:0;color:#fff;font-size:20px;">Creator Command Center</h3>
-                    <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Packaging, testing, performance, planning and repurposing.</p>
+                <div class="studio-section">
+                    <div class="studio-section-head">
+                        <div class="section-copy">
+                            <span class="workspace-kicker">02 · IMPROVE</span>
+                            <h3>Make the idea stronger</h3>
+                            <p>Improve hooks, voice and packaging before you publish.</p>
+                        </div>
+                    </div>
+                    <div class="studio-grid">
+                        <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your latest result into a stronger version.</span><span class="card-tag">Refine</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Score a hook and get a stronger rewrite.</span><span class="card-tag">Optimize</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Packaging Lab</strong><span>Coordinate title, hook and thumbnail direction.</span><span class="card-tag">Package</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Build three angles worth testing.</span><span class="card-tag">Test</span></div>
+                    </div>
                 </div>
-                <div class="studio-grid">
-                    <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Video Packaging Lab</strong><span>Title + thumbnail + hook as one coordinated package.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Three distinct creative angles to test instead of one guess.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Paste CTR, retention and views; get a prioritized diagnosis.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Content Planner</strong><span>Turn your niche and goal into a realistic weekly plan.</span></div>
-                    <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your best idea for another platform, not just copy-paste it.</span></div>
+
+                <div class="studio-section">
+                    <div class="studio-section-head">
+                        <div class="section-copy">
+                            <span class="workspace-kicker">03 · GROW</span>
+                            <h3>Turn content into a system</h3>
+                            <p>Plan, diagnose, personalize and reuse what you create.</p>
+                        </div>
+                    </div>
+                    <div class="studio-grid">
+                        <div class="studio-card" onclick="openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Diagnose CTR, retention and views.</span><span class="card-tag">Diagnose</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Planner</strong><span>Turn your niche into a realistic week.</span><span class="card-tag">Plan</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your content for another platform.</span><span class="card-tag">Repurpose</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Keep HookSpike writing in your tone.</span><span class="card-tag">Personalize</span></div>
+                        <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Jump back into topics you already explored.</span><span class="card-tag">Library</span></div>
+                    </div>
                 </div>
 
                 <div id="studioBackdrop" class="studio-backdrop" onclick="closeStudioPanel()"></div>

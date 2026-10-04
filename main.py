@@ -489,6 +489,12 @@ HTML_TEMPLATE = """
         .quick-btn { width:auto; padding:9px 12px; border-radius:999px; border:1px solid #334155; background:#111827; color:#dbe4ee; font-size:12px; cursor:pointer; text-transform:none; }
         .quick-btn:hover { border-color:#66fcf1; color:#66fcf1; }
         .pack-banner { margin-top:18px; padding:16px; border-radius:18px; background:linear-gradient(135deg,rgba(102,252,241,.08),rgba(124,58,237,.10)); border:1px solid rgba(102,252,241,.18); text-align:left; }
+        .creator-studio-cta{margin-top:20px;padding:22px;border-radius:22px;background:linear-gradient(135deg,rgba(103,232,249,.08),rgba(167,139,250,.10));border:1px solid rgba(103,232,249,.2);text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.18)}
+        .creator-studio-cta strong{display:block;color:#fff;font-size:21px;margin-top:7px}.creator-studio-cta>span:not(.workspace-kicker){display:block;color:#94a3b8;font-size:12px;line-height:1.55;margin-top:7px;max-width:680px}
+        .studio-open-btn{display:inline-flex!important;width:auto!important;margin-top:15px;text-decoration:none!important;align-items:center;justify-content:center}
+        .studio-page-head{margin-top:18px;padding:24px;border-radius:24px;background:linear-gradient(145deg,rgba(10,15,28,.96),rgba(7,10,18,.96));border:1px solid rgba(103,232,249,.14);text-align:left}
+        .studio-page-head h2{margin:8px 0 5px;color:#fff;font-size:27px;letter-spacing:-.5px}.studio-page-head p{margin:0 0 16px;color:#94a3b8;font-size:12px;line-height:1.55}
+        .studio-back-link{display:inline-block;color:#67e8f9;text-decoration:none;font-size:12px;font-weight:800;margin-bottom:4px}.studio-topic{margin:0!important;width:100%;box-sizing:border-box}
         .pack-banner strong { color:#fff; }
         .pack-banner span { display:block; color:#94a3b8; font-size:12px; line-height:1.5; margin-top:5px; }
         .history-list { max-height:220px; overflow:auto; margin-top:10px; }
@@ -921,6 +927,12 @@ HTML_TEMPLATE = """
             setTimeout(function(){ if (topic) topic.focus(); }, 350);
         }
 
+        function goToCreate(type){
+            const topic=currentTopic();
+            const url='/?content_type='+encodeURIComponent(type)+(topic?'&topic='+encodeURIComponent(topic):'');
+            window.location.href=url;
+        }
+
         async function runStudioAction(endpoint, payload, outputId, button) {
             if (!button) return;
             const old = button.innerText;
@@ -942,7 +954,9 @@ HTML_TEMPLATE = """
 
         function currentResultText() {
             const el = document.getElementById('rawText');
-            return el ? (el.innerText || el.textContent || '').trim() : '';
+            const live = el ? (el.innerText || el.textContent || '').trim() : '';
+            if (live) { try { localStorage.setItem('hookspike_latest_result', live); } catch(e) {} return live; }
+            try { return (localStorage.getItem('hookspike_latest_result') || '').trim(); } catch(e) { return ''; }
         }
 
         function runRefine(action) {
@@ -953,9 +967,10 @@ HTML_TEMPLATE = """
         }
 
         function runPack() {
-            const topic = document.querySelector('input[name="topic"]');
-            if (!topic || !topic.value.trim()) { topic && topic.focus(); return; }
-            runStudioAction('/generate-pack', {topic: topic.value, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'packOutput', document.getElementById('packBtn'));
+            const value = currentTopic();
+            const topic = document.querySelector('input[name="topic"]') || document.getElementById('studioTopic');
+            if (!value) { if (topic) { topic.focus(); topic.style.borderColor = '#f472b6'; } return; }
+            runStudioAction('/generate-pack', {topic: value, brand_voice: localStorage.getItem('hookspike_brand_voice') || ''}, 'packOutput', document.getElementById('packBtn'));
         }
 
         function runAnalyzer() {
@@ -998,8 +1013,18 @@ HTML_TEMPLATE = """
 
 
         function currentTopic(){
+            const studio=document.getElementById('studioTopic');
+            if (studio && studio.value.trim()) return studio.value.trim();
             const el=document.querySelector('input[name="topic"]');
             return el ? el.value.trim() : '';
+        }
+
+        function updateCreateButton(){
+            const selected=document.querySelector('input[name="content_type"]:checked');
+            const btn=document.getElementById('submitBtn');
+            if(!selected || !btn) return;
+            const labels={hooks:'Hooks',script:'Script',thumbnail:'Thumbnail'};
+            btn.innerText='Create My '+(labels[selected.value] || 'Content')+' 🚀';
         }
         function runPackaging(){
             const btn=document.getElementById('packagingBtn');
@@ -1026,6 +1051,20 @@ HTML_TEMPLATE = """
             const target=document.getElementById('repurposeTarget');
             runStudioAction('/repurpose-content',{content:content?content.value:'',source_platform:'YouTube',target_platform:target?target.value:'Instagram Reels'},'repurposeOutput',btn);
         }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            document.querySelectorAll('input[name="content_type"]').forEach(function(r){
+                r.addEventListener('change', updateCreateButton);
+            });
+            updateCreateButton();
+            const studio=document.getElementById('studioTopic');
+            if(studio){
+                try {
+                    const q=new URLSearchParams(window.location.search).get('topic');
+                    if(q && !studio.value) studio.value=q;
+                } catch(e) {}
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function(){
             loadBrandVoice(); renderHistory();
@@ -1247,134 +1286,154 @@ HTML_TEMPLATE = """
 
 
         {% if not show_paywall %}
-            <div class="pack-banner">
-                <span class="workspace-kicker">⭐ Recommended starting point</span>
-                <strong>🚀 One Topic → Complete Creator Pack</strong>
-                <span>Titles, 7 hooks, script, thumbnail concepts, description, hashtags and keywords — built from one research pass.</span>
-                <button id="packBtn" class="tool-action" type="button" onclick="runPack()" style="margin-top:14px;">✨ Build My Complete Pack</button>
-                <div id="packOutput" class="tool-output" style="display:none;"></div>
-            </div>
 
-            <div class="section-heading" style="margin-top:28px;text-align:left;">
-                <span class="workspace-kicker">Creator Toolkit</span>
-                <h3 style="margin:0;color:#fff;font-size:20px;">Choose a workspace</h3>
-                <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Tap a tool to open its own focused workspace. Nothing else gets in the way.</p>
-            </div>
-            <div class="studio-grid">
-                <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your latest result into a stronger version.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Score a hook and get a stronger rewrite.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Save the tone HookSpike should write in.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Reuse your latest topics and modes.</span></div>
-                <div class="studio-card" onclick="setTopicAndType('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form script creation.</span></div>
-            </div>
+            {% if not studio_page %}
+                <div class="creator-studio-cta">
+                    <span class="workspace-kicker">⭐ Your creator workspace</span>
+                    <strong>🚀 Creator Studio</strong>
+                    <span>Complete Creator Pack + research, refinement, hook analysis, planning, packaging and repurposing — all inside one focused workspace.</span>
+                    <a class="tool-action studio-open-btn" href="/creator-studio{% if topic %}?topic={{ topic|urlencode }}{% endif %}">✨ Open Creator Studio →</a>
+                </div>
+            {% else %}
 
-            <div class="section-heading" style="margin-top:34px;text-align:left;">
-                <span class="workspace-kicker">💎 Pro workspace</span>
-                <h3 style="margin:0;color:#fff;font-size:20px;">Creator Command Center</h3>
-                <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Packaging, testing, performance, planning and repurposing — each opens as a dedicated workspace.</p>
-            </div>
-            <div class="studio-grid">
-                <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Video Packaging Lab</strong><span>Title + thumbnail + hook as one coordinated package.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Three distinct creative angles to test instead of one guess.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Paste CTR, retention and views; get a prioritized diagnosis.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Content Planner</strong><span>Turn your niche and goal into a realistic weekly plan.</span></div>
-                <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your best idea for another platform, not just copy-paste it.</span></div>
-            </div>
+                <div class="studio-page-head">
+                    <a class="studio-back-link" href="/">← Back to Dashboard</a>
+                    <span class="workspace-kicker">💎 Creator Studio</span>
+                    <h2>Everything for your next upload.</h2>
+                    <p>One focused workspace instead of a wall of tools. Pick a workflow, enter your topic, and create.</p>
+                    <input id="studioTopic" class="tool-input studio-topic" type="text" placeholder="Enter your topic, game, update, trend or idea..." value="{{ topic }}">
+                </div>
 
-            <div id="studioBackdrop" class="studio-backdrop" onclick="closeStudioPanel()"></div>
+                <div class="pack-banner">
+                    <span class="workspace-kicker">⭐ Recommended starting point</span>
+                    <strong>🚀 One Topic → Complete Creator Pack</strong>
+                    <span>Titles, 7 hooks, script, thumbnail concepts, description, hashtags and keywords — built from one research pass.</span>
+                    <button id="packBtn" class="tool-action" type="button" onclick="runPack()" style="margin-top:14px;">✨ Build My Complete Pack</button>
+                    <div id="packOutput" class="tool-output" style="display:none;"></div>
+                </div>
 
-            <div id="packagingPanel" class="tool-panel">
-                <div class="tool-title">📦 Video Packaging Lab</div>
-                <p style="color:#94a3b8;font-size:12px;line-height:1.5;">One verified topic → coordinated title, hook and thumbnail direction.</p>
-                <button id="packagingBtn" class="tool-action" type="button" onclick="runPackaging()">🚀 Build My Packaging</button>
-                <div id="packagingOutput" class="tool-output">Your packaging analysis will appear here.</div>
-            </div>
+                <div class="section-heading" style="margin-top:28px;text-align:left;">
+                    <span class="workspace-kicker">Creator Toolkit</span>
+                    <h3 style="margin:0;color:#fff;font-size:20px;">Choose a workspace</h3>
+                    <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Each tool opens in its own focused workspace.</p>
+                </div>
+                <div class="studio-grid">
+                    <div class="studio-card" onclick="openStudioPanel('discoverPanel')"><div class="icon">🔥</div><strong>Fresh Topic Radar</strong><span>Find current opportunities with web-verified research.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('refinePanel')"><div class="icon">✨</div><strong>Make It Better</strong><span>Remix your latest result into a stronger version.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('analyzerPanel')"><div class="icon">🧲</div><strong>Hook Analyzer</strong><span>Score a hook and get a stronger rewrite.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('brandPanel')"><div class="icon">🎙️</div><strong>Creator Voice</strong><span>Save the tone HookSpike should write in.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('historyPanel')"><div class="icon">🗂️</div><strong>Recent Ideas</strong><span>Reuse your latest topics and modes.</span></div>
+                    <div class="studio-card" onclick="goToCreate('script')"><div class="icon">📱</div><strong>Shorts Mode</strong><span>Jump straight into short-form script creation.</span></div>
+                </div>
 
-            <div id="abPanel" class="tool-panel">
-                <div class="tool-title">🅰️ A/B Pack Generator</div>
-                <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Get three different psychological angles — curiosity, search/authority and bold/contrarian.</p>
-                <button id="abBtn" class="tool-action" type="button" onclick="runAB()">🧪 Generate 3 Test Packs</button>
-                <div id="abOutput" class="tool-output">Your A/B packs will appear here.</div>
-            </div>
+                <div class="section-heading" style="margin-top:34px;text-align:left;">
+                    <span class="workspace-kicker">💎 Pro workspace</span>
+                    <h3 style="margin:0;color:#fff;font-size:20px;">Creator Command Center</h3>
+                    <p style="margin:6px 0 0;color:#8b96a8;font-size:12px;">Packaging, testing, performance, planning and repurposing.</p>
+                </div>
+                <div class="studio-grid">
+                    <div class="studio-card" onclick="openStudioPanel('packagingPanel')"><div class="icon">📦</div><strong>Video Packaging Lab</strong><span>Title + thumbnail + hook as one coordinated package.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('abPanel')"><div class="icon">🅰️</div><strong>A/B Pack Generator</strong><span>Three distinct creative angles to test instead of one guess.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('performancePanel')"><div class="icon">📈</div><strong>Performance Coach</strong><span>Paste CTR, retention and views; get a prioritized diagnosis.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('plannerPanel')"><div class="icon">🗓️</div><strong>7-Day Content Planner</strong><span>Turn your niche and goal into a realistic weekly plan.</span></div>
+                    <div class="studio-card" onclick="openStudioPanel('repurposePanel')"><div class="icon">♻️</div><strong>Content Repurposer</strong><span>Adapt your best idea for another platform, not just copy-paste it.</span></div>
+                </div>
 
-            <div id="performancePanel" class="tool-panel">
-                <div class="tool-title">📈 Performance Coach</div>
-                <textarea id="metricsInput" class="tool-input" placeholder="Example:
+                <div id="studioBackdrop" class="studio-backdrop" onclick="closeStudioPanel()"></div>
+
+                <div id="packagingPanel" class="tool-panel">
+                    <div class="tool-title">📦 Video Packaging Lab</div>
+                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">One verified topic → coordinated title, hook and thumbnail direction.</p>
+                    <button id="packagingBtn" class="tool-action" type="button" onclick="runPackaging()">🚀 Build My Packaging</button>
+                    <div id="packagingOutput" class="tool-output">Your packaging analysis will appear here.</div>
+                </div>
+
+                <div id="abPanel" class="tool-panel">
+                    <div class="tool-title">🅰️ A/B Pack Generator</div>
+                    <p style="color:#94a3b8;font-size:12px;line-height:1.5;">Get three different psychological angles — curiosity, search/authority and bold/contrarian.</p>
+                    <button id="abBtn" class="tool-action" type="button" onclick="runAB()">🧪 Generate 3 Test Packs</button>
+                    <div id="abOutput" class="tool-output">Your A/B packs will appear here.</div>
+                </div>
+
+                <div id="performancePanel" class="tool-panel">
+                    <div class="tool-title">📈 Performance Coach</div>
+                    <textarea id="metricsInput" class="tool-input" placeholder="Example:
 Views: 12,400
 CTR: 3.8%
 Average view duration: 2:14
 Video length: 8:20
 Retention at 30s: 61%
 Likes: 520"></textarea>
-                <button id="performanceBtn" class="tool-action" type="button" onclick="runPerformance()">📊 Diagnose My Video</button>
-                <div id="performanceOutput" class="tool-output">Paste real metrics for a more useful diagnosis.</div>
-            </div>
-
-            <div id="plannerPanel" class="tool-panel">
-                <div class="tool-title">🗓️ 7-Day Content Planner</div>
-                <input id="plannerNiche" class="tool-select" style="box-sizing:border-box;" type="text" placeholder="Your niche / content area">
-                <select id="plannerGoal" class="tool-select"><option value="growth">📈 Growth</option><option value="consistency">🗓️ Consistency</option><option value="short-form">📱 Short-form growth</option><option value="authority">🏆 Authority</option></select>
-                <button id="plannerBtn" class="tool-action" type="button" onclick="runPlanner()">🗓️ Build My Week</button>
-                <div id="plannerOutput" class="tool-output">Your 7-day plan will appear here.</div>
-            </div>
-
-            <div id="repurposePanel" class="tool-panel">
-                <div class="tool-title">♻️ Content Repurposer</div>
-                <textarea id="repurposeInput" class="tool-input" placeholder="Paste your existing script, video summary or post..."></textarea>
-                <select id="repurposeTarget" class="tool-select"><option value="Instagram Reels">📸 Instagram Reels</option><option value="YouTube Shorts">▶️ YouTube Shorts</option><option value="TikTok">🎵 TikTok</option><option value="X">𝕏 X</option><option value="LinkedIn">💼 LinkedIn</option></select>
-                <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose Content</button>
-                <div id="repurposeOutput" class="tool-output">Your platform-native version will appear here.</div>
-            </div>
-
-            <div id="refinePanel" class="tool-panel">
-                <div class="tool-title">✨ Make this result better</div>
-                <div class="quick-actions">
-                    <button class="quick-btn" onclick="runRefine('more-curious')">🧲 More Curiosity</button>
-                    <button class="quick-btn" onclick="runRefine('more-viral')">🔥 Punchier</button>
-                    <button class="quick-btn" onclick="runRefine('more-natural')">🗣️ Natural</button>
-                    <button class="quick-btn" onclick="runRefine('shorter')">⚡ Shorter</button>
-                    <button class="quick-btn" onclick="runRefine('cinematic')">🎬 Cinematic</button>
-                    <button class="quick-btn" onclick="runRefine('shorts')">📱 Shorts</button>
-                    <button class="quick-btn" onclick="runRefine('gaming')">🎮 Gaming</button>
-                    <button class="quick-btn" onclick="runRefine('anime')">🍥 Anime</button>
-                    <button class="quick-btn" onclick="runRefine('thumbnail-clickable')">🖼️ Thumbnail</button>
+                    <button id="performanceBtn" class="tool-action" type="button" onclick="runPerformance()">📊 Diagnose My Video</button>
+                    <div id="performanceOutput" class="tool-output">Paste real metrics for a more useful diagnosis.</div>
                 </div>
-                <div id="refineOutput" class="tool-output">Generate a result first, then choose a transformation.</div>
-            </div>
 
-            <div id="analyzerPanel" class="tool-panel">
-                <div class="tool-title">🧲 Hook Analyzer</div>
-                <textarea id="hookAnalyzerInput" class="tool-input" placeholder="Paste a hook here..."></textarea>
-                <button id="analyzeBtn" class="tool-action" type="button" onclick="runAnalyzer()">🔍 Analyze Hook</button>
-                <div id="analyzerOutput" class="tool-output">You’ll get clarity, curiosity, first-seconds impact, specificity and one improved version.</div>
-            </div>
+                <div id="plannerPanel" class="tool-panel">
+                    <div class="tool-title">🗓️ 7-Day Content Planner</div>
+                    <input id="plannerNiche" class="tool-select" style="box-sizing:border-box;" type="text" placeholder="Your niche / content area">
+                    <select id="plannerGoal" class="tool-select"><option value="growth">📈 Growth</option><option value="consistency">🗓️ Consistency</option><option value="short-form">📱 Short-form growth</option><option value="authority">🏆 Authority</option></select>
+                    <button id="plannerBtn" class="tool-action" type="button" onclick="runPlanner()">🗓️ Build My Week</button>
+                    <div id="plannerOutput" class="tool-output">Your 7-day plan will appear here.</div>
+                </div>
 
-            <div id="discoverPanel" class="tool-panel">
-                <div class="tool-title">🔥 Fresh Topic Radar</div>
-                <select id="discoverCategory" class="tool-select">
-                    <option value="general">🌐 General Creator Trends</option>
-                    <option value="gaming">🎮 Gaming</option>
-                    <option value="anime">🍥 Anime</option>
-                    <option value="tech">🤖 Tech & AI</option>
-                    <option value="movies">🎬 Movies & Entertainment</option>
-                    <option value="sports">⚽ Sports</option>
-                </select>
-                <button id="discoverBtn" class="tool-action" type="button" onclick="runDiscover()">🔎 Find Current Topics</button>
-                <div id="discoverOutput" class="tool-output">Fresh ideas will appear here.</div>
-            </div>
+                <div id="repurposePanel" class="tool-panel">
+                    <div class="tool-title">♻️ Content Repurposer</div>
+                    <textarea id="repurposeInput" class="tool-input" placeholder="Paste your existing script, video summary or post..."></textarea>
+                    <select id="repurposeTarget" class="tool-select"><option value="Instagram Reels">📸 Instagram Reels</option><option value="YouTube Shorts">▶️ YouTube Shorts</option><option value="TikTok">🎵 TikTok</option><option value="X">𝕏 X</option><option value="LinkedIn">💼 LinkedIn</option></select>
+                    <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose Content</button>
+                    <div id="repurposeOutput" class="tool-output">Your platform-native version will appear here.</div>
+                </div>
 
-            <div id="brandPanel" class="tool-panel">
-                <div class="tool-title">🎙️ My Creator Voice</div>
-                <textarea id="brandVoice" class="tool-input" placeholder="Example: Hinglish, energetic, short sentences, gaming audience, no corporate wording..."></textarea>
-                <button class="tool-action" type="button" onclick="saveBrandVoice()">💾 Save My Style</button>
-                <div id="brandSaved" class="tool-output">Saved locally on this device. We keep your existing backend unchanged.</div>
-            </div>
+                <div id="refinePanel" class="tool-panel">
+                    <div class="tool-title">✨ Make this result better</div>
+                    <div class="quick-actions">
+                        <button class="quick-btn" onclick="runRefine('more-curious')">🧲 More Curiosity</button>
+                        <button class="quick-btn" onclick="runRefine('more-viral')">🔥 Punchier</button>
+                        <button class="quick-btn" onclick="runRefine('more-natural')">🗣️ Natural</button>
+                        <button class="quick-btn" onclick="runRefine('shorter')">⚡ Shorter</button>
+                        <button class="quick-btn" onclick="runRefine('cinematic')">🎬 Cinematic</button>
+                        <button class="quick-btn" onclick="runRefine('shorts')">📱 Shorts</button>
+                        <button class="quick-btn" onclick="runRefine('gaming')">🎮 Gaming</button>
+                        <button class="quick-btn" onclick="runRefine('anime')">🍥 Anime</button>
+                        <button class="quick-btn" onclick="runRefine('thumbnail-clickable')">🖼️ Thumbnail</button>
+                    </div>
+                    <div id="refineOutput" class="tool-output">Generate a result first, then choose a transformation.</div>
+                </div>
 
-            <div id="historyPanel" class="tool-panel">
-                <div class="tool-title">🗂️ Recent Ideas</div>
-                <div id="historyList" class="history-list"></div>
-            </div>
+                <div id="analyzerPanel" class="tool-panel">
+                    <div class="tool-title">🧲 Hook Analyzer</div>
+                    <textarea id="hookAnalyzerInput" class="tool-input" placeholder="Paste a hook here..."></textarea>
+                    <button id="analyzeBtn" class="tool-action" type="button" onclick="runAnalyzer()">🔍 Analyze Hook</button>
+                    <div id="analyzerOutput" class="tool-output">You’ll get clarity, curiosity, first-seconds impact, specificity and one improved version.</div>
+                </div>
+
+                <div id="discoverPanel" class="tool-panel">
+                    <div class="tool-title">🔥 Fresh Topic Radar</div>
+                    <select id="discoverCategory" class="tool-select">
+                        <option value="general">🌐 General Creator Trends</option>
+                        <option value="gaming">🎮 Gaming</option>
+                        <option value="anime">🍥 Anime</option>
+                        <option value="tech">🤖 Tech & AI</option>
+                        <option value="movies">🎬 Movies & Entertainment</option>
+                        <option value="sports">⚽ Sports</option>
+                    </select>
+                    <button id="discoverBtn" class="tool-action" type="button" onclick="runDiscover()">🔎 Find Current Topics</button>
+                    <div id="discoverOutput" class="tool-output">Fresh ideas will appear here.</div>
+                </div>
+
+                <div id="brandPanel" class="tool-panel">
+                    <div class="tool-title">🎙️ My Creator Voice</div>
+                    <textarea id="brandVoice" class="tool-input" placeholder="Example: Hinglish, energetic, short sentences, gaming audience, no corporate wording..."></textarea>
+                    <button class="tool-action" type="button" onclick="saveBrandVoice()">💾 Save My Style</button>
+                    <div id="brandSaved" class="tool-output">Saved locally on this device. We keep your existing backend unchanged.</div>
+                </div>
+
+                <div id="historyPanel" class="tool-panel">
+                    <div class="tool-title">🗂️ Recent Ideas</div>
+                    <div id="historyList" class="history-list"></div>
+                </div>
+            {% endif %}
+
         {% endif %}
 
         <div
@@ -1610,8 +1669,8 @@ def index():
     result = None
     result_text = None
     result_image = None
-    content_type = "hooks"
-    topic = ""
+    content_type = request.args.get("content_type", "hooks").strip().lower() if request.method == "GET" else "hooks"
+    topic = request.args.get("topic", "").strip() if request.method == "GET" else ""
 
     show_paywall = (
         tokens_left <= 0
@@ -1660,6 +1719,7 @@ def index():
                 topic="",
                 tokens_left=tokens_left,
                 show_paywall=show_paywall,
+                studio_page=False,
             )
 
 
@@ -1737,6 +1797,31 @@ def index():
         topic=topic,
         tokens_left=tokens_left,
         show_paywall=show_paywall,
+        studio_page=False,
+    )
+
+
+@app.route("/creator-studio", methods=["GET"])
+def creator_studio():
+    user_id = session.get("user_id")
+    email = session.get("user_email")
+    if not user_id:
+        return redirect("/")
+
+    tokens_left = get_user_tokens(user_id, email)
+    topic = request.args.get("topic", "").strip()
+    return render_template_string(
+        HTML_TEMPLATE,
+        logged_in=True,
+        user_email=email,
+        result=None,
+        result_text=None,
+        result_image=None,
+        content_type="hooks",
+        topic=topic,
+        tokens_left=tokens_left,
+        show_paywall=(tokens_left <= 0),
+        studio_page=True,
     )
 
 

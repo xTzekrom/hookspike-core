@@ -431,22 +431,22 @@
 
     <main class="chat-area" id="chatArea">
         <div class="hero-welcome" id="heroWelcome">
-            <h2>What can I help with?</h2>
-            <p>Ask HookSpike for high-retention viral scripts & hooks.</p>
+            <h2>HookSpike Studio</h2>
+            <p>Bhai video idea de, retention hook aur full script yahin banate hain.</p>
         </div>
     </main>
 
     <div class="bottom-dock">
         <div class="input-box-container">
             <button class="plus-action-btn" id="dockPlusBtn" title="New Chat">+</button>
-            <input type="text" id="chatInput" placeholder="Message ChatGPT..." autocomplete="off">
+            <input type="text" id="chatInput" placeholder="Bhai ko idea bata..." autocomplete="off">
             <button class="send-action-btn" id="sendBtn" title="Send">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
             </button>
         </div>
     </div>
 
-    <!-- SUPABASE GOOGLE LOGIN MODAL (CIRCULAR G LOGO) -->
+    <!-- SUPABASE GOOGLE LOGIN MODAL -->
     <div class="modal-wrap" id="authModal">
         <div class="modal-card">
             <div style="font-size: 24px; font-weight: 800;">⚡ HookSpike AI</div>
@@ -464,7 +464,6 @@
     <script>
         const IS_LOGGED = {{ 'true' if logged_in else 'false' }};
         
-        // Hardcoded Keys - Direct Connection (No missing credentials error anymore!)
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
         
@@ -485,12 +484,10 @@
             if (error) alert("Login Error: " + error.message);
         }
 
-        // Check if redirected back from Supabase Google Auth
         window.addEventListener('DOMContentLoaded', async () => {
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session && session.user && session.user.email) {
-                    // Sync email with Flask session backend
                     await fetch('/api/auth/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -578,8 +575,9 @@
 
             try {
                 const res = await fetch("/api/chat-stream", {
-                    method: "POST", headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({ message: txt, history: chatHist.slice(-10) }),
+                    method: "POST", 
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ message: txt, history: chatHist.slice(-6) }),
                     signal: ctrl.signal
                 });
                 
@@ -633,14 +631,13 @@
 
             } catch(e) {
                 cursor.remove();
-                aiBox.json = "⚠️ Connection error, please retry.";
+                aiBox.innerText = "⚠️ Connection issue ho gaya bhai. Ek baar retry kar le!";
             }
         }
 
         sendBtn.onclick = sendMsg;
         chatInput.onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
         
-        // Logout fix: Supabase browser session clear karke login modal par bhejega
         document.addEventListener('click', async function(e) {
             const link = e.target.closest('a[href="/logout"]');
             if (link) {

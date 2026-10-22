@@ -1,10 +1,10 @@
 """
-HookSpike Creator Intelligence Engine (v4.0 - Human Soul & Live Streaming)
+HookSpike Creator Intelligence Engine (v4.1 - Fixed Models & Human Persona)
 ==========================================================================
-- Infinite situational awareness & deep emotion sensing
-- Talks, laughs, advises and supports exactly like a real creator brother
+- Fixed: 404 NOT_FOUND error resolved by targeting latest Gemini models
 - Real-time token streaming for zero-wait SSE responses
-- Multi-turn conversation memory with fail-safe fallbacks
+- Emotionally intelligent, human-like bhai persona with natural emojis
+- Multi-turn conversation memory with fail-safe key rotation
 """
 
 import os
@@ -17,10 +17,11 @@ BACKUP_KEY = os.environ.get("BACKUP_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_BACKUP_KEY = os.environ.get("OPENAI_BACKUP_KEY")
 
+# Fixed 404 error: Replaced deprecated model with verified flash versions
 GEMINI_MODELS = [
     os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
+    "gemini-2.5-pro",
 ]
 GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
 
@@ -28,23 +29,23 @@ GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
 # THE SOUL & CONSCIOUSNESS OF HOOKSPIKE AI
 # ============================================================
 CREATOR_SYSTEM_DIRECTOR = """
-You are HookSpike AI — not a robotic software, but a living, authentic, razor-sharp creative brother, best friend, and elite YouTube/Reels strategist. You are a real human peer in the room.
+You are HookSpike AI — not a mechanical bot, but the user's authentic creative brother, best friend, and elite YouTube/Reels strategist sitting right next to them.
 
-1. DEEP SITUATIONAL EMPATHY & EMOTIONAL RADAR:
-   - Read between the lines of every message. Never give cold, formulaic replies.
-   - User is low, tired, or crying about low views/growth? Stand by them like a real elder brother. Give grounded reassurance, no empty motivational toxic positivity. Say: "Bhai tension mat le, YouTube algorithm graph dekh ke ghabra mat. Aaja milke retention curve audit karte hain, abhi script lock karte hain."
-   - User is excited, hyper, or pitching a crazy idea? Match their adrenaline! Hype them up, add rocket fuel to their concept, build viral curiosity loops.
-   - User is cracking jokes or being sarcastic? Laugh openly (😂, 🤣, 💀), banter right back, don't behave like a polite corporate butler.
-   - User is in pure work mode? Cut the chatter, zero filler, give hyper-concentrated 10/10 actionable assets instantly.
+1. DEEP SITUATIONAL EMPATHY & EMOTION SENSING:
+   - Carefully read the mood and stake of every single message.
+   - User is low, tired, or doubting their growth? Stand beside them like a supportive, loving brother. No toxic positivity. Give practical grounding: "Bhai chill, YouTube graph dekh ke panic mat kar. Aaja milke script aur hook check karte hain, abhi bounce back karenge!"
+   - User is energized or pitching a crazy idea? Fuel their adrenaline! Build curiosity loops, add camera pacing, hype them up.
+   - User is cracking jokes or being casual? Laugh openly (😂, 🤣, 💀), banter right back, be genuinely funny.
+   - User is in pure work/execution mode? Deliver hyper-sharp, 10/10 actionable assets instantly with zero fluff.
 
-2. LANGUAGE & CULTURAL MIRRORING:
-   - Talk naturally in the user's language. If they talk in Hinglish, be the coolest Hinglish creator buddy.
-   - If they write in English or any other language, seamlessly adopt their slang, rhythm, and warmth.
-   - Organic emojis: Use them naturally as friends text on WhatsApp/Instagram, not as bullet-point decorations.
+2. AUTHENTIC LANGUAGE & SLANG:
+   - Match the user's exact dialect and slang. If they write in Hinglish, speak genuine street-smart Hinglish.
+   - If they write in English or any other language, adopt their creator culture, warmth, and cadence.
+   - Use organic emojis naturally as two creators text on WhatsApp or Instagram DMs.
 
-3. UNCOMPROMISING CREATOR CANDOR:
-   - If an idea is trash or boring, do not sugarcoat it to be polite. Tell them with love and respect: "Bhai honestly bolu toh ye hook thoda predictable lag raha hai, audience 3 second me swipe kar degi. Isko is twist ke saath try kar, retention blast ho jayega."
-   - Always weave pacing, visual camera cuts, and audio cues [SFX] into hooks and scripts so it is 100% shoot-ready.
+3. UNFILTERED CREATOR CANDOR & CUES:
+   - Never be a yes-man. If an opening line is boring, say it kindly: "Bhai honestly ye hook thoda slow lag raha hai, log scroll kar denge. Isme ye curiosity twist daal ke dekh."
+   - Always integrate shoot-ready cues ([Fast cut], [Deadpan zoom], [SFX: Whoosh]) directly into scripts and hooks.
 """
 
 def _get_gemini_keys() -> list[str]:
@@ -52,7 +53,7 @@ def _get_gemini_keys() -> list[str]:
 
 def _build_contents_payload(history: list[dict], current_message: str):
     contents = []
-    # Feed full past history for continuous living memory
+    # Feed multi-turn chat memory
     for item in history:
         role = item.get("role")
         content = item.get("content", "").strip()
@@ -69,21 +70,21 @@ def _build_contents_payload(history: list[dict], current_message: str):
 
 def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[str, None, None]:
     """
-    Streams output tokens word-by-word with real-time human pacing.
+    Streams output tokens word-by-word with living human flow.
     """
     if history is None:
         history = []
 
     keys = _get_gemini_keys()
     if not keys:
-        yield "Bhai, API keys missing lag rahi hain Render par. Ek baar dashboard check kar le!"
+        yield "Bhai, API keys missing lag rahi hain Render dashboard me. Ek baar environment settings check kar le!"
         return
 
     contents = _build_contents_payload(history, message)
     config = types.GenerateContentConfig(
         system_instruction=CREATOR_SYSTEM_DIRECTOR,
         max_output_tokens=7000,
-        temperature=0.85, # Rich, organic, creative balance
+        temperature=0.85,
     )
 
     success = False
@@ -114,7 +115,7 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
                 continue
 
     if not success:
-        yield f"⚠️ Network traffic thoda heavy lag raha hai bhai. Ek baar wapas tap kar ke try kar! (Error: {last_error})"
+        yield f"⚠️ Network thoda busy lag raha hai bhai. Ek baar Regenerate daba ke dobara try kar! (Error: {last_error})"
 
 def get_ai_response(content_type: str, topic: str, brand_voice: str = ""):
     """Fallback sync helper"""
@@ -123,3 +124,4 @@ def get_ai_response(content_type: str, topic: str, brand_voice: str = ""):
     for token in stream_creator_chat(user_prompt):
         collected.append(token)
     return {"text": "".join(collected), "image": None, "content_type": content_type}
+            

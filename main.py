@@ -1,7 +1,7 @@
 import os
 import sys
-import time
 from pathlib import Path
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from flask import (
     Flask,
@@ -20,7 +20,7 @@ from supabase_auth import SyncSupportedStorage
 
 
 # ============================================================
-# AI ENGINE
+# AI ENGINE IMPORTS
 # ============================================================
 
 try:
@@ -36,21 +36,23 @@ try:
         performance_coach,
         generate_content_plan,
         repurpose_creator_content,
+        get_ai_engine_status,
     )
-except ImportError:
-    print("CRITICAL ERROR: 'ai_engine.py' file not found!")
+except ImportError as e:
+    print(f"CRITICAL ERROR: Failed to import from 'ai_engine.py': {e}")
     sys.exit(1)
 
 
 # ============================================================
-# FLASK APP
+# FLASK APP CONFIGURATION
 # ============================================================
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
-    "CHANGE_THIS_SECRET_IN_RENDER"
+    "CHANGE_THIS_SECRET_IN_RENDER_PRODUCTION"
 )
 
 app.config.update(
@@ -81,7 +83,7 @@ class FlaskSessionStorage(SyncSupportedStorage):
 
 
 # ============================================================
-# SUPABASE
+# SUPABASE INITIALIZATION
 # ============================================================
 
 SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")
@@ -111,13 +113,13 @@ else:
 # HTML TEMPLATE LOADER
 # ============================================================
 
-HTML_TEMPLATE = (
-    Path(__file__).resolve().parent / "index.html"
-).read_text(encoding="utf-8")
+def load_html_template():
+    template_path = Path(__file__).resolve().parent / "index.html"
+    return template_path.read_text(encoding="utf-8")
 
 
 # ============================================================
-# TOKEN FUNCTIONS
+# TOKEN MANAGEMENT FUNCTIONS
 # ============================================================
 
 def get_user_tokens(user_id, email):
@@ -150,7 +152,7 @@ def get_user_tokens(user_id, email):
 
 def decrease_user_token(user_id):
     if not supabase:
-        return
+        return 5
     try:
         res = (
             supabase
@@ -161,29 +163,38 @@ def decrease_user_token(user_id):
             .execute()
         )
         if not res.data:
-            return
+            return 0
         current = int(res.data[0]["tokens_left"])
         if current <= 0:
-            return
+            return 0
+        new_val = current - 1
         (
             supabase
             .table("user_tokens")
-            .update({"tokens_left": current - 1})
+            .update({"tokens_left": new_val})
             .eq("id", user_id)
             .execute()
         )
+        return new_val
     except Exception as e:
         print(f"Database error on token update: {e}")
+        return 0
 
 
 def _ai_result_is_success(result):
-    if not isinstance(result, str):
+    if isinstance(result, dict):
+        text = str(result.get("text") or "").strip().lower()
+    elif isinstance(result, str):
+        text = result.strip().lower()
+    else:
         return bool(result)
-    text = result.strip().lower()
+
     failure_markers = (
         "⚠️ ai is temporarily unavailable",
         "⚠️ ai is temporarily busy",
         "ai api key is not configured",
+        "⚠️ ai engine temporarily unavailable",
+        "❌ please enter",
     )
     return bool(text) and not any(marker in text for marker in failure_markers)
 
@@ -194,17 +205,20 @@ def _ai_result_is_success(result):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    html_template = load_html_template()
     user_id = session.get("user_id")
     email = session.get("user_email")
 
     if not user_id:
-        return render_template_string(HTML_TEMPLATE, logged_in=False)
+        return render_template_string(html_template, logged_in=False)
 
     tokens_left = get_user_tokens(user_id, email)
     result = None
     result_text = None
     result_image = None
     content_type = request.args.get("content_type", "hooks").strip().lower() if request.method == "GET" else "hooks"
+    if content_type not in {"hooks", "script", "thumbnail"}:
+        content_type = "hooks"
     topic = request.args.get("topic", "").strip() if request.method == "GET" else ""
     show_paywall = (tokens_left <= 0)
 
@@ -222,19 +236,19 @@ def index():
                     result_text = result.get("text")
                     result_image = result.get("image")
                 else:
-                    result_text = result
+                    result_text = str(result)
                     result_image = None
 
                 if _ai_result_is_success(result):
-                    decrease_user_token(user_id)
-                    tokens_left = get_user_tokens(user_id, email)
+                    tokens_left = decrease_user_token(user_id)
             except Exception as e:
-                result = "⚠️ AI Engine temporarily unavailable. Please try again."
+                print(f"Error in index POST: {e}")
+                result_text = "⚠️ AI Engine temporarily unavailable. Please try again."
 
         show_paywall = (tokens_left <= 0)
 
     return render_template_string(
-        HTML_TEMPLATE,
+        html_template,
         logged_in=True,
         user_email=email,
         result=result,
@@ -251,6 +265,7 @@ def index():
 
 @app.route("/creator-studio", methods=["GET"])
 def creator_studio():
+    html_template = load_html_template()
     user_id = session.get("user_id")
     email = session.get("user_email")
     if not user_id:
@@ -258,9 +273,9 @@ def creator_studio():
 
     tokens_left = get_user_tokens(user_id, email)
     topic = request.args.get("topic", "").strip()
-    studio_tool = request.args.get("tool", "").strip().lower()
+    studio_tool = request.args.get("tool", "").strip()
     return render_template_string(
-        HTML_TEMPLATE,
+        html_template,
         logged_in=True,
         user_email=email,
         result=None,
@@ -287,6 +302,7 @@ def login_google():
         })
         return redirect(response.url)
     except Exception as e:
+        print(f"OAuth start error: {e}")
         return "Google login could not be started.", 500
 
 
@@ -296,9 +312,9 @@ def auth_callback():
     error = request.args.get("error")
     if error or not code or not supabase:
         session.clear()
-        return "Google login failed.", 400
+        return redirect(url_for("index"))
     try:
-        response = supabase.auth.exchange_code_for_session({"auth_code": code})
+        supabase.auth.exchange_code_for_session({"auth_code": code})
         user_response = supabase.auth.get_user()
         user = getattr(user_response, "user", None)
         if not user:
@@ -308,8 +324,9 @@ def auth_callback():
         session.permanent = True
         return redirect(url_for("index"))
     except Exception as e:
+        print(f"Auth callback error: {e}")
         session.clear()
-        return "Google login failed.", 400
+        return redirect(url_for("index"))
 
 
 @app.route("/logout")
@@ -317,7 +334,7 @@ def logout():
     try:
         if supabase:
             supabase.auth.sign_out()
-    except:
+    except Exception:
         pass
     finally:
         session.clear()
@@ -325,8 +342,8 @@ def logout():
 
 
 # ============================================================
-# STUDIO API ROUTES (Tools, Paywall, Features)
-# =================================5===========================
+# STUDIO API ROUTES
+# ============================================================
 
 def _studio_token_allowed():
     user_id = session.get("user_id")
@@ -335,28 +352,35 @@ def _studio_token_allowed():
         return None, 401, {"ok": False, "error": "⚠️ Please log in first."}
     tokens = get_user_tokens(user_id, email)
     if tokens <= 0:
-        return None, 402, {"ok": False, "error": "🔒 You are out of creator tokens."}
-    return (user_id, email), 200, None
+        return None, 402, {"ok": False, "tokens_left": 0, "paywall": True, "error": "🔒 You are out of creator tokens. Please upgrade to Creator Pro."}
+    return (user_id, email, tokens), 200, None
+
+
+def _finish_studio_response(user_id, current_tokens, result, err):
+    if result:
+        new_tokens = decrease_user_token(user_id)
+        return jsonify({"ok": True, "text": result, "tokens_left": new_tokens})
+    return jsonify({"ok": False, "error": err or "⚠️ Could not complete the request. Please try again.", "tokens_left": current_tokens}), 200
+
 
 @app.route("/generate-pack", methods=["POST"])
 def generate_pack_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     topic = str(data.get("topic", "")).strip()
     result, err = generate_creator_pack(topic, str(data.get("brand_voice", ""))[:4000])
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/refine-content", methods=["POST"])
 def refine_content_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = refine_creator_content(
         topic=str(data.get("topic", "")),
@@ -364,93 +388,89 @@ def refine_content_route():
         action=str(data.get("action", "")),
         brand_voice=str(data.get("brand_voice", ""))[:4000],
     )
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/analyze-hook", methods=["POST"])
 def analyze_hook_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = analyze_hook(hook=str(data.get("hook", "")), topic=str(data.get("topic", "")))
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/discover-topics", methods=["POST"])
 def discover_topics_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = discover_topics(str(data.get("category", "general")))
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/packaging-lab", methods=["POST"])
 def packaging_lab_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = generate_packaging_lab(str(data.get("topic", "")).strip(), str(data.get("brand_voice", ""))[:4000])
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/ab-packs", methods=["POST"])
 def ab_packs_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = generate_ab_packs(str(data.get("topic", "")).strip(), str(data.get("brand_voice", ""))[:4000])
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/performance-coach", methods=["POST"])
 def performance_coach_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = performance_coach(str(data.get("topic", "")), str(data.get("metrics", "")).strip())
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/content-planner", methods=["POST"])
 def content_planner_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
     result, err = generate_content_plan(str(data.get("niche", "")).strip(), str(data.get("goal", "growth")))
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/repurpose-content", methods=["POST"])
 def repurpose_content_route():
     identity, status, error = _studio_token_allowed()
     if error:
         return jsonify(error), status
-    user_id, email = identity
+    user_id, email, tokens = identity
     data = request.get_json(silent=True) or {}
-    result, err = repurpose_creator_content(str(data.get("content", "")).strip(), "YouTube", str(data.get("target_platform", "Instagram Reels")))
-    if result:
-        decrease_user_token(user_id)
-    return jsonify({"ok": True, "text": result})
+    result, err = repurpose_creator_content(
+        str(data.get("content", "")).strip(),
+        "YouTube",
+        str(data.get("target_platform", "Instagram Reels"))
+    )
+    return _finish_studio_response(user_id, tokens, result, err)
+
 
 @app.route("/generate-thumbnail", methods=["POST"])
 def generate_thumbnail_route():
@@ -463,7 +483,7 @@ def generate_thumbnail_route():
             thumbnail_text=str(data.get("thumbnail_text", ""))[:30000],
         )
         return jsonify(result)
-    except Exception as exc:
+    except Exception:
         return jsonify({"ok": False, "image": None, "error": "⚠️ Image server busy."}), 200
 
 
@@ -476,16 +496,18 @@ def add_no_cache_headers(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
+
 @app.route("/favicon.png")
 def favicon():
-    return send_file(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_00000000fd8481fab2b4f371e41aa854.png"),
-        mimetype="image/png"
-    )
+    fav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_00000000fd8481fab2b4f371e41aa854.png")
+    if os.path.exists(fav_path):
+        return send_file(fav_path, mimetype="image/png")
+    return "", 204
+
 
 @app.route("/health")
 def health():
-    return {"status": "ok", "app": "HookSpike AI", "ai_engine": "v2"}
+    return {"status": "ok", "app": "HookSpike AI", "ai_engine": get_ai_engine_status()}
 
 
 # ============================================================

@@ -1,9 +1,5 @@
 """
-HookSpike AI - Core Backend Service (v4.4 - Ultimate Stable)
-===========================================================
-- Full Supabase token sync & admin bypass
-- SSE Streaming Route for real-time ChatGPT-style outputs
-- Safe fallback & robust session handling
+HookSpike AI - Production Backend (Supabase Auth & Streaming)
 """
 
 import json
@@ -36,21 +32,21 @@ def get_user_tokens(user_email: str) -> int:
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
-        return 15
+        return 5
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("email", user_email).execute()
         if res.data and len(res.data) > 0:
             return int(res.data[0].get("tokens_left", 0))
-        supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 15}).execute()
-        return 15
+        supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 5}).execute()
+        return 5
     except Exception:
-        return 15
+        return 5
 
 def deduct_user_token(user_email: str) -> int:
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
-        return 14
+        return 4
     try:
         curr = get_user_tokens(user_email)
         new_balance = max(0, curr - 1)
@@ -66,14 +62,15 @@ def index():
     tokens = get_user_tokens(user_email) if logged_in else 0
     return render_template("index.html", logged_in=logged_in, user_email=user_email, tokens_left=tokens)
 
-@app.route("/api/auth/login", methods=["POST"])
-def auth_login():
+@app.route("/api/auth/sync", methods=["POST"])
+def auth_sync():
     data = request.get_json() or {}
     email = data.get("email", "").strip().lower()
     if email and "@" in email:
         session["user_email"] = email
-        return jsonify({"ok": True, "email": email, "tokens": get_user_tokens(email)})
-    return jsonify({"error": "Valid email required"}), 400
+        tokens = get_user_tokens(email)
+        return jsonify({"ok": True, "email": email, "tokens": tokens})
+    return jsonify({"error": "Invalid email"}), 400
 
 @app.route("/logout")
 def logout():
@@ -84,11 +81,11 @@ def logout():
 def chat_stream():
     user_email = session.get("user_email")
     if not user_email:
-        return jsonify({"error": "Login required", "login_needed": True}, 401)
+        return jsonify({"error": "Login required", "login_needed": True}), 401
 
     tokens = get_user_tokens(user_email)
     if tokens <= 0 and user_email not in ADMIN_EMAILS:
-        return jsonify({"error": "Tokens exhausted", "paywall": True}, 402)
+        return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
 
     payload = request.get_json() or {}
     message = payload.get("message", "").strip()
@@ -113,4 +110,3 @@ def chat_stream():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-    

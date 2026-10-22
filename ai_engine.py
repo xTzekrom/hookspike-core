@@ -1,7 +1,7 @@
 """
 HookSpike AI Engine (Ultra-Smooth Streaming & Bhai Persona)
 ===========================================================
-- Fixes 404 by targeting active 2026 production models
+- Uses free-tier friendly fast production models
 - Real-time token streaming with human pacing
 - Living creative confidant & viral strategist persona
 """
@@ -14,11 +14,11 @@ from google.genai import types
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-# Target latest active production models to eliminate 404 completely
+# Active fast production models (Free tier friendly)
 GEMINI_MODELS = [
-    "gemini-3.8-flash",
-    "gemini-3.1-pro-preview",
-    os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+    os.environ.get("GEMINI_MODEL", "gemini-2.0-flash"),
+    "gemini-2.5-flash",
+    "gemini-2.0-flash"
 ]
 GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
 
@@ -104,4 +104,3 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     if not success:
         yield f"⚠️ Bhai connection me thoda issue lag raha hai. Ek baar Regenerate daba! (Detail: {last_error})"
-                              

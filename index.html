@@ -152,7 +152,10 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 14px;
+            transition: border-color 0.15s ease;
         }
+
+        .sidebar-new-btn:hover { border-color: var(--border-hover); }
 
         .history-list {
             flex: 1;
@@ -160,6 +163,30 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+        }
+
+        .history-row {
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.15s ease;
+        }
+
+        .history-row:hover {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+        }
+
+        .history-row.active-session {
+            background: var(--surface-elevated);
+            color: var(--accent-blue);
+            font-weight: 600;
         }
 
         .sidebar-footer {
@@ -284,7 +311,7 @@
 
         .action-pill-btn:active { transform: scale(0.96); }
 
-        /* GEMINI PULSE DOT CURSOR (NO WHITE RECTANGLE) */
+        /* GEMINI PULSE DOT CURSOR */
         .cursor-dot {
             display: inline-block;
             width: 8px;
@@ -442,7 +469,6 @@
 
         .send-round-btn:active { transform: scale(0.92); }
 
-        /* GEMINI STUDIO-BLUE STOP BUTTON (NO RED) */
         .send-round-btn.stop-mode {
             background: #1e2433;
             color: var(--accent-blue);
@@ -647,25 +673,12 @@
             if (error) alert("Login Error: " + error.message);
         }
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            if (supabaseClient) {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.user && session.user.email) {
-                    await fetch('/api/auth/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: session.user.email })
-                    });
-                    if (!IS_LOGGED) window.location.href = "/";
-                }
-            }
-        });
-
         let chatHist = [];
         let ctrl = null;
         let lastMsg = "";
         let isStreaming = false;
         let activeToolPrefix = "";
+        let currentSessionId = null;
 
         const chatArea = document.getElementById("chatArea");
         const heroWelcome = document.getElementById("heroWelcome");
@@ -680,8 +693,9 @@
         const authModal = document.getElementById("authModal");
         const modeBanner = document.getElementById("modeBanner");
         const modeBannerText = document.getElementById("modeBannerText");
+        const historyList = document.getElementById("historyList");
 
-        // AUTO-EXPAND TEXTAREA (Clean Multiline)
+        // AUTO-EXPAND TEXTAREA
         chatInput.addEventListener("input", function() {
             this.style.height = "auto";
             this.style.height = Math.min(this.scrollHeight, 120) + "px";
@@ -715,16 +729,76 @@
             chatInput.placeholder = "Ask HookSpike or drop your concept...";
         }
 
-        document.getElementById("openDrawer").onclick = () => { sidebar.classList.add("active"); overlay.classList.add("active"); };
+        // LOAD WORKSPACE SESSIONS HISTORY
+        async function loadHistorySessions() {
+            if (!IS_LOGGED) return;
+            try {
+                const res = await fetch("/api/chat-sessions");
+                const sessions = await res.json();
+                historyList.innerHTML = "";
+                if (!sessions || sessions.length === 0) {
+                    historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">No sessions yet</div>`;
+                    return;
+                }
+                sessions.forEach(sess => {
+                    const row = document.createElement("div");
+                    row.className = `history-row ${sess.id === currentSessionId ? 'active-session' : ''}`;
+                    row.innerText = sess.title || "Studio Session";
+                    row.title = sess.title;
+                    row.onclick = () => loadPastSession(sess.id);
+                    historyList.appendChild(row);
+                });
+            } catch(e) {
+                console.error("Failed to load history", e);
+            }
+        }
+
+        // LOAD PAST SESSION MESSAGES ON SCREEN
+        async function loadPastSession(sessionId) {
+            currentSessionId = sessionId;
+            sidebar.classList.remove("active");
+            overlay.classList.remove("active");
+            chatArea.innerHTML = "";
+            chatHist = [];
+
+            try {
+                const res = await fetch(`/api/chat-messages/${sessionId}`);
+                const msgs = await res.json();
+                if (msgs && msgs.length > 0) {
+                    msgs.forEach(m => {
+                        const box = appendBubble(m.role === "assistant" ? "ai" : "user", m.content);
+                        if (m.role === "assistant") {
+                            box.innerHTML = marked.parse(m.content);
+                            attachActionPills(box, m.content, "");
+                        }
+                        chatHist.push({ role: m.role, content: m.content });
+                    });
+                } else {
+                    chatArea.appendChild(heroWelcome);
+                }
+                loadHistorySessions();
+            } catch(e) {
+                console.error("Failed to load past session", e);
+            }
+        }
+
+        document.getElementById("openDrawer").onclick = () => {
+            sidebar.classList.add("active");
+            overlay.classList.add("active");
+            loadHistorySessions();
+        };
+
         overlay.onclick = () => { sidebar.classList.remove("active"); overlay.classList.remove("active"); };
 
         function resetChat() {
+            currentSessionId = null;
             chatHist = [];
             chatArea.innerHTML = "";
             chatArea.appendChild(heroWelcome);
             clearActiveMode();
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
+            loadHistorySessions();
         }
 
         document.getElementById("sidebarNewChat").onclick = resetChat;
@@ -785,6 +859,37 @@
             }
         }
 
+        function attachActionPills(aiBox, fullText, originalPrompt) {
+            const acts = document.createElement("div");
+            acts.className = "ai-actions";
+            
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "action-pill-btn";
+            copyBtn.innerHTML = `📋 1-Tap Copy`;
+            copyBtn.onclick = () => copyText(copyBtn, fullText);
+
+            const regenBtn = document.createElement("button");
+            regenBtn.className = "action-pill-btn";
+            regenBtn.innerHTML = `🔄 Regenerate`;
+            regenBtn.onclick = () => { 
+                chatInput.value = originalPrompt || lastMsg; 
+                sendMsg(); 
+            };
+
+            const enhanceBtn = document.createElement("button");
+            enhanceBtn.className = "action-pill-btn";
+            enhanceBtn.innerHTML = `⚡ Enhance`;
+            enhanceBtn.onclick = () => { 
+                chatInput.value = 'Director bhai, is script ko 10x high tension cuts ke sath enhance kar: ' + (originalPrompt || lastMsg);
+                chatInput.focus(); 
+            };
+
+            acts.appendChild(copyBtn);
+            acts.appendChild(regenBtn);
+            acts.appendChild(enhanceBtn);
+            aiBox.parentNode.appendChild(acts);
+        }
+
         async function sendMsg() {
             if(!IS_LOGGED) { openAuth(); return; }
 
@@ -798,7 +903,7 @@
             if(!rawTxt) return;
 
             let finalMessage = activeToolPrefix ? `${activeToolPrefix} ${rawTxt}` : rawTxt;
-            lastMsg = finalMessage;
+            lastMsg = rawTxt;
             
             chatInput.value = "";
             chatInput.style.height = "auto";
@@ -818,7 +923,11 @@
                 const res = await fetch("/api/chat-stream", {
                     method: "POST", 
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({ message: finalMessage, history: chatHist.slice(-6) }),
+                    body: JSON.stringify({ 
+                        message: finalMessage, 
+                        history: chatHist.slice(-6),
+                        session_id: currentSessionId
+                    }),
                     signal: ctrl.signal
                 });
                 
@@ -848,6 +957,10 @@
                                     aiBox.appendChild(cursor);
                                     chatArea.scrollTop = chatArea.scrollHeight;
                                 }
+                                if(parsed.session_id && !currentSessionId) {
+                                    currentSessionId = parsed.session_id;
+                                    loadHistorySessions();
+                                }
                                 if(typeof parsed.tokens_left === "number") {
                                     const h = document.getElementById("headerTokens");
                                     if(h) h.innerText = parsed.tokens_left > 100 ? "Pro" : parsed.tokens_left;
@@ -862,33 +975,7 @@
                 }
                 cursor.remove();
                 chatHist.push({ role: "assistant", content: fullReply });
-
-                // 1-TAP COPY & ACTIONS
-                const acts = document.createElement("div");
-                acts.className = "ai-actions";
-                
-                const copyBtn = document.createElement("button");
-                copyBtn.className = "action-pill-btn";
-                copyBtn.innerHTML = `📋 1-Tap Copy`;
-                copyBtn.onclick = () => copyText(copyBtn, fullReply);
-
-                const regenBtn = document.createElement("button");
-                regenBtn.className = "action-pill-btn";
-                regenBtn.innerHTML = `🔄 Regenerate`;
-                regenBtn.onclick = () => { chatInput.value = rawTxt; sendMsg(); };
-
-                const enhanceBtn = document.createElement("button");
-                enhanceBtn.className = "action-pill-btn";
-                enhanceBtn.innerHTML = `⚡ Enhance`;
-                enhanceBtn.onclick = () => { 
-                    chatInput.value = 'Director bhai, is script ko 10x high tension cuts ke sath enhance kar: ' + rawTxt;
-                    chatInput.focus(); 
-                };
-
-                acts.appendChild(copyBtn);
-                acts.appendChild(regenBtn);
-                acts.appendChild(enhanceBtn);
-                aiBox.parentNode.appendChild(acts);
+                attachActionPills(aiBox, fullReply, rawTxt);
 
             } catch(e) {
                 cursor.remove();
@@ -908,6 +995,23 @@
             } 
         };
         
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (supabaseClient) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user && session.user.email) {
+                    await fetch('/api/auth/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: session.user.email })
+                    });
+                    if (!IS_LOGGED) window.location.href = "/";
+                }
+            }
+            if (IS_LOGGED) {
+                loadHistorySessions();
+            }
+        });
+
         document.addEventListener('click', async function(e) {
             const link = e.target.closest('a[href="/logout"]');
             if (link) {

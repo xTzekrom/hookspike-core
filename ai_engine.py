@@ -1,22 +1,21 @@
 """
-HookSpike AI Engine (Ultra-Fast Direct Delivery)
-==============================================
-- Direct single-model execution for sub-4s latency
-- Seamless dual-key failover
-- 10/10 Global Viral Creator Director Persona
+HookSpike AI Engine — Direct Gemini 3.8 Flash (Multi-Key Pool)
+==============================================================
+- Model strictly locked to: gemini-3.8-flash (Zero fallback lag)
+- Ultra-fast direct streaming (Sub-3s latency)
+- Multi-key rotation pool for free accounts
 """
 
 import os
-import time
 from typing import Generator
 from google import genai
 from google.genai import types
 
-PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
-BACKUP_KEY = os.environ.get("BACKUP_KEY")
+# Saare keys render environment se automatically load honge
+KEYS_ENV = ["PRIMARY_KEY", "BACKUP_KEY", "KEY_1", "KEY_2", "KEY_3"]
 
-# Direct high-quota, ultra-low latency model
-ACTIVE_MODEL = "gemini-2.5-flash"
+# Direct official model without any fallback delay
+ACTIVE_MODEL = "gemini-3.8-flash"
 
 CREATOR_SYSTEM_DIRECTOR = """
 You are HookSpike AI — the world's most elite viral content director, packaging specialist, and brotherly creative co-pilot. You work with global creators worldwide across YouTube, TikTok, and Instagram Reels.
@@ -43,10 +42,10 @@ You are HookSpike AI — the world's most elite viral content director, packagin
 
 def _get_api_keys() -> list[str]:
     keys = []
-    if PRIMARY_KEY:
-        keys.append(PRIMARY_KEY.strip())
-    if BACKUP_KEY and BACKUP_KEY.strip() not in keys:
-        keys.append(BACKUP_KEY.strip())
+    for var_name in KEYS_ENV:
+        val = os.environ.get(var_name)
+        if val and val.strip() and val.strip() not in keys:
+            keys.append(val.strip())
     return keys
 
 def _build_contents_payload(history: list[dict], current_message: str):
@@ -70,7 +69,7 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     keys = _get_api_keys()
     if not keys:
-        yield "System Note: PRIMARY_KEY or BACKUP_KEY is missing in Render environment variables."
+        yield "System Note: API keys are missing in Render environment variables."
         return
 
     contents = _build_contents_payload(history, message)
@@ -85,34 +84,25 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
     for key in keys:
         try:
             client = genai.Client(api_key=key)
+            response_stream = client.models.generate_content_stream(
+                model=ACTIVE_MODEL,
+                contents=contents,
+                config=config,
+            )
+            for chunk in response_stream:
+                chunk_text = getattr(chunk, "text", "")
+                if chunk_text:
+                    yield chunk_text
+            return  # Success: Stream complete
         except Exception as exc:
             last_error = exc
+            err_str = str(exc)
+
+            # Agar quota limit (429) hit ho, seedha agle key par jump karega
+            if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
+                continue
+            
+            # Agar koi aur network error ho
             continue
 
-        for attempt in range(2):
-            try:
-                response_stream = client.models.generate_content_stream(
-                    model=ACTIVE_MODEL,
-                    contents=contents,
-                    config=config,
-                )
-                for chunk in response_stream:
-                    chunk_text = getattr(chunk, "text", "")
-                    if chunk_text:
-                        yield chunk_text
-                return
-            except Exception as exc:
-                last_error = exc
-                err_str = str(exc)
-
-                # Agar quota hit ho jaye toh seedha agle key par jump karega
-                if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
-                    break
-
-                if "503" in err_str or "UNAVAILABLE" in err_str:
-                    time.sleep(1)
-                    continue
-                break
-
     yield f"⚠️ Network issue detected. Please tap Regenerate! (Details: {last_error})"
-        

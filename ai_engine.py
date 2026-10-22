@@ -1,9 +1,9 @@
 """
-HookSpike AI Engine (Global Multi-Language & Iterative Enhancer)
-==============================================================
-- Automatic Language Detection & Mirroring (English, Hinglish, Global)
-- Iterative Enhancement Mode for Scripts & Retention Hooks
-- High-Speed Streaming with Auto-Failover to Backup Key
+HookSpike AI Engine (Multi-Model Priority & Auto-Failover)
+=========================================================
+- Tries user preferred model first (gemini-3.5-flash-lite)
+- Gracefully falls back if unavailable/deprecated
+- Dual API key redundancy
 """
 
 import os
@@ -15,7 +15,11 @@ from google.genai import types
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-ACTIVE_MODEL = "gemini-2.5-flash"
+# Pehle tera requested model chalega, fir active fallback
+TARGET_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash"
+]
 
 CREATOR_SYSTEM_DIRECTOR = """
 You are HookSpike AI — the world's most elite viral content director, packaging specialist, and brotherly creative co-pilot. You work with global creators worldwide across YouTube, TikTok, and Instagram Reels.
@@ -88,28 +92,31 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             last_error = exc
             continue
 
-        for attempt in range(2):
-            try:
-                response_stream = client.models.generate_content_stream(
-                    model=ACTIVE_MODEL,
-                    contents=contents,
-                    config=config,
-                )
-                for chunk in response_stream:
-                    chunk_text = getattr(chunk, "text", "")
-                    if chunk_text:
-                        yield chunk_text
-                return
-            except Exception as exc:
-                last_error = exc
-                err_str = str(exc)
+        for model_name in TARGET_MODELS:
+            for attempt in range(2):
+                try:
+                    response_stream = client.models.generate_content_stream(
+                        model=model_name,
+                        contents=contents,
+                        config=config,
+                    )
+                    for chunk in response_stream:
+                        chunk_text = getattr(chunk, "text", "")
+                        if chunk_text:
+                            yield chunk_text
+                    return
+                except Exception as exc:
+                    last_error = exc
+                    err_str = str(exc)
 
-                if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
+                    # Agar rate limit ya 404/not supported ho, next model try karega
+                    if "404" in err_str or "NOT_FOUND" in err_str or "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
+                        break
+
+                    if "503" in err_str or "UNAVAILABLE" in err_str:
+                        time.sleep(1)
+                        continue
                     break
 
-                if "503" in err_str or "UNAVAILABLE" in err_str:
-                    time.sleep(1)
-                    continue
-                break
-
     yield f"⚠️ Network issue detected. Please tap Regenerate! (Details: {last_error})"
+   

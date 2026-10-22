@@ -1,7 +1,7 @@
 """
 HookSpike AI Engine (Ultra-Smooth Streaming & Bhai Persona)
 ===========================================================
-- Uses free-tier friendly fast production models
+- Uses official active production model (gemini-3.8-flash)
 - Real-time token streaming with human pacing
 - Living creative confidant & viral strategist persona
 """
@@ -14,11 +14,10 @@ from google.genai import types
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-# Active fast production models (Free tier friendly)
+# Official active models as suggested by Google API
 GEMINI_MODELS = [
-    os.environ.get("GEMINI_MODEL", "gemini-2.0-flash"),
-    "gemini-2.5-flash",
-    "gemini-2.0-flash"
+    "gemini-3.8-flash",
+    os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 ]
 GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
 

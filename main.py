@@ -4,7 +4,18 @@ HookSpike AI - Production Backend (Supabase Auth & Streaming + Permanent Chat Me
 
 import json
 import os
-from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    stream_with_context,
+    url_for,
+    send_from_directory,
+)
 from supabase import create_client, Client
 import ai_engine
 
@@ -84,7 +95,11 @@ def logout():
     session.clear()
     return redirect(url_for("index"))
 
-# --- NAYE PERMANENT CHAT MEMORY ROUTES (ADD KIYE HAIN) ---
+@app.route("/logo.png")
+def serve_logo():
+    return send_from_directory(".", "logo.png")
+
+# --- PERMANENT CHAT MEMORY ROUTES ---
 
 @app.route("/api/chat-sessions", methods=["GET"])
 def get_chat_sessions():
@@ -104,7 +119,6 @@ def get_chat_messages(session_id):
     if not user_email or not supabase or not session_id:
         return jsonify([])
     try:
-        # Verify ki session isi user ka hai
         sess = supabase.table("chat_sessions").select("id").eq("id", session_id).eq("user_email", user_email).execute()
         if not sess.data:
             return jsonify([])
@@ -114,7 +128,7 @@ def get_chat_messages(session_id):
         print(f"[Fetch Messages Error]: {exc}")
         return jsonify([])
 
-# --------------------------------------------------------
+# ------------------------------------
 
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
@@ -134,11 +148,9 @@ def chat_stream():
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
-    # Agar naya chat hai toh session create karo
     current_session_id = session_id
     if not current_session_id and supabase:
         try:
-            # Title message ke pehle 32 characters se banayenge
             title_text = (message[:32] + "...") if len(message) > 32 else message
             new_sess = supabase.table("chat_sessions").insert({
                 "user_email": user_email,
@@ -155,7 +167,6 @@ def chat_stream():
         accumulated_reply = ""
 
         try:
-            # User ka prompt database mein save karo
             if current_session_id and supabase:
                 try:
                     supabase.table("chat_messages").insert({
@@ -174,7 +185,6 @@ def chat_stream():
                 accumulated_reply += chunk
                 yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining, 'session_id': current_session_id})}\n\n"
 
-            # Stream complete hone par assistant ka final response save karo
             if current_session_id and supabase and accumulated_reply:
                 try:
                     supabase.table("chat_messages").insert({

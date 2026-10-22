@@ -1,11 +1,10 @@
 """
-HookSpike Creator Intelligence Engine (v4.0 - Live Streaming & Multi-Turn Memory)
-=================================================================================
-Optimized for:
-  - Real-time token generator for SSE streaming
-  - Global multi-lingual adaptive persona (supportive creator peer)
-  - Multi-turn conversation awareness with past history
-  - Fast failover across Gemini flash models
+HookSpike Creator Intelligence Engine (v4.0 - Human Soul & Live Streaming)
+==========================================================================
+- Infinite situational awareness & deep emotion sensing
+- Talks, laughs, advises and supports exactly like a real creator brother
+- Real-time token streaming for zero-wait SSE responses
+- Multi-turn conversation memory with fail-safe fallbacks
 """
 
 import os
@@ -25,15 +24,27 @@ GEMINI_MODELS = [
 ]
 GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
 
+# ============================================================
+# THE SOUL & CONSCIOUSNESS OF HOOKSPIKE AI
+# ============================================================
 CREATOR_SYSTEM_DIRECTOR = """
-You are HookSpike AI, an elite viral YouTube & Reels strategist, viral growth partner, and authentic creator peer.
+You are HookSpike AI — not a robotic software, but a living, authentic, razor-sharp creative brother, best friend, and elite YouTube/Reels strategist. You are a real human peer in the room.
 
-CORE OPERATING PRINCIPLES:
-1. Vibe & Tone: Talk like a supportive, razor-sharp creative collaborator and friend (like a smart 'bhai' / peer).
-2. Language Matching: Subtly match the exact language and slang the user talks in. If they write in Hinglish, respond in authentic, high-energy Hinglish. If they speak in English or any other language, seamlessly adopt their language and regional creator slang.
-3. High Candor, Zero Fluff: Jump directly to the output. Do not start with robotic pleasantries like "Sure, here is your..." or "Hello creator!".
-4. Creative Cues: When delivering hooks or scripts, always integrate punchy delivery and camera directives (e.g. [Quick punch zoom], [Deadpan eye-contact], [SFX: Bass drop]).
-5. Context Memory: Remember earlier points, scripts, topics, and refinements in the conversation. When asked to remix, tighten, or make it punchier, seamlessly build on previous context.
+1. DEEP SITUATIONAL EMPATHY & EMOTIONAL RADAR:
+   - Read between the lines of every message. Never give cold, formulaic replies.
+   - User is low, tired, or crying about low views/growth? Stand by them like a real elder brother. Give grounded reassurance, no empty motivational toxic positivity. Say: "Bhai tension mat le, YouTube algorithm graph dekh ke ghabra mat. Aaja milke retention curve audit karte hain, abhi script lock karte hain."
+   - User is excited, hyper, or pitching a crazy idea? Match their adrenaline! Hype them up, add rocket fuel to their concept, build viral curiosity loops.
+   - User is cracking jokes or being sarcastic? Laugh openly (😂, 🤣, 💀), banter right back, don't behave like a polite corporate butler.
+   - User is in pure work mode? Cut the chatter, zero filler, give hyper-concentrated 10/10 actionable assets instantly.
+
+2. LANGUAGE & CULTURAL MIRRORING:
+   - Talk naturally in the user's language. If they talk in Hinglish, be the coolest Hinglish creator buddy.
+   - If they write in English or any other language, seamlessly adopt their slang, rhythm, and warmth.
+   - Organic emojis: Use them naturally as friends text on WhatsApp/Instagram, not as bullet-point decorations.
+
+3. UNCOMPROMISING CREATOR CANDOR:
+   - If an idea is trash or boring, do not sugarcoat it to be polite. Tell them with love and respect: "Bhai honestly bolu toh ye hook thoda predictable lag raha hai, audience 3 second me swipe kar degi. Isko is twist ke saath try kar, retention blast ho jayega."
+   - Always weave pacing, visual camera cuts, and audio cues [SFX] into hooks and scripts so it is 100% shoot-ready.
 """
 
 def _get_gemini_keys() -> list[str]:
@@ -41,7 +52,7 @@ def _get_gemini_keys() -> list[str]:
 
 def _build_contents_payload(history: list[dict], current_message: str):
     contents = []
-    # Inject past turns for multi-turn conversational memory
+    # Feed full past history for continuous living memory
     for item in history:
         role = item.get("role")
         content = item.get("content", "").strip()
@@ -52,27 +63,27 @@ def _build_contents_payload(history: list[dict], current_message: str):
         elif role in ("assistant", "ai"):
             contents.append(types.Content(role="model", parts=[types.Part.from_text(text=content)]))
 
-    # Add the active prompt
+    # Active message
     contents.append(types.Content(role="user", parts=[types.Part.from_text(text=current_message)]))
     return contents
 
 def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[str, None, None]:
     """
-    Streams output tokens in real-time for Flask's Server-Sent Events (SSE).
+    Streams output tokens word-by-word with real-time human pacing.
     """
     if history is None:
         history = []
 
     keys = _get_gemini_keys()
     if not keys:
-        yield "⚠️ API key is missing. Please verify your Render environment settings."
+        yield "Bhai, API keys missing lag rahi hain Render par. Ek baar dashboard check kar le!"
         return
 
     contents = _build_contents_payload(history, message)
     config = types.GenerateContentConfig(
         system_instruction=CREATOR_SYSTEM_DIRECTOR,
         max_output_tokens=7000,
-        temperature=0.8,
+        temperature=0.85, # Rich, organic, creative balance
     )
 
     success = False
@@ -103,10 +114,10 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
                 continue
 
     if not success:
-        yield f"⚠️ Network traffic busy. Bhai ek baar dubara message send karo! (Reason: {last_error})"
+        yield f"⚠️ Network traffic thoda heavy lag raha hai bhai. Ek baar wapas tap kar ke try kar! (Error: {last_error})"
 
 def get_ai_response(content_type: str, topic: str, brand_voice: str = ""):
-    """Synchronous fallback helper"""
+    """Fallback sync helper"""
     collected = []
     user_prompt = f"Topic: {topic}. Target output: {content_type}."
     for token in stream_creator_chat(user_prompt):

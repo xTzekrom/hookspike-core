@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HookSpike AI — Creator Studio</title>
+    <title>HookSpike AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-color: #131314;
-            --surface-color: #1e1f20;
-            --surface-elevated: #282a2c;
+            --bg-color: #0b0c0e;
+            --surface-color: #16171a;
+            --surface-elevated: #1e1f23;
+            --surface-dock: #1b1c20;
             --border-color: rgba(255, 255, 255, 0.08);
-            --text-primary: #e3e3e3;
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --text-primary: #f1f3f5;
             --text-secondary: #9aa0a6;
-            --accent-blue: #8ab4f8;
-            --accent-gradient: linear-gradient(90deg, #4285f4, #9b72cb, #d96570);
+            --accent-blue: #70a5f8;
+            --accent-glow: rgba(112, 165, 248, 0.18);
+            --accent-gradient: linear-gradient(135deg, #70a5f8 0%, #b388ff 50%, #f472b6 100%);
         }
 
         * {
@@ -31,101 +34,91 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-primary);
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
             display: flex;
             flex-direction: column;
             height: 100dvh;
             overflow: hidden;
         }
 
+        /* GEMINI STYLE HEADER */
         header {
-            height: 58px;
+            height: 56px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 18px;
-            background: transparent;
+            padding: 0 16px;
+            background: rgba(11, 12, 14, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             z-index: 30;
-            position: relative;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .header-icon-btn {
+        .header-btn {
             background: transparent;
             border: none;
             color: var(--text-primary);
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: background 0.18s;
         }
 
-        .header-icon-btn:hover { background: var(--surface-color); }
-        .header-icon-btn:active { background: var(--surface-elevated); }
+        .header-btn:active { background: var(--surface-color); }
 
-        .get-plus-btn {
+        .header-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .header-title-gradient {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-avatar-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 13px;
-            padding: 7px 16px;
+            padding: 4px 10px 4px 6px;
             border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .get-plus-btn:hover { border-color: rgba(255, 255, 255, 0.2); background: var(--surface-elevated); }
-
-        .tools-dropdown {
-            position: absolute;
-            top: 60px;
-            right: 18px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 8px;
-            display: none;
-            flex-direction: column;
-            gap: 4px;
-            width: 240px;
-            box-shadow: 0 16px 36px rgba(0,0,0,0.6);
-            z-index: 40;
-        }
-
-        .tools-dropdown.active { display: flex; }
-
-        .tool-option {
-            background: transparent;
-            border: none;
-            padding: 10px 14px;
-            color: var(--text-secondary);
-            text-align: left;
-            border-radius: 10px;
-            font-size: 13.5px;
+            font-size: 12px;
             font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: inherit;
-            transition: all 0.15s ease;
+            color: var(--text-secondary);
         }
 
-        .tool-option:hover { background: var(--surface-elevated); color: var(--text-primary); }
+        .user-avatar-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ea4335, #4285f4, #34a853);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+        }
 
+        /* SIDEBAR DRAWER */
         .drawer-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.65);
-            opacity: 0;
-            pointer-events: none;
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            opacity: 0; pointer-events: none;
             transition: opacity 0.25s ease;
             z-index: 90;
         }
@@ -133,33 +126,32 @@
         .drawer-overlay.active { opacity: 1; pointer-events: auto; }
 
         .sidebar {
-            position: fixed;
-            top: 0; bottom: 0; left: 0;
-            width: 280px;
+            position: fixed; top: 0; bottom: 0; left: 0;
+            width: 290px;
             background: var(--surface-color);
+            border-right: 1px solid var(--border-color);
             z-index: 100;
             transform: translateX(-100%);
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
             padding: 18px 16px;
         }
 
         .sidebar.active { transform: translateX(0); }
 
-        .sidebar-new-chat {
+        .sidebar-new-btn {
             background: var(--surface-elevated);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             padding: 12px 14px;
-            border-radius: 12px;
+            border-radius: 14px;
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .history-list {
@@ -170,19 +162,6 @@
             gap: 4px;
         }
 
-        .history-row {
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text-secondary);
-            font-size: 13.5px;
-            cursor: pointer;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .history-row:hover { background: var(--surface-elevated); color: var(--text-primary); }
-
         .sidebar-footer {
             border-top: 1px solid var(--border-color);
             padding-top: 14px;
@@ -192,14 +171,15 @@
             font-size: 13px;
         }
 
+        /* MAIN CHAT AREA */
         main.chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 16px 16px 140px;
+            padding: 20px 16px 175px;
             display: flex;
             flex-direction: column;
             gap: 22px;
-            max-width: 780px;
+            max-width: 760px;
             width: 100%;
             margin: 0 auto;
             scroll-behavior: smooth;
@@ -212,26 +192,33 @@
             justify-content: center;
             flex: 1;
             text-align: center;
-            gap: 14px;
-            margin-top: 18vh;
+            gap: 12px;
+            margin-top: 14vh;
+            padding: 0 14px;
         }
 
-        .hero-title-gradient {
+        .hero-title {
             font-size: 32px;
             font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.6px;
+            line-height: 1.25;
+        }
+
+        .hero-title span {
             background: var(--accent-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
         }
 
-        .hero-welcome p {
-            font-size: 15px;
+        .hero-sub {
+            font-size: 14.5px;
             color: var(--text-secondary);
-            max-width: 380px;
+            max-width: 400px;
             line-height: 1.5;
         }
 
+        /* MESSAGES */
         .msg-line {
             display: flex;
             flex-direction: column;
@@ -255,7 +242,7 @@
             color: var(--text-primary);
             padding: 12px 18px;
             border-radius: 20px;
-            border-bottom-right-radius: 4px;
+            border-bottom-right-radius: 6px;
         }
 
         .msg-line.ai .bubble-box {
@@ -270,9 +257,9 @@
         .bubble-box strong { color: #ffffff; }
         .bubble-box ul, .bubble-box ol { margin: 6px 0 12px 22px; }
         .bubble-box li { margin-bottom: 4px; }
-        .bubble-box code { background: rgba(255,255,255,0.08); padding: 3px 6px; border-radius: 5px; font-size: 13.5px; }
+        .bubble-box code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
 
-        /* GEMINI STYLE ACTION PILLS */
+        /* ACTION PILLS */
         .ai-actions {
             display: flex;
             gap: 8px;
@@ -281,13 +268,13 @@
         }
 
         .action-pill-btn {
-            background: transparent;
+            background: var(--surface-color);
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
             padding: 6px 14px;
             border-radius: 9999px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -295,91 +282,196 @@
             transition: all 0.15s ease;
         }
 
-        .action-pill-btn:hover {
-            color: var(--text-primary);
-            background: var(--surface-color);
-            border-color: rgba(255,255,255,0.2);
-        }
+        .action-pill-btn:active { transform: scale(0.96); }
 
         .cursor-dot {
             display: inline-block;
-            width: 6px;
-            height: 15px;
+            width: 6px; height: 16px;
             background: var(--accent-blue);
             margin-left: 4px;
             vertical-align: middle;
-            animation: blinkCursor 0.8s infinite;
+            animation: blink 0.8s infinite;
         }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes blinkCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* GEMINI FLOATING DOCK */
+        /* GEMINI-STYLE NATIVE INPUT DOCK */
         .bottom-dock {
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            padding: 12px 18px 24px;
-            background: linear-gradient(to top, var(--bg-color) 82%, transparent);
+            padding: 8px 14px 18px;
+            background: linear-gradient(to top, var(--bg-color) 86%, transparent);
             z-index: 25;
             display: flex;
-            justify-content: center;
-        }
-
-        .input-box-container {
-            max-width: 780px;
-            width: 100%;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 28px;
-            display: flex;
+            flex-direction: column;
             align-items: center;
-            padding: 8px 10px 8px 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .input-box-container:focus-within {
-            border-color: rgba(255, 255, 255, 0.25);
+        /* ACTIVE MODE NOTIFICATION BANNER */
+        .mode-banner {
+            display: none;
+            align-items: center;
+            gap: 8px;
             background: var(--surface-elevated);
+            border: 1px solid rgba(112, 165, 248, 0.3);
+            color: var(--accent-blue);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            margin-bottom: 8px;
+            animation: fadeIn 0.2s ease;
+            max-width: 760px;
+            width: 100%;
         }
 
-        .plus-action-btn {
-            background: transparent;
+        .mode-banner.active { display: flex; }
+        .mode-close-btn {
+            background: none;
             border: none;
             color: var(--text-secondary);
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
             cursor: pointer;
-            font-size: 22px;
-            margin-right: 6px;
+            margin-left: auto;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .gemini-card-dock {
+            max-width: 760px;
+            width: 100%;
+            background: var(--surface-dock);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 10px 14px 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: border-color 0.2s ease;
+        }
+
+        .gemini-card-dock:focus-within {
+            border-color: rgba(255, 255, 255, 0.22);
         }
 
         #chatInput {
-            flex: 1;
+            width: 100%;
             background: transparent;
             border: none;
             outline: none;
             color: var(--text-primary);
             font-size: 15px;
             font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+            line-height: 1.45;
         }
 
         #chatInput::placeholder { color: var(--text-secondary); }
 
-        .circle-action-btn {
-            background: #ffffff;
-            color: #131314;
-            border: none;
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: transform 0.15s ease, background 0.2s ease;
+        .dock-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 2px;
         }
 
-        .circle-action-btn:active { transform: scale(0.92); }
-        .circle-action-btn.stop-mode { background: #ea4335; color: #ffffff; }
+        .dock-left-tools {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dock-icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .dock-icon-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+
+        .dock-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .turbo-pill-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .send-round-btn {
+            background: #ffffff;
+            color: #0b0c0e;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        .send-round-btn:active { transform: scale(0.92); }
+        .send-round-btn.stop-mode { background: #ea4335; color: #ffffff; }
+
+        /* CREATOR TOOLS SHEET (Opened by + Button) */
+        .tools-sheet {
+            position: absolute;
+            bottom: 84px;
+            left: 14px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            width: 260px;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.8);
+            z-index: 45;
+            animation: fadeIn 0.15s ease;
+        }
+
+        .tools-sheet.active { display: flex; }
+
+        .sheet-tool-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 12px;
+            color: var(--text-secondary);
+            text-align: left;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+
+        .sheet-tool-btn:hover { background: var(--surface-elevated); color: var(--text-primary); }
 
         /* AUTH MODAL */
         .modal-wrap {
@@ -418,41 +510,37 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             transition: transform 0.15s ease;
         }
-
-        .google-circle-btn:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
 
     <header>
-        <button class="header-icon-btn" id="openDrawer" title="History">
+        <button class="header-btn" id="openDrawer" title="Menu">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
-        <button class="get-plus-btn" id="openPro">
-            <span>✨ HookSpike Pro</span>
-            <span style="font-size: 11.5px; color: var(--accent-blue);" id="headerTokens">
-                {% if not logged_in %}Sign In{% elif tokens_left > 100 %}Unlimited{% else %}{{ tokens_left }} tokens left{% endif %}
-            </span>
-        </button>
-        <button class="header-icon-btn" id="toolsDialBtn" title="Creator Tools">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-        </button>
 
-        <div class="tools-dropdown" id="toolsDropdown">
-            <button class="tool-option" onclick="selectTool('Create 3 Viral Hooks for: ')">🔥 3 Viral Hooks</button>
-            <button class="tool-option" onclick="selectTool('Write a shoot-ready 60s script for: ')">🎬 60s Video Script</button>
-            <button class="tool-option" onclick="selectTool('Enhance this script and boost retention: ')">⚡ Enhance & Upgrade</button>
-            <button class="tool-option" onclick="selectTool('Build 3 high-CTR Titles and Thumbnail ideas for: ')">📦 Packaging Lab</button>
+        <div class="header-title-wrap">
+            <span class="header-title-gradient">HookSpike</span>
+            <span style="font-weight: 500; font-size: 15px; color: var(--text-secondary);">AI</span>
+        </div>
+
+        <div class="user-avatar-pill" id="openPro">
+            <div class="user-avatar-circle">
+                {% if logged_in and user_email %}{{ user_email[0]|upper }}{% else %}?{% endif %}
+            </div>
+            <span id="headerTokens">
+                {% if not logged_in %}Sign In{% elif tokens_left > 100 %}Pro{% else %}{{ tokens_left }}{% endif %}
+            </span>
         </div>
     </header>
 
     <div class="drawer-overlay" id="drawerOverlay"></div>
     <aside class="sidebar" id="sidebar">
-        <button class="sidebar-new-chat" id="sidebarNewChat">
-            <span>New Session</span>
+        <button class="sidebar-new-btn" id="sidebarNewChat">
+            <span>New Studio Session</span>
             <span>+</span>
         </button>
-        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 6px 4px 10px; text-transform: uppercase;">History</div>
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 6px 4px 10px; text-transform: uppercase;">Workspace History</div>
         <div class="history-list" id="historyList"></div>
         <div class="sidebar-footer">
             {% if logged_in %}
@@ -467,19 +555,45 @@
 
     <main class="chat-area" id="chatArea">
         <div class="hero-welcome" id="heroWelcome">
-            <h2 class="hero-title-gradient">Hello, Creator</h2>
-            <p>Tell HookSpike your video concept, or paste an existing draft to enhance its retention.</p>
+            <h2 class="hero-title">Where should we <span>start?</span></h2>
+            <p class="hero-sub">Drop a raw concept, paste a script to enhance, or tap <strong>+</strong> for Director Modes.</p>
         </div>
     </main>
 
+    <!-- NATIVE FLOATING DOCK -->
     <div class="bottom-dock">
-        <div class="input-box-container">
-            <button class="plus-action-btn" id="dockPlusBtn" title="New Session">+</button>
-            <input type="text" id="chatInput" placeholder="Ask HookSpike or enhance a script..." autocomplete="off">
-            <button class="circle-action-btn" id="sendBtn" title="Send">
-                <svg id="sendIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                <svg id="stopIcon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
-            </button>
+        <!-- MODE ACTIVE BANNER -->
+        <div class="mode-banner" id="modeBanner">
+            <span id="modeBannerText">🔥 Mode: 3 Viral Hooks Active</span>
+            <button class="mode-close-btn" onclick="clearActiveMode()">✕</button>
+        </div>
+
+        <div class="gemini-card-dock">
+            <textarea id="chatInput" rows="1" placeholder="Ask HookSpike or drop your concept..." autocomplete="off"></textarea>
+            
+            <div class="dock-toolbar">
+                <div class="dock-left-tools">
+                    <button class="dock-icon-btn" id="toolsPlusBtn" title="Creator Tools">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                </div>
+
+                <div class="dock-right-actions">
+                    <span class="turbo-pill-tag">⚡ Fast</span>
+                    <button class="send-round-btn" id="sendBtn" title="Send">
+                        <svg id="sendIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                        <svg id="stopIcon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOOLS MENU OPENED BY + -->
+        <div class="tools-sheet" id="toolsSheet">
+            <button class="sheet-tool-btn" onclick="setDirectorMode('🔥 3 Viral Hooks', 'Create 3 Viral Hooks (Negative bias, Curiosity gap, Action) for: ')">🔥 3 Viral Hooks</button>
+            <button class="sheet-tool-btn" onclick="setDirectorMode('🎬 60s Reel Script', 'Write a shoot-ready 60s video script with visuals and SFX for: ')">🎬 60s Reel Script</button>
+            <button class="sheet-tool-btn" onclick="setDirectorMode('⚡ Retention & Loop', 'Enhance this script and add an infinite audio loop: ')">⚡ Retention & Loop</button>
+            <button class="sheet-tool-btn" onclick="setDirectorMode('📦 Packaging Lab', 'Build 3 high-CTR Titles and visual hooks for: ')">📦 Packaging Lab</button>
         </div>
     </div>
 
@@ -487,7 +601,7 @@
     <div class="modal-wrap" id="authModal">
         <div class="modal-card">
             <div style="font-size: 26px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">⚡ HookSpike</div>
-            <p style="font-size: 14px; color: var(--text-secondary);">Sign in with Google to claim your creator tokens and access all studio tools.</p>
+            <p style="font-size: 14px; color: var(--text-secondary);">Sign in with Google to claim creator access and studio tools.</p>
             
             <button class="google-circle-btn" onclick="loginWithSupabaseGoogle()">
                 <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 50%;">
@@ -535,6 +649,7 @@
         let ctrl = null;
         let lastMsg = "";
         let isStreaming = false;
+        let activeToolPrefix = "";
 
         const chatArea = document.getElementById("chatArea");
         const heroWelcome = document.getElementById("heroWelcome");
@@ -544,21 +659,44 @@
         const stopIcon = document.getElementById("stopIcon");
         const sidebar = document.getElementById("sidebar");
         const overlay = document.getElementById("drawerOverlay");
-        const toolsDialBtn = document.getElementById("toolsDialBtn");
-        const toolsDropdown = document.getElementById("toolsDropdown");
+        const toolsPlusBtn = document.getElementById("toolsPlusBtn");
+        const toolsSheet = document.getElementById("toolsSheet");
         const authModal = document.getElementById("authModal");
+        const modeBanner = document.getElementById("modeBanner");
+        const modeBannerText = document.getElementById("modeBannerText");
 
-        toolsDialBtn.onclick = () => toolsDropdown.classList.toggle("active");
+        // AUTO-EXPAND TEXTAREA (Clean Multiline)
+        chatInput.addEventListener("input", function() {
+            this.style.height = "auto";
+            this.style.height = Math.min(this.scrollHeight, 120) + "px";
+        });
+
+        // + BUTTON TOGGLE
+        toolsPlusBtn.onclick = (e) => {
+            e.stopPropagation();
+            toolsSheet.classList.toggle("active");
+        };
+
         document.onclick = (e) => {
-            if (!toolsDialBtn.contains(e.target) && !toolsDropdown.contains(e.target)) {
-                toolsDropdown.classList.remove("active");
+            if (!toolsPlusBtn.contains(e.target) && !toolsSheet.contains(e.target)) {
+                toolsSheet.classList.remove("active");
             }
         };
 
-        function selectTool(prefix) {
-            chatInput.value = prefix;
+        // MODE SELECTION & BANNER
+        function setDirectorMode(name, prefix) {
+            activeToolPrefix = prefix;
+            modeBannerText.innerText = `${name} Active`;
+            modeBanner.classList.add("active");
+            toolsSheet.classList.remove("active");
+            chatInput.placeholder = `Describe your video topic for ${name}...`;
             chatInput.focus();
-            toolsDropdown.classList.remove("active");
+        }
+
+        function clearActiveMode() {
+            activeToolPrefix = "";
+            modeBanner.classList.remove("active");
+            chatInput.placeholder = "Ask HookSpike or drop your concept...";
         }
 
         document.getElementById("openDrawer").onclick = () => { sidebar.classList.add("active"); overlay.classList.add("active"); };
@@ -568,12 +706,12 @@
             chatHist = [];
             chatArea.innerHTML = "";
             chatArea.appendChild(heroWelcome);
+            clearActiveMode();
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
         }
 
         document.getElementById("sidebarNewChat").onclick = resetChat;
-        document.getElementById("dockPlusBtn").onclick = resetChat;
 
         function openAuth() { authModal.classList.add("active"); }
         document.getElementById("openPro").onclick = () => { if(!IS_LOGGED) openAuth(); };
@@ -604,23 +742,52 @@
             return box;
         }
 
+        // 1-TAP BULLETPROOF COPY
+        async function copyText(btn, text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const t = document.createElement("textarea");
+                    t.value = text;
+                    t.style.position = "fixed";
+                    t.style.left = "-9999px";
+                    document.body.appendChild(t);
+                    t.select();
+                    document.execCommand('copy');
+                    t.remove();
+                }
+                const old = btn.innerHTML;
+                btn.innerHTML = `✓ Copied!`;
+                btn.style.borderColor = "rgba(52, 211, 153, 0.5)";
+                setTimeout(() => {
+                    btn.innerHTML = old;
+                    btn.style.borderColor = "";
+                }, 1600);
+            } catch (e) {
+                console.error("Copy failed", e);
+            }
+        }
+
         async function sendMsg() {
             if(!IS_LOGGED) { openAuth(); return; }
 
-            // Handle Stop button click during generation
             if (isStreaming && ctrl) {
                 ctrl.abort();
                 setStreamingUI(false);
                 return;
             }
 
-            const txt = chatInput.value.trim();
-            if(!txt) return;
+            let rawTxt = chatInput.value.trim();
+            if(!rawTxt) return;
 
-            lastMsg = txt;
+            let finalMessage = activeToolPrefix ? `${activeToolPrefix} ${rawTxt}` : rawTxt;
+            lastMsg = finalMessage;
+            
             chatInput.value = "";
-            appendBubble("user", txt);
-            chatHist.push({ role: "user", content: txt });
+            chatInput.style.height = "auto";
+            appendBubble("user", rawTxt);
+            chatHist.push({ role: "user", content: finalMessage });
 
             const aiBox = appendBubble("ai", "");
             const cursor = document.createElement("span");
@@ -635,7 +802,7 @@
                 const res = await fetch("/api/chat-stream", {
                     method: "POST", 
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({ message: txt, history: chatHist.slice(-6) }),
+                    body: JSON.stringify({ message: finalMessage, history: chatHist.slice(-6) }),
                     signal: ctrl.signal
                 });
                 
@@ -667,7 +834,7 @@
                                 }
                                 if(typeof parsed.tokens_left === "number") {
                                     const h = document.getElementById("headerTokens");
-                                    if(h) h.innerText = parsed.tokens_left > 100 ? "Unlimited" : parsed.tokens_left + " tokens left";
+                                    if(h) h.innerText = parsed.tokens_left > 100 ? "Pro" : parsed.tokens_left;
                                 }
                             } catch(e) {
                                 fullReply += data;
@@ -680,14 +847,31 @@
                 cursor.remove();
                 chatHist.push({ role: "assistant", content: fullReply });
 
-                // Gemini Style Pills: Copy, Regenerate, Enhance
+                // 1-TAP COPY & ACTIONS
                 const acts = document.createElement("div");
                 acts.className = "ai-actions";
-                acts.innerHTML = `
-                    <button class="action-pill-btn" onclick="navigator.clipboard.writeText(this.closest('.msg-line').querySelector('.bubble-box').innerText); this.innerHTML='✓ Copied'; setTimeout(()=>this.innerHTML='📋 Copy',1500)">📋 Copy</button>
-                    <button class="action-pill-btn" onclick="chatInput.value=lastMsg; sendMsg();">🔄 Regenerate</button>
-                    <button class="action-pill-btn" onclick="chatInput.value='Enhance this script and increase the retention: ' + lastMsg; chatInput.focus();">⚡ Enhance</button>
-                `;
+                
+                const copyBtn = document.createElement("button");
+                copyBtn.className = "action-pill-btn";
+                copyBtn.innerHTML = `📋 1-Tap Copy`;
+                copyBtn.onclick = () => copyText(copyBtn, fullReply);
+
+                const regenBtn = document.createElement("button");
+                regenBtn.className = "action-pill-btn";
+                regenBtn.innerHTML = `🔄 Regenerate`;
+                regenBtn.onclick = () => { chatInput.value = rawTxt; sendMsg(); };
+
+                const enhanceBtn = document.createElement("button");
+                enhanceBtn.className = "action-pill-btn";
+                enhanceBtn.innerHTML = `⚡ Enhance`;
+                enhanceBtn.onclick = () => { 
+                    chatInput.value = 'Director bhai, is script ko 10x high tension cuts ke sath enhance kar: ' + rawTxt;
+                    chatInput.focus(); 
+                };
+
+                acts.appendChild(copyBtn);
+                acts.appendChild(regenBtn);
+                acts.appendChild(enhanceBtn);
                 aiBox.parentNode.appendChild(acts);
 
             } catch(e) {
@@ -701,7 +885,12 @@
         }
 
         sendBtn.onclick = sendMsg;
-        chatInput.onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
+        chatInput.onkeydown = (e) => { 
+            if(e.key === "Enter" && !e.shiftKey) { 
+                e.preventDefault(); 
+                sendMsg(); 
+            } 
+        };
         
         document.addEventListener('click', async function(e) {
             const link = e.target.closest('a[href="/logout"]');

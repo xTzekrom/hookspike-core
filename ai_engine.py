@@ -1,12 +1,13 @@
 """
 HookSpike AI Engine (Ultra-Smooth Streaming & Bhai Persona)
 ===========================================================
-- Auto-fallback across active models to defeat 503 high demand spikes
+- Uses Google's active gemini-3.8-flash model
+- Auto-retries on temporary 503 demand spikes
 - Real-time token streaming with human pacing
-- Living creative confidant & viral strategist persona
 """
 
 import os
+import time
 from typing import Generator
 from google import genai
 from google.genai import types
@@ -14,14 +15,7 @@ from google.genai import types
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-# Smart Fallback List: Ek model busy ho toh turant doosre par shift hoga
-GEMINI_MODELS = [
-    "gemini-3.8-flash",
-    "gemini-3.8-flash-lite",
-    "gemini-3-flash",
-    os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
-]
-GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
+TARGET_MODEL = "gemini-3.8-flash"
 
 CREATOR_SYSTEM_DIRECTOR = """
 You are HookSpike AI — not a rigid corporate bot, but the user's authentic creative brother, closest confidant, and elite viral content producer sitting in the same studio.
@@ -76,7 +70,6 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
         temperature=0.85,
     )
 
-    success = False
     last_error = None
 
     for key in keys:
@@ -86,10 +79,11 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             last_error = exc
             continue
 
-        for model in GEMINI_MODELS:
+        # 503 high demand spike ke liye 3 automatic retries
+        for attempt in range(3):
             try:
                 response_stream = client.models.generate_content_stream(
-                    model=model,
+                    model=TARGET_MODEL,
                     contents=contents,
                     config=config,
                 )
@@ -97,12 +91,13 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
                     chunk_text = getattr(chunk, "text", "")
                     if chunk_text:
                         yield chunk_text
-                success = True
                 return
             except Exception as exc:
                 last_error = exc
-                continue
+                err_str = str(exc)
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    time.sleep(2)  # Temporary traffic spike ke liye 2 second wait
+                    continue
+                break
 
-    if not success:
-        yield f"⚠️ Bhai connection me thoda issue lag raha hai. Ek baar Regenerate daba! (Detail: {last_error})"
-                            
+    yield f"⚠️ Bhai connection me thoda issue lag raha hai. Ek baar Regenerate daba! (Detail: {last_error})"

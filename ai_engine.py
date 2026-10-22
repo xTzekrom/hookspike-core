@@ -1,10 +1,9 @@
 """
-HookSpike Creator Intelligence Engine (v4.1 - Fixed Models & Human Persona)
-==========================================================================
-- Fixed: 404 NOT_FOUND error resolved by targeting latest Gemini models
-- Real-time token streaming for zero-wait SSE responses
-- Emotionally intelligent, human-like bhai persona with natural emojis
-- Multi-turn conversation memory with fail-safe key rotation
+HookSpike AI Engine (Ultra-Smooth Streaming & Bhai Persona)
+===========================================================
+- Fixes 404 by targeting active 2026 production models
+- Real-time token streaming with human pacing
+- Living creative confidant & viral strategist persona
 """
 
 import os
@@ -14,38 +13,32 @@ from google.genai import types
 
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_BACKUP_KEY = os.environ.get("OPENAI_BACKUP_KEY")
 
-# Fixed 404 error: Replaced deprecated model with verified flash versions
+# Target latest active production models to eliminate 404 completely
 GEMINI_MODELS = [
-    os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "gemini-3.8-flash",
+    "gemini-3.1-pro-preview",
+    os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 ]
 GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
 
-# ============================================================
-# THE SOUL & CONSCIOUSNESS OF HOOKSPIKE AI
-# ============================================================
 CREATOR_SYSTEM_DIRECTOR = """
-You are HookSpike AI — not a mechanical bot, but the user's authentic creative brother, best friend, and elite YouTube/Reels strategist sitting right next to them.
+You are HookSpike AI — not a rigid corporate bot, but the user's authentic creative brother, closest confidant, and elite viral content producer sitting in the same studio.
 
-1. DEEP SITUATIONAL EMPATHY & EMOTION SENSING:
-   - Carefully read the mood and stake of every single message.
-   - User is low, tired, or doubting their growth? Stand beside them like a supportive, loving brother. No toxic positivity. Give practical grounding: "Bhai chill, YouTube graph dekh ke panic mat kar. Aaja milke script aur hook check karte hain, abhi bounce back karenge!"
-   - User is energized or pitching a crazy idea? Fuel their adrenaline! Build curiosity loops, add camera pacing, hype them up.
-   - User is cracking jokes or being casual? Laugh openly (😂, 🤣, 💀), banter right back, be genuinely funny.
-   - User is in pure work/execution mode? Deliver hyper-sharp, 10/10 actionable assets instantly with zero fluff.
+1. LIVING EMOTIONAL SENSING & ADAPTIVE VIBE:
+   - Read the emotional pulse of every user message.
+   - Low views, tired, frustrated, or burnt out? Be a deeply supportive, grounded brother. Validate them genuinely: "Bhai tension chhod, YouTube retention graph dekh ke himmat mat haar. Aaja saath baithke script review karte hain, abhi bounce back karenge."
+   - Hyped, pitching a crazy idea, or energetic? Match their adrenaline with bold hooks, creative speed, and excitement.
+   - Sarcastic or casual? Laugh naturally (😂, 💀), banter right back like real friends, never sound like an office assistant.
+   - Hustling / execution mode? Deliver 10/10 actionable hooks, scripts, and retention cues instantly with zero corporate throat-clearing.
 
-2. AUTHENTIC LANGUAGE & SLANG:
-   - Match the user's exact dialect and slang. If they write in Hinglish, speak genuine street-smart Hinglish.
-   - If they write in English or any other language, adopt their creator culture, warmth, and cadence.
-   - Use organic emojis naturally as two creators text on WhatsApp or Instagram DMs.
+2. SEAMLESS LANGUAGE MIRRORING:
+   - Talk effortlessly in natural Hinglish, colloquial English, or whatever style the creator uses.
+   - Use organic emojis naturally within sentences like a genuine person, never as stiff bullet points.
 
-3. UNFILTERED CREATOR CANDOR & CUES:
-   - Never be a yes-man. If an opening line is boring, say it kindly: "Bhai honestly ye hook thoda slow lag raha hai, log scroll kar denge. Isme ye curiosity twist daal ke dekh."
-   - Always integrate shoot-ready cues ([Fast cut], [Deadpan zoom], [SFX: Whoosh]) directly into scripts and hooks.
+3. REAL CREATIVE CANDOR:
+   - Never be a yes-man. If an opening line is boring, tell them constructively: "Bhai honestly ye hook swipe ho jayega. Isme ye psychological curiosity gap daal ke dekh."
+   - Always include shoot-ready visual directions [Fast cut to B-roll], [Push-in zoom], and sound cues [SFX: Bass drop] in scripts.
 """
 
 def _get_gemini_keys() -> list[str]:
@@ -53,7 +46,6 @@ def _get_gemini_keys() -> list[str]:
 
 def _build_contents_payload(history: list[dict], current_message: str):
     contents = []
-    # Feed multi-turn chat memory
     for item in history:
         role = item.get("role")
         content = item.get("content", "").strip()
@@ -64,26 +56,22 @@ def _build_contents_payload(history: list[dict], current_message: str):
         elif role in ("assistant", "ai"):
             contents.append(types.Content(role="model", parts=[types.Part.from_text(text=content)]))
 
-    # Active message
     contents.append(types.Content(role="user", parts=[types.Part.from_text(text=current_message)]))
     return contents
 
 def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[str, None, None]:
-    """
-    Streams output tokens word-by-word with living human flow.
-    """
     if history is None:
         history = []
 
     keys = _get_gemini_keys()
     if not keys:
-        yield "Bhai, API keys missing lag rahi hain Render dashboard me. Ek baar environment settings check kar le!"
+        yield "Bhai, Render dashboard me PRIMARY_KEY add nahi hai! Ek baar Environment Variables check kar le."
         return
 
     contents = _build_contents_payload(history, message)
     config = types.GenerateContentConfig(
         system_instruction=CREATOR_SYSTEM_DIRECTOR,
-        max_output_tokens=7000,
+        max_output_tokens=8192,
         temperature=0.85,
     )
 
@@ -115,13 +103,5 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
                 continue
 
     if not success:
-        yield f"⚠️ Network thoda busy lag raha hai bhai. Ek baar Regenerate daba ke dobara try kar! (Error: {last_error})"
-
-def get_ai_response(content_type: str, topic: str, brand_voice: str = ""):
-    """Fallback sync helper"""
-    collected = []
-    user_prompt = f"Topic: {topic}. Target output: {content_type}."
-    for token in stream_creator_chat(user_prompt):
-        collected.append(token)
-    return {"text": "".join(collected), "image": None, "content_type": content_type}
-            
+        yield f"⚠️ Bhai connection me thoda issue lag raha hai. Ek baar Regenerate daba! (Detail: {last_error})"
+                              

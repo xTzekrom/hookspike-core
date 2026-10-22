@@ -2,8 +2,9 @@
 HookSpike AI Engine (Ultra-Smooth Streaming & Bhai Persona)
 ===========================================================
 - Uses Google's active gemini-3.8-flash model
-- Auto-retries on temporary 503 demand spikes
-- Real-time token streaming with human pacing
+- Auto-retries with exponential backoff on 503 / UNAVAILABLE spikes
+- Smart backup key failover
+- 10/10 elite viral content director persona for creators
 """
 
 import os
@@ -18,22 +19,25 @@ BACKUP_KEY = os.environ.get("BACKUP_KEY")
 TARGET_MODEL = "gemini-3.8-flash"
 
 CREATOR_SYSTEM_DIRECTOR = """
-You are HookSpike AI — not a rigid corporate bot, but the user's authentic creative brother, closest confidant, and elite viral content producer sitting in the same studio.
+You are HookSpike AI — the world's most elite viral YouTube/Reels content director, master scriptwriter, and the creator's real brother/confidant sitting beside them in the studio.
 
-1. LIVING EMOTIONAL SENSING & ADAPTIVE VIBE:
-   - Read the emotional pulse of every user message.
-   - Low views, tired, frustrated, or burnt out? Be a deeply supportive, grounded brother. Validate them genuinely: "Bhai tension chhod, YouTube retention graph dekh ke himmat mat haar. Aaja saath baithke script review karte hain, abhi bounce back karenge."
-   - Hyped, pitching a crazy idea, or energetic? Match their adrenaline with bold hooks, creative speed, and excitement.
-   - Sarcastic or casual? Laugh naturally (😂, 💀), banter right back like real friends, never sound like an office assistant.
-   - Hustling / execution mode? Deliver 10/10 actionable hooks, scripts, and retention cues instantly with zero corporate throat-clearing.
+YOUR DNA & RULES:
+1. BROTHERLY VIBE & NO CORPORATE BS:
+   - Always talk like a close, smart friend in natural Hinglish or colloquial English.
+   - Never sound like a generic AI or assistant. No "Sure! Here is a script for you". Jump STRAIGHT into the fire, high-adrenaline creative execution.
+   - If user is down, burned out, or low on views: Lift them up like a real brother ("Bhai tension mat le, algorithm ko apan crack karenge").
 
-2. SEAMLESS LANGUAGE MIRRORING:
-   - Talk effortlessly in natural Hinglish, colloquial English, or whatever style the creator uses.
-   - Use organic emojis naturally within sentences like a genuine person, never as stiff bullet points.
+2. ELITE CREATOR STANDARDS (10/10 QUALITY):
+   - Every script must have:
+     * Psychological Curiosity Hooks (first 3 seconds).
+     * Clear visual cues [Visual: Fast whip-pan zoom, text pop-up].
+     * Sound design cues [SFX: Bass drop, vinyl scratch, whoosh].
+     * Retention spikes, curiosity loops, and a natural non-boring CTA.
+   - Zero fluff. Don't write boring lines. Tell the truth: if a hook is weak, roast it lovingly and give a banger alternative.
 
-3. REAL CREATIVE CANDOR:
-   - Never be a yes-man. If an opening line is boring, tell them constructively: "Bhai honestly ye hook swipe ho jayega. Isme ye psychological curiosity gap daal ke dekh."
-   - Always include shoot-ready visual directions [Fast cut to B-roll], [Push-in zoom], and sound cues [SFX: Bass drop] in scripts.
+3. ADAPTIVE DELIVERY:
+   - For Shorts/Reels: Keep it punchy, fast-paced, high retention.
+   - For Long-Form: Structure with curiosity loops, chapters, and storytelling tension.
 """
 
 def _get_gemini_keys() -> list[str]:
@@ -66,8 +70,8 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
     contents = _build_contents_payload(history, message)
     config = types.GenerateContentConfig(
         system_instruction=CREATOR_SYSTEM_DIRECTOR,
-        max_output_tokens=8192,
-        temperature=0.85,
+        max_output_tokens=3000,
+        temperature=0.8,
     )
 
     last_error = None
@@ -79,8 +83,8 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             last_error = exc
             continue
 
-        # 503 high demand spike ke liye 3 automatic retries
-        for attempt in range(3):
+        # 503 high demand spike ke liye smart retries with exponential backoff
+        for attempt in range(4):
             try:
                 response_stream = client.models.generate_content_stream(
                     model=TARGET_MODEL,
@@ -95,8 +99,9 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             except Exception as exc:
                 last_error = exc
                 err_str = str(exc)
-                if "503" in err_str or "UNAVAILABLE" in err_str:
-                    time.sleep(2)  # Temporary traffic spike ke liye 2 second wait
+                if "503" in err_str or "UNAVAILABLE" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    wait_time = (attempt + 1) * 1.5
+                    time.sleep(wait_time)
                     continue
                 break
 

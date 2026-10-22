@@ -1,1267 +1,980 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="google-site-verification" content="EOl-njARKhvmSLTzhuBy-3xJ8kchPVDb38nV-KzuLfk" />
-    <title>HookSpike AI ⚡ - Creator Command Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HookSpike AI ⚡ - Creator Command Engine</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=2">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <style>
         :root {
-            --ui-bg: #080a0d;
-            --ui-shell: #0e1115;
-            --ui-panel: #12161b;
-            --ui-border: #252c34;
-            --ui-border-strong: #39434e;
-            --ui-text: #edf1f4;
-            --ui-muted: #8d97a3;
-            --ui-accent: #71879b;
-            --ui-accent-hover: #8499aa;
-            --ui-accent-light: #b7c5d2;
-            --ui-success: #10b981;
+            --bg-color: #0b0e14;
+            --surface-color: #121721;
+            --surface-light: #19202e;
+            --border-color: #242c3d;
+            --border-focus: #3b82f6;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-gold: #f59e0b;
+            --user-bubble: #1e293b;
+            --ai-bubble: #0f172a;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-pill: 9999px;
         }
 
-        html, body {
-            background: var(--ui-bg);
-            color: var(--ui-text);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            text-align: center;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 16px;
-            -webkit-font-smoothing: antialiased;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 14px auto 40px;
-            padding: 26px;
-            background: var(--ui-shell);
-            border: 1px solid #20262d;
-            border-radius: 24px;
-            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-            box-sizing: border-box;
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            overflow: hidden;
         }
 
-        .logo {
-            font-size: 32px;
-            font-weight: 900;
-            letter-spacing: -1.2px;
-            color: var(--ui-text);
+        /* HEADER */
+        header {
+            height: 60px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .logo span { color: var(--ui-accent-light); }
-
-        p.tagline {
-            color: #707a86;
-            font-size: 10px;
-            margin: 6px 0 20px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2.4px;
-        }
-
-        .user-profile {
-            font-size: 12px;
-            color: #9ba4ae;
-            margin: 10px 0 12px;
-        }
-
-        .logout-link {
-            color: #cbd5e1;
-            text-decoration: none;
-            margin-left: 8px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 8px;
-            background: #161b21;
-            border: 1px solid var(--ui-border);
-        }
-
-        .counter-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 240px;
-            padding: 10px 18px;
-            background: #151a20;
-            border: 1px solid #2a3139;
-            border-radius: 999px;
-            color: #cbd3dc;
-            font-size: 12.5px;
-            font-weight: 800;
-        }
-
-        /* --- LOGIN CARD --- */
-        .login-box {
-            max-width: 440px;
-            margin: 24px auto 10px;
-            padding: 32px 26px;
-            background: var(--ui-panel);
-            border: 1px solid var(--ui-border);
-            border-radius: 22px;
-        }
-        .login-kicker, .workspace-kicker, .paywall-kicker {
-            display: inline-block;
-            font-size: 10px;
-            font-weight: 900;
-            letter-spacing: 1.6px;
-            text-transform: uppercase;
-            color: #9aabbc;
-            background: #171c22;
-            border: 1px solid #2a3139;
-            padding: 5px 12px;
-            border-radius: 999px;
-            margin-bottom: 12px;
-        }
-        .login-box h3 { font-size: 24px; margin: 0 0 10px; }
-        .login-box p { color: var(--ui-muted); font-size: 13.5px; line-height: 1.55; margin: 0 0 24px; }
-        .google-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-            padding: 15px;
-            background: #edf1f4;
-            color: #0b0e12;
-            border-radius: 14px;
-            font-weight: 800;
-            font-size: 15px;
-            text-decoration: none;
-            box-sizing: border-box;
-        }
-        .google-icon {
-            font-size: 18px;
-            background: #0b0e12;
-            color: #edf1f4;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            display: inline-grid;
-            place-items: center;
-        }
-
-        /* --- DASHBOARD FORM --- */
-        form[action="/"] {
-            text-align: left;
-            margin-top: 22px;
-            padding: 24px;
-            background: #11151a;
-            border: 1px solid #272e36;
-            border-radius: 22px;
-        }
-        form[action="/"] > label {
-            display: block;
-            color: #9da7b2;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 1.7px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-        }
-        .content-selector {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            margin: 12px 0 20px;
-        }
-        .content-option input { position: absolute; opacity: 0; pointer-events: none; }
-        .content-option label {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            min-height: 104px;
-            padding: 16px;
-            box-sizing: border-box;
-            background: #171c22;
-            border: 1px solid #2a3139;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: all 0.18s ease;
-        }
-        .content-option label:hover { background: #1b2026; border-color: #46515f; }
-        .content-option input:checked + label {
-            background: #1d252d;
-            border-color: #778b9e;
-            box-shadow: 0 0 0 1px rgba(183, 197, 210, 0.14);
-        }
-        .option-icon { font-size: 26px; min-width: 32px; }
-        .option-title { display: block; color: #eef1f4; font-weight: 900; font-size: 15px; }
-        .option-sub { display: block; color: #858f9a; font-size: 12px; margin-top: 4px; line-height: 1.4; }
-
-        .creation-prompt {
-            margin: 0 0 16px;
-            padding: 16px;
-            background: #0d1115;
-            border: 1px solid #252c34;
-            border-radius: 16px;
-        }
-        .creation-prompt-label {
-            display: block;
-            color: #b0bac5;
-            font-size: 10px;
-            font-weight: 900;
-            letter-spacing: 1.7px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .creation-prompt input[name="topic"] {
-            width: 100%;
-            min-height: 50px;
-            padding: 14px 15px;
-            box-sizing: border-box;
-            background: #151a20;
-            border: 1px solid #303842;
-            border-radius: 13px;
-            color: #eef1f4;
-            font-size: 15px;
-            outline: none;
-        }
-        .creation-prompt input[name="topic"]::placeholder { color: #59636e; }
-        .creation-prompt-help { display: block; color: #68727e; font-size: 11px; margin-top: 8px; }
-
-        button { font-family: inherit; cursor: pointer; transition: all 0.18s ease; }
-        #submitBtn, .tool-action {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #6f8294;
-            border-radius: 14px;
-            background: var(--ui-accent);
-            color: #081016;
-            font-size: 14px;
-            font-weight: 900;
-            text-transform: uppercase;
-            text-decoration: none;
-            box-sizing: border-box;
-        }
-        #submitBtn:hover, .tool-action:hover { background: var(--ui-accent-hover); }
-        button:disabled { opacity: 0.65; cursor: wait; }
-
-        .create-label { display: none; }
-        form:has(#typeHooks:checked) #submitBtn .create-label-hooks,
-        form:has(#typeScript:checked) #submitBtn .create-label-script,
-        form:has(#typeThumbnail:checked) #submitBtn .create-label-thumbnail { display: inline; }
-
-        /* --- CREATOR STUDIO CTA & HEAD --- */
-        .creator-studio-cta {
-            margin-top: 18px;
-            padding: 22px;
-            background: #12171c;
-            border: 1px solid #29313a;
-            border-radius: 20px;
-            text-align: left;
-        }
-        .creator-studio-cta strong { display: block; font-size: 20px; margin-top: 4px; }
-        .creator-studio-cta > span:not(.workspace-kicker) { display: block; color: #858f9a; font-size: 12.5px; line-height: 1.55; margin-top: 6px; }
-        .studio-open-btn { display: inline-flex !important; width: auto !important; margin-top: 15px; }
-
-        .studio-page-head {
-            margin-top: 20px;
-            padding: 26px;
-            background: #11161b;
-            border: 1px solid #29313a;
-            border-radius: 22px;
-            text-align: left;
-        }
-        .studio-back-link { display: inline-block; color: #aab7c3; text-decoration: none; font-size: 12px; font-weight: 800; margin-bottom: 8px; }
-        .studio-page-head h2 { margin: 6px 0; font-size: 29px; letter-spacing: -0.7px; }
-        .studio-page-head p { margin: 0 0 16px; color: #858f9a; font-size: 13px; line-height: 1.55; }
-
-        .tool-input, .tool-select {
-            width: 100%;
-            padding: 13px 14px;
-            box-sizing: border-box;
-            background: #0c1014;
-            border: 1px solid #303842;
-            border-radius: 12px;
-            color: #e9edf1;
-            font-size: 14px;
-            outline: none;
-        }
-        .tool-input { min-height: 110px; resize: vertical; margin-bottom: 12px; }
-        .tool-select { margin: 8px 0 12px; }
-        .studio-topic { min-height: 48px !important; margin: 0 !important; }
-
-        .studio-nav {
-            display: flex;
-            gap: 7px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-            padding: 6px;
-            background: #0d1115;
-            border: 1px solid #242b33;
-            border-radius: 13px;
-        }
-        .studio-nav a { color: #858f9a; text-decoration: none; font-size: 11.5px; font-weight: 800; padding: 8px 13px; border-radius: 999px; }
-        .studio-nav a:hover { background: #181d23; color: #edf1f4; }
-
-        /* --- CARDS & GRID --- */
-        .studio-section { margin-top: 32px; text-align: left; }
-        .studio-section-head h3 { margin: 2px 0 4px; font-size: 21px; }
-        .studio-section-head p { margin: 0; color: #747e89; font-size: 12px; }
-        .studio-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-        .studio-card {
-            text-decoration: none;
-            color: inherit;
-            display: block;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 14, 20, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 20;
             position: relative;
-            padding: 18px;
-            min-height: 148px;
-            box-sizing: border-box;
-            background: #12171c;
-            border: 1px solid #29313a;
-            border-radius: 18px;
-            transition: all 0.18s ease;
         }
-        .studio-card.featured { grid-column: span 2; background: #161c22; border-color: #36404a; }
-        .studio-card:hover { background: #171d23; border-color: #52606e; transform: translateY(-2px); }
-        .studio-card::after {
-            content: '→';
-            position: absolute;
-            right: 14px;
-            top: 14px;
-            width: 24px;
-            height: 24px;
-            display: grid;
-            place-items: center;
-            border-radius: 50%;
-            background: #1a2026;
-            color: #8896a3;
-            font-size: 13px;
-        }
-        .studio-card .icon {
-            width: 38px;
-            height: 38px;
-            display: grid;
-            place-items: center;
-            border-radius: 12px;
-            background: #191f25;
-            border: 1px solid #2d353e;
-            font-size: 20px;
-        }
-        .studio-card strong { display: block; color: #edf1f4; margin-top: 12px; font-size: 14.5px; }
-        .studio-card span { display: block; color: #7d8792; font-size: 11.5px; line-height: 1.45; margin-top: 5px; }
-        .studio-card .card-tag { display: inline-block; margin-top: 10px; color: #9aa9b7; font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
 
-        /* --- FOCUSED WORKSPACE --- */
-        .tool-panel {
-            display: none;
-            max-width: 820px;
-            box-sizing: border-box;
-            margin: 14px auto 0;
-            padding: 24px;
-            background: #11161b;
-            border: 1px solid #29313a;
-            border-radius: 20px;
-            text-align: left;
-        }
-        .tool-panel.show { display: block; animation: cleanIn 0.2s ease; }
-        body.studio-workspace-route .studio-section,
-        body.studio-workspace-route .studio-page-head,
-        body.studio-workspace-route .studio-nav { display: none !important; }
-        body.studio-workspace-route .studio-workspace-shell { max-width: 820px; margin: 22px auto 0; text-align: left; }
-        .studio-workspace-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .workspace-close { padding: 8px 14px; background: #14191f; border: 1px solid #2b333c; color: #aeb9c4; border-radius: 999px; text-decoration: none; font-size: 12px; font-weight: 800; }
-        .workspace-meta { color: #606b77; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.4px; }
-        .workspace-hero { padding: 24px; background: #11161b; border: 1px solid #29313a; border-radius: 22px; }
-        .workspace-hero h1 { margin: 4px 0 6px; font-size: 28px; }
-        .workspace-hero > p { margin: 0; color: #7e8995; font-size: 13px; line-height: 1.55; }
-        .workspace-context { margin-top: 18px; padding: 14px; background: #0c1014; border: 1px solid #252d35; border-radius: 15px; }
-        .workspace-context label { display: block; margin-bottom: 7px; color: #8f9aa5; font-size: 10px; font-weight: 900; letter-spacing: 1.5px; }
-        .workspace-topic-input { width: 100%; min-height: 46px; padding: 12px 13px; box-sizing: border-box; background: #151a20; border: 1px solid #303842; border-radius: 12px; color: #eef1f4; outline: none; }
-        .workspace-context span { display: block; margin-top: 7px; color: #5f6974; font-size: 11px; }
-
-        .tool-title { font-size: 18px; font-weight: 900; color: #e9edf1; margin-bottom: 8px; }
-        .tool-output {
-            margin-top: 14px;
-            padding: 18px;
-            border-radius: 14px;
-            background: #0c1014;
-            border: 1px solid #283039;
-            white-space: pre-wrap;
-            line-height: 1.7;
-            font-size: 14px;
-            color: #dbe4ee;
-        }
-        .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 14px; }
-        .quick-btn { padding: 9px 13px; border-radius: 999px; border: 1px solid #2c343d; background: #161b21; color: #bdc6cf; font-size: 12px; font-weight: 700; }
-        .quick-btn:hover { background: #1d2329; border-color: #6f8294; color: #edf1f4; }
-
-        .history-list { max-height: 240px; overflow: auto; margin-top: 10px; }
-        .history-item { padding: 11px 12px; border-bottom: 1px solid #1f262e; cursor: pointer; color: #cbd5e1; font-size: 12.5px; }
-        .history-item:hover { color: #ffffff; background: #151a20; }
-
-        /* --- RESULTS, HOOK CARD & COPY BUTTON --- */
-        .result-box {
-            text-align: left;
-            margin-top: 26px;
-            padding: 24px;
-            background: #111419;
-            border: 1px solid var(--ui-border);
-            border-radius: 22px;
-            white-space: pre-wrap;
-            font-size: 15px;
-            line-height: 1.75;
-        }
-        .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-        .result-type { padding: 6px 12px; border-radius: 999px; background: #171c22; border: 1px solid #2d3640; color: #b7c5d2; font-size: 11px; font-weight: 900; text-transform: uppercase; }
-        .hook-card { background: #151920; border: 1px solid var(--ui-border); border-left: 4px solid var(--ui-accent); border-radius: 16px; padding: 20px; margin-top: 10px; }
-        .research-note { margin-top: 14px; padding: 11px 14px; border-radius: 12px; background: #0d1115; border: 1px solid #242b33; color: #8d97a3; font-size: 12px; line-height: 1.5; }
-        .copy-btn {
-            display: inline-flex;
+        .header-left, .header-right {
+            display: flex;
             align-items: center;
-            margin-top: 16px;
-            padding: 11px 20px;
-            background: var(--ui-accent);
-            color: #081016;
-            border-radius: 11px;
-            font-weight: 800;
-            font-size: 13px;
-            border: 1px solid #6f8294;
+            gap: 10px;
         }
-        .copy-btn.copied { background: var(--ui-success) !important; color: #fff !important; }
-        .generate-image-btn { width: 100%; margin-top: 14px; padding: 13px; border-radius: 12px; border: 1px solid #4b5563; background: #1d252d; color: #edf1f4; font-weight: 800; }
-        .image-status { margin-top: 12px; padding: 12px; border-radius: 12px; background: #0d1115; border: 1px dashed #2d3640; color: #9ca3af; font-size: 12.5px; text-align: center; }
-        .image-status.error { color: #fca5a5; border-color: rgba(239, 68, 68, 0.35); background: rgba(127, 29, 29, 0.12); }
-        .thumbnail-preview { width: 100%; display: block; margin-top: 16px; border-radius: 14px; border: 1px solid var(--ui-border); }
 
-        .loader {
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--surface-light);
+        }
+
+        .pro-pill-btn {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.2));
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            color: #60a5fa;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 7px 16px;
+            border-radius: var(--radius-pill);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform 0.15s ease, border-color 0.2s;
+        }
+
+        .pro-pill-btn:active {
+            transform: scale(0.96);
+        }
+
+        .token-counter {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* SIDEBAR DRAWER */
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 99;
+        }
+
+        .drawer-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .sidebar-drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 290px;
+            max-width: 82vw;
+            background: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            z-index: 100;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 18px 14px;
+        }
+
+        .sidebar-drawer.active {
+            transform: translateX(0);
+        }
+
+        .new-chat-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .drawer-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin: 0 8px 10px;
+            font-weight: 700;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .history-item:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        .drawer-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 14px;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* TOOLS MENU DROPDOWN */
+        .tools-dropdown {
+            position: absolute;
+            top: 65px;
+            right: 16px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 8px;
             display: none;
-            margin: 24px auto 12px;
-            border: 3px solid #1f2937;
-            border-radius: 50%;
-            border-top: 3px solid var(--ui-accent-light);
+            flex-direction: column;
+            gap: 4px;
+            width: 210px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+            z-index: 30;
+        }
+
+        .tools-dropdown.active {
+            display: flex;
+        }
+
+        .tool-option {
+            background: transparent;
+            border: none;
+            padding: 10px;
+            color: var(--text-secondary);
+            text-align: left;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tool-option:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        /* CHAT CONTAINER */
+        main.chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            text-align: center;
+            padding: 40px 16px;
+            gap: 14px;
+        }
+
+        .welcome-brand {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .welcome-brand span {
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-sub {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            max-width: 360px;
+            line-height: 1.5;
+        }
+
+        /* CHAT BUBBLES */
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .message-row.user {
+            align-items: flex-end;
+        }
+
+        .message-row.ai {
+            align-items: flex-start;
+        }
+
+        .bubble {
+            max-width: 90%;
+            padding: 14px 18px;
+            border-radius: var(--radius-lg);
+            font-size: 14.5px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .message-row.user .bubble {
+            background: var(--user-bubble);
+            color: var(--text-primary);
+            border-bottom-right-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .message-row.ai .bubble {
+            background: var(--ai-bubble);
+            color: #e2e8f0;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .bubble-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .action-chip {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: var(--radius-pill);
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .action-chip:hover {
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }
+
+        /* BLINKING CURSOR STREAM */
+        .cursor-blink {
+            display: inline-block;
+            width: 7px;
+            height: 15px;
+            background: #38bdf8;
+            margin-left: 3px;
+            vertical-align: middle;
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* FIXED BOTTOM INPUT BAR */
+        .input-dock {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px 20px;
+            background: linear-gradient(to top, var(--bg-color) 80%, transparent);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            max-width: 820px;
+            width: 100%;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            padding: 6px 10px 6px 18px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            transition: border-color 0.2s;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--border-focus);
+        }
+
+        #chatInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 14.5px;
+            font-family: inherit;
+            padding: 8px 0;
+        }
+
+        #chatInput::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            background: var(--accent-blue);
+            color: #ffffff;
+            border: none;
             width: 38px;
             height: 38px;
-            animation: spin 0.8s linear infinite;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: opacity 0.2s, transform 0.15s;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes cleanIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .loading-text { display: none; color: var(--ui-accent-light); font-size: 13px; font-weight: 600; margin-bottom: 10px; }
 
-        /* --- PAYWALL SUITE --- */
-        .paywall-box {
-            max-width: 620px;
-            margin: 26px auto 10px;
-            padding: 32px 26px;
-            background: #11151a;
-            border: 1px solid #2e3742;
-            border-radius: 24px;
+        .send-btn:disabled {
+            background: var(--surface-light);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.6;
         }
-        .paywall-box h2 { font-size: 26px; margin: 0 0 8px; }
-        .paywall-box p.pay-desc { color: #8d97a3; font-size: 13.5px; line-height: 1.55; max-width: 500px; margin: 0 auto 22px; }
-        .plan-card { background: #151a20; padding: 24px; border-radius: 18px; border: 1px solid #343e4b; text-align: left; position: relative; margin-bottom: 18px; }
-        .plan-badge { position: absolute; top: 16px; right: 16px; background: #232b35; border: 1px solid #3d4957; color: #cbd5e1; font-size: 9.5px; font-weight: 900; padding: 4px 10px; border-radius: 999px; }
-        .plan-card h4 { margin: 0; font-size: 18px; }
-        .plan-card p.plan-sub { margin: 5px 0 14px; color: #858f9a; font-size: 12.5px; }
-        .plan-price-row { display: flex; align-items: baseline; gap: 6px; padding-bottom: 16px; border-bottom: 1px solid #242b33; }
-        .plan-card p.price { margin: 0; font-size: 38px; font-weight: 900; }
-        .plan-benefits { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 16px; }
-        .plan-benefit { padding: 10px 12px; border: 1px solid #242b33; border-radius: 11px; background: #0e1217; color: #cbd5e1; font-size: 12px; font-weight: 600; }
-        .upi-details { font-size: 13px; font-weight: 700; color: #b7c5d2; background: #0c1014; padding: 13px 16px; border-radius: 13px; border: 1px solid #252c34; margin-bottom: 14px; display: flex; justify-content: space-between; }
-        .pay-btn { display: block; width: 100%; padding: 16px; background: var(--ui-accent); border: 1px solid #8196a9; color: #081016; text-decoration: none; border-radius: 14px; font-weight: 900; font-size: 15px; box-sizing: border-box; }
 
-        @media (max-width: 760px) {
-            body { padding: 10px; }
-            .container { padding: 16px; border-radius: 20px; }
-            .content-selector, .studio-grid, .plan-benefits { grid-template-columns: 1fr; }
-            .studio-card.featured { grid-column: auto; }
-            .content-option label { min-height: 84px; }
-            .studio-page-head, .workspace-hero, .tool-panel, .paywall-box { padding: 20px 16px; }
+        .send-btn:active:not(:disabled) {
+            transform: scale(0.92);
+        }
+
+        /* MODAL PAYWALL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 150;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .paywall-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 480px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .currency-toggle {
+            display: flex;
+            align-self: center;
+            background: var(--surface-light);
+            border-radius: var(--radius-pill);
+            padding: 3px;
+            border: 1px solid var(--border-color);
+        }
+
+        .curr-btn {
+            background: transparent;
+            border: none;
+            padding: 5px 14px;
+            border-radius: var(--radius-pill);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .curr-btn.active {
+            background: var(--accent-blue);
+            color: #ffffff;
+        }
+
+        .plan-item {
+            background: var(--surface-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+        }
+
+        .plan-item.highlight {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), var(--surface-light));
+        }
+
+        .plan-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--accent-blue);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            text-transform: uppercase;
+        }
+
+        .plan-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .plan-title {
+            font-weight: 800;
+            font-size: 16px;
+        }
+
+        .plan-cost {
+            font-size: 20px;
+            font-weight: 900;
+            color: #f8fafc;
+        }
+
+        .plan-perks {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .pay-action-btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: #0b0e14;
+            font-weight: 800;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            font-size: 13.5px;
+            margin-top: 4px;
         }
     </style>
-
-    <script>
-        function updateTokenBadge(tokensLeft) {
-            if (typeof tokensLeft !== "number") return;
-            const badge = document.getElementById("tokenCounterBadge");
-            if (badge) badge.innerText = "⚡ Neural Tokens Remaining: " + tokensLeft + " / 5";
-        }
-
-        function showLoading() {
-            var submitBtn = document.getElementById("submitBtn");
-            var loader = document.getElementById("loaderIcon");
-            var loaderText = document.getElementById("loaderText");
-            var topic = document.querySelector('input[name="topic"]');
-            if (!topic || !topic.value.trim()) {
-                if (topic) { topic.focus(); topic.style.borderColor = '#f43f5e'; }
-                return false;
-            }
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = '⏳ Building your result...'; }
-            if (loader) loader.style.display = "block";
-            if (loaderText) loaderText.style.display = "block";
-            return true;
-        }
-
-        async function generateThumbnailImage() {
-            const btn = document.getElementById("generateImageBtn");
-            const status = document.getElementById("imageStatus");
-            const imageBox = document.getElementById("generatedImageBox");
-            const topicInput = document.querySelector('input[name="topic"]');
-            const rawText = document.getElementById("rawText");
-            if (!btn || !status || !imageBox || !topicInput || !rawText) return;
-
-            btn.disabled = true;
-            btn.innerText = "⏳ Generating thumbnail idea...";
-            status.className = "image-status";
-            status.innerText = "✨ Creating your visual idea...";
-            imageBox.innerHTML = "";
-
-            try {
-                const response = await fetch("/generate-thumbnail", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ topic: topicInput.value, thumbnail_text: rawText.innerText || rawText.textContent || "" })
-                });
-                const data = await response.json();
-                if (data.ok && data.image) {
-                    const img = document.createElement("img");
-                    img.className = "thumbnail-preview";
-                    img.src = data.image;
-                    imageBox.appendChild(img);
-                    status.className = "image-status";
-                    status.innerHTML = "💡 <strong>Visual concept ready!</strong> Use this layout as inspiration.";
-                    btn.innerText = "🖼️ Generate Another Visual";
-                } else {
-                    status.className = "image-status error";
-                    status.innerText = data.error || "⚠️ Image server busy — use your 3 detailed text concepts above!";
-                    btn.innerText = "🖼️ Try Generate Image Again";
-                }
-            } catch (error) {
-                status.className = "image-status error";
-                status.innerText = "⚠️ Image server busy — use your 3 detailed text concepts above!";
-                btn.innerText = "🖼️ Try Generate Image Again";
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function formatCreatorText(text) {
-            const boostWords = [
-                { pattern: /\bproblems?\b/gi, replace: "⚠️ problem" },
-                { pattern: /\bdelays?\b/gi, replace: "🚨 delay" },
-                { pattern: /\bdelayed\b/gi, replace: "🚨 delayed" },
-                { pattern: /\bsecrets?\b/gi, replace: "🤫 secret" },
-                { pattern: /\bleaks?\b/gi, replace: "🔥 leak" },
-                { pattern: /\bleaked\b/gi, replace: "🔥 leaked" },
-                { pattern: /\bgta 6\b/gi, replace: "🎮 GTA 6" },
-                { pattern: /\brockstar\b/gi, replace: "⭐ Rockstar" }
-            ];
-            let formattedText = String(text || "");
-            boostWords.forEach(item => { formattedText = formattedText.replace(item.pattern, item.replace); });
-            return formattedText;
-        }
-
-        function copyText(sourceId, btnId) {
-            var targetId = sourceId || "rawText";
-            var buttonId = btnId || "copyBtnText";
-            var element = document.getElementById(targetId);
-            if (!element) return;
-            var formattedText = formatCreatorText(element.innerText || element.textContent);
-
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(formattedText).then(() => triggerCopySuccess(buttonId)).catch(() => fallbackCopy(formattedText, buttonId));
-            } else {
-                fallbackCopy(formattedText, buttonId);
-            }
-        }
-
-        function triggerCopySuccess(buttonId) {
-            var btn = document.getElementById(buttonId || "copyBtnText");
-            if (btn) {
-                var originalLabel = btn.getAttribute("data-label") || "📋 Copy Result";
-                btn.setAttribute("data-label", originalLabel);
-                btn.innerText = "✓ Copied to Clipboard!";
-                btn.classList.add("copied");
-                setTimeout(() => { btn.innerText = originalLabel; btn.classList.remove("copied"); }, 2000);
-            }
-        }
-
-        function fallbackCopy(text, buttonId) {
-            var textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textArea);
-            triggerCopySuccess(buttonId);
-        }
-
-        function safeText(value) {
-            return String(value || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-        }
-
-        function saveCreatorMemory(topicStr, typeStr) {
-            try {
-                const topicVal = topicStr || currentTopic();
-                if (!topicVal) return;
-                const checkedRadio = document.querySelector('input[name="content_type"]:checked');
-                const typeVal = typeStr || (checkedRadio ? checkedRadio.value : "studio");
-                const history = JSON.parse(localStorage.getItem("hookspike_history") || "[]");
-                const item = { topic: topicVal.trim(), type: typeVal, at: Date.now() };
-                const filtered = history.filter(x => !(x.topic === item.topic && x.type === item.type));
-                filtered.unshift(item);
-                localStorage.setItem("hookspike_history", JSON.stringify(filtered.slice(0, 20)));
-            } catch(e) {}
-        }
-
-        function currentTopic() {
-            const workspace = document.getElementById('workspaceTopicInput');
-            if (workspace && workspace.value.trim()) return workspace.value.trim();
-            const studio = document.getElementById('studioTopic');
-            if (studio && studio.value.trim()) return studio.value.trim();
-            const el = document.querySelector('input[name="topic"]');
-            return el ? el.value.trim() : '';
-        }
-
-        function updateCreateButton() {
-            const selected = document.querySelector('input[name="content_type"]:checked');
-            const btn = document.getElementById('submitBtn');
-            if (btn) btn.dataset.contentType = selected ? selected.value : 'hooks';
-        }
-
-        function setContentTypeAndButton(type) {
-            const radio = document.querySelector('input[name="content_type"][value="' + type + '"]');
-            if (radio) { radio.checked = true; updateCreateButton(); }
-        }
-
-        async function runStudioAction(endpoint, payload, outputId, button) {
-            if (!button) return;
-            const oldText = button.innerText;
-            button.disabled = true;
-            button.innerText = "⏳ Building 10/10 Asset...";
-            const output = document.getElementById(outputId);
-            if (output) { output.style.display = "block"; output.innerText = "⚡ HookSpike is verifying live facts and crafting your result..."; }
-
-            try {
-                if (payload.topic) saveCreatorMemory(payload.topic, "studio");
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (typeof data.tokens_left === "number") updateTokenBadge(data.tokens_left);
-                if (data.paywall) { window.location.reload(); return; }
-                if (output) {
-                    const finalText = data.ok ? (data.text || data.result || "Done.") : (data.error || "⚠️ Something went wrong.");
-                    output.innerText = finalText;
-                    if (data.ok && finalText) { try { localStorage.setItem('hookspike_latest_result', finalText); } catch(e) {} }
-                }
-            } catch (e) {
-                if (output) output.innerText = "⚠️ Connection busy. Please tap the button to try again.";
-            } finally {
-                button.disabled = false;
-                button.innerText = oldText;
-            }
-        }
-
-        function currentResultText() {
-            const el = document.getElementById('rawText');
-            const live = el ? (el.innerText || el.textContent || '').trim() : '';
-            if (live) { try { localStorage.setItem('hookspike_latest_result', live); } catch(e) {} return live; }
-            try { return (localStorage.getItem('hookspike_latest_result') || '').trim(); } catch(e) { return ''; }
-        }
-
-        function runPack() {
-            const value = currentTopic();
-            if (!value) { document.getElementById('workspaceTopicInput')?.focus(); return; }
-            runStudioAction('/generate-pack', { topic: value, brand_voice: localStorage.getItem('hookspike_brand_voice') || '' }, 'packOutput', document.getElementById('packBtn'));
-        }
-
-        function runShorts() {
-            const topic = currentTopic();
-            if (!topic) { document.getElementById('workspaceTopicInput')?.focus(); return; }
-            runStudioAction('/refine-content', { topic: topic, content: topic, action: 'shorts', brand_voice: localStorage.getItem('hookspike_brand_voice') || '' }, 'shortsOutput', document.getElementById('shortsBtn'));
-        }
-
-        function runRefine(action, btnElement) {
-            const topicValue = currentTopic();
-            const customDraft = document.getElementById('refineCustomInput');
-            const draftText = (customDraft && customDraft.value.trim()) ? customDraft.value.trim() : currentResultText();
-            runStudioAction('/refine-content', { topic: topicValue, content: draftText || topicValue, action: action, brand_voice: localStorage.getItem('hookspike_brand_voice') || '' }, 'refineOutput', btnElement || document.activeElement);
-        }
-
-        function runAnalyzer() {
-            const input = document.getElementById('hookAnalyzerInput');
-            if (!input || !input.value.trim()) { input?.focus(); return; }
-            runStudioAction('/analyze-hook', { hook: input.value.trim(), topic: currentTopic() }, 'analyzerOutput', document.getElementById('analyzeBtn'));
-        }
-
-        function runDiscover() {
-            const cat = document.getElementById('discoverCategory')?.value || 'general';
-            const topic = currentTopic();
-            runStudioAction('/discover-topics', { category: topic ? `${cat} - around ${topic}` : cat }, 'discoverOutput', document.getElementById('discoverBtn'));
-        }
-
-        function runPackaging() {
-            const val = currentTopic();
-            if (!val) { document.getElementById('workspaceTopicInput')?.focus(); return; }
-            runStudioAction('/packaging-lab', { topic: val, brand_voice: localStorage.getItem('hookspike_brand_voice') || '' }, 'packagingOutput', document.getElementById('packagingBtn'));
-        }
-
-        function runAB() {
-            const val = currentTopic();
-            if (!val) { document.getElementById('workspaceTopicInput')?.focus(); return; }
-            runStudioAction('/ab-packs', { topic: val, brand_voice: localStorage.getItem('hookspike_brand_voice') || '' }, 'abOutput', document.getElementById('abBtn'));
-        }
-
-        function runPerformance() {
-            const metrics = document.getElementById('metricsInput');
-            if (!metrics || !metrics.value.trim()) { metrics?.focus(); return; }
-            runStudioAction('/performance-coach', { topic: currentTopic(), metrics: metrics.value.trim() }, 'performanceOutput', document.getElementById('performanceBtn'));
-        }
-
-        function runPlanner() {
-            const niche = document.getElementById('plannerNiche')?.value.trim() || currentTopic();
-            if (!niche) { document.getElementById('plannerNiche')?.focus(); return; }
-            runStudioAction('/content-planner', { niche: niche, goal: document.getElementById('plannerGoal')?.value || 'growth' }, 'plannerOutput', document.getElementById('plannerBtn'));
-        }
-
-        function runRepurpose() {
-            const content = document.getElementById('repurposeInput')?.value.trim() || currentResultText();
-            if (!content) { document.getElementById('repurposeInput')?.focus(); return; }
-            runStudioAction('/repurpose-content', { content: content, source_platform: 'YouTube', target_platform: document.getElementById('repurposeTarget')?.value || 'Instagram Reels' }, 'repurposeOutput', document.getElementById('repurposeBtn'));
-        }
-
-        function saveBrandVoice() {
-            const value = document.getElementById('brandVoice').value.trim();
-            localStorage.setItem('hookspike_brand_voice', value);
-            document.getElementById('brandSaved').innerText = value ? '✅ Creator Voice saved! Tools will now follow your voice.' : 'ℹ️ Creator Voice cleared.';
-        }
-
-        function loadBrandVoice() {
-            try {
-                const el = document.getElementById('brandVoice');
-                if (el) el.value = localStorage.getItem('hookspike_brand_voice') || '';
-            } catch(e) {}
-        }
-
-        function renderHistory() {
-            const box = document.getElementById('historyList');
-            if (!box) return;
-            try {
-                const history = JSON.parse(localStorage.getItem('hookspike_history') || '[]');
-                box.innerHTML = history.length
-                    ? history.map(x => `<div class="history-item" onclick="useHistory(${JSON.stringify(x.topic).replace(/</g,'\\u003c')},${JSON.stringify(x.type)})"><strong>${safeText(x.type.toUpperCase())}</strong> • ${safeText(x.topic)}</div>`).join('')
-                    : '<div class="history-item">No saved topics yet. Generated topics appear here.</div>';
-            } catch(e) { box.innerHTML = '<div class="history-item">History unavailable.</div>'; }
-        }
-
-        function useHistory(topic, type) {
-            window.location.href = '/?content_type=' + encodeURIComponent(type === 'studio' ? 'hooks' : type) + '&topic=' + encodeURIComponent(topic);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCreateButton();
-            loadBrandVoice();
-            renderHistory();
-
-            const studioInput = document.getElementById('studioTopic');
-            if (studioInput) {
-                studioInput.addEventListener('input', function() {
-                    const val = studioInput.value.trim();
-                    document.querySelectorAll('.studio-card[data-tool]').forEach(card => {
-                        const toolName = card.getAttribute('data-tool');
-                        card.href = '/creator-studio?tool=' + encodeURIComponent(toolName) + (val ? '&topic=' + encodeURIComponent(val) : '');
-                    });
-                });
-            }
-
-            const form = document.querySelector('form[action="/"]');
-            if (form) {
-                form.addEventListener('submit', function() {
-                    updateCreateButton();
-                    saveCreatorMemory();
-                    try {
-                        const h = document.getElementById('brandVoiceHidden');
-                        if (h) h.value = localStorage.getItem('hookspike_brand_voice') || '';
-                    } catch(e) {}
-                });
-            }
-        });
-    </script>
 </head>
+<body>
 
-<body class="{% if studio_page and studio_tool %}studio-workspace-route{% endif %}">
+    <!-- TOP HEADER -->
+    <header>
+        <div class="header-left">
+            <button class="icon-btn" id="openDrawerBtn" title="Chat History">☰</button>
+            <button class="pro-pill-btn" id="proModalOpenBtn">
+                <span>⚡ Get Pro</span>
+                <span class="token-counter" id="headerTokens">
+                    {% if tokens_left > 100 %}Unlimited{% else %}{{ tokens_left }} left{% endif %}
+                </span>
+            </button>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" id="toolsDialBtn" title="Quick Tools">🎛️</button>
+        </div>
 
-<div class="container">
+        <!-- QUICK TOOLS DIAL DROPDOWN -->
+        <div class="tools-dropdown" id="toolsDropdown">
+            <button class="tool-option" onclick="selectActionPrefix('Create 7 Viral Hooks for: ')">🔥 7 Viral Hooks</button>
+            <button class="tool-option" onclick="selectActionPrefix('Write a shoot-ready 60s script for: ')">🎬 60s Video Script</button>
+            <button class="tool-option" onclick="selectActionPrefix('Analyze retention and improve my hook: ')">🧲 Hook Analyzer</button>
+            <button class="tool-option" onclick="selectActionPrefix('Build 3 CTR Packaging ideas (Title + Thumbnail) for: ')">📦 Packaging Lab</button>
+        </div>
+    </header>
 
-    <div class="logo">
-        Hook<span>Spike</span> AI ⚡
+    <!-- SIDEBAR DRAWER -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <aside class="sidebar-drawer" id="sidebarDrawer">
+        <button class="new-chat-btn" id="newChatBtn">
+            <span>+ New Chat</span>
+            <span>⚡</span>
+        </button>
+        <div class="drawer-section-title">Saved Creator Chats</div>
+        <div class="history-list" id="historyList">
+            <!-- Dynamically populated from LocalStorage -->
+        </div>
+        <div class="drawer-footer">
+            <span>👤 {{ user_email or "Creator" }}</span>
+            <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-weight: 600;">Logout</a>
+        </div>
+    </aside>
+
+    <!-- CHAT WORKSPACE -->
+    <main class="chat-container" id="chatContainer">
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-brand">Hook<span>Spike</span> AI ⚡</div>
+            <p class="welcome-sub">Your personal viral strategist & production partner. Type any topic, paste your script, or ask anything.</p>
+        </div>
+    </main>
+
+    <!-- FIXED BOTTOM INPUT DOCK -->
+    <div class="input-dock">
+        <div class="input-wrapper">
+            <input type="text" id="chatInput" placeholder="Ask HookSpike or give an idea..." autocomplete="off">
+            <button class="send-btn" id="sendBtn" title="Send">↑</button>
+        </div>
     </div>
 
-    <p class="tagline">
-        CREATOR COMMAND CENTER · RESEARCH → CREATE → PACKAGE → REPURPOSE
-    </p>
+    <!-- GLOBAL & DOMESTIC PAYWALL MODAL -->
+    <div class="modal-overlay" id="paywallModal">
+        <div class="paywall-card">
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+            <div style="text-align: center;">
+                <h3 style="font-size: 19px; font-weight: 800;">⚡ Upgrade Your Output</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">More tokens, zero downtime, extended multi-turn memory.</p>
+            </div>
 
-    {% if not logged_in %}
+            <div class="currency-toggle">
+                <button class="curr-btn active" id="currInrBtn" onclick="setCurrency('INR')">🇮🇳 INR</button>
+                <button class="curr-btn" id="currUsdBtn" onclick="setCurrency('USD')">🌍 USD</button>
+            </div>
 
-        <div class="login-box">
-            <span class="login-kicker">⚡ CREATOR WORKSPACE</span>
-            <h3>Welcome Back, Creator</h3>
-            <p>Sign in with Google to sync your tokens, custom creator voice, and content workflows across all devices.</p>
-            <a href="/login/google" class="google-btn">
-                <span class="google-icon">G</span>
-                <span>Continue with Google</span>
-            </a>
-        </div>
-
-    {% else %}
-
-        <div class="user-profile">
-            👤 {{ user_email }}
-            <a href="/logout" class="logout-link">Logout</a>
-        </div>
-
-        <div id="tokenCounterBadge" class="counter-badge">
-            ⚡ Neural Tokens Remaining: {{ tokens_left }} / 5
-        </div>
-
-        {% if show_paywall %}
-
-            <div class="paywall-box">
-                <div class="paywall-kicker">⚡ CREATOR PRO MEMBERSHIP</div>
-                <h2>Keep creating at full speed.</h2>
-                <p class="pay-desc">You’ve used all 5 starter tokens. Unlock unlimited access to the entire HookSpike Creator Command Center for one simple monthly plan.</p>
-
-                <div class="plan-card">
-                    <div class="plan-badge">ALL-IN-ONE ACCESS</div>
-                    <h4>HookSpike Creator Pro</h4>
-                    <p class="plan-sub">Built for YouTubers and creators who want faster research and higher retention.</p>
-                    <div class="plan-price-row">
-                        <p class="price">₹899</p><span class="duration">/ month</span>
-                    </div>
-                    <div class="plan-benefits">
-                        <div class="plan-benefit">🚀 Complete Creator Packs</div>
-                        <div class="plan-benefit">🔎 Live Web-Verified Research</div>
-                        <div class="plan-benefit">🧲 Hook & Retention Analyzer</div>
-                        <div class="plan-benefit">📦 Packaging & A/B Test Lab</div>
-                        <div class="plan-benefit">📈 Video Performance Coach</div>
-                        <div class="plan-benefit">🗓️ 7-Day Content Planner</div>
-                        <div class="plan-benefit">♻️ Cross-Platform Repurposer</div>
-                        <div class="plan-benefit">🎙️ Custom Creator Voice</div>
-                    </div>
+            <!-- STARTER PASS -->
+            <div class="plan-item">
+                <div class="plan-row">
+                    <span class="plan-title">Starter Pass</span>
+                    <span class="plan-cost" id="starterPriceText">₹199</span>
                 </div>
-
-                <div class="upi-details">
-                    <span>💳 Instant UPI Activation</span>
-                    <span style="color:#eef1f4;font-family:monospace;">9657119506@axl</span>
+                <div class="plan-perks">
+                    ⚡ <strong>17 Neural Tokens</strong><br>
+                    • Sub-5s fast routing<br>
+                    • Multi-turn chat memory
                 </div>
-
-                <a href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=899&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end" class="pay-btn">
-                    ⚡ Unlock Creator Pro · ₹899/month
+                <a href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=199&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end" id="starterPayBtn" class="pay-action-btn">
+                    Get Starter Pass (17 Tokens)
                 </a>
             </div>
 
-        {% else %}
-
-            {% if not studio_page %}
-            <form method="POST" action="/" onsubmit="return showLoading()">
-                <label>What do you want to create?</label>
-
-                <div class="content-selector">
-                    <div class="content-option">
-                        <input type="radio" id="typeHooks" name="content_type" value="hooks"
-                            {% if content_type == "hooks" or not content_type %}checked{% endif %} required onchange="updateCreateButton()">
-                        <label for="typeHooks" onclick="setContentTypeAndButton('hooks')">
-                            <span class="option-icon">🔥</span>
-                            <span class="option-copy">
-                                <span class="option-title">Hooks</span>
-                                <span class="option-sub">7 scroll-stopping hooks with camera cues & winner pick</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="content-option">
-                        <input type="radio" id="typeScript" name="content_type" value="script"
-                            {% if content_type == "script" %}checked{% endif %} onchange="updateCreateButton()">
-                        <label for="typeScript" onclick="setContentTypeAndButton('script')">
-                            <span class="option-icon">🎬</span>
-                            <span class="option-copy">
-                                <span class="option-title">Script</span>
-                                <span class="option-sub">Shoot-ready script with pacing, B-roll cues & smooth flow</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="content-option">
-                        <input type="radio" id="typeThumbnail" name="content_type" value="thumbnail"
-                            {% if content_type == "thumbnail" %}checked{% endif %} onchange="updateCreateButton()">
-                        <label for="typeThumbnail" onclick="setContentTypeAndButton('thumbnail')">
-                            <span class="option-icon">🖼️</span>
-                            <span class="option-copy">
-                                <span class="option-title">Thumbnail</span>
-                                <span class="option-sub">3 high-CTR mobile concepts + AI visual generator</span>
-                            </span>
-                        </label>
-                    </div>
+            <!-- CREATOR PRO -->
+            <div class="plan-item highlight">
+                <span class="plan-badge">Most Popular</span>
+                <div class="plan-row">
+                    <span class="plan-title">Creator Pro</span>
+                    <span class="plan-cost" id="proPriceText">₹899</span>
                 </div>
-
-                <div class="creation-prompt">
-                    <span class="creation-prompt-label">What’s the idea?</span>
-                    <input type="hidden" id="brandVoiceHidden" name="brand_voice" value="">
-                    <input type="text" name="topic" placeholder="e.g. GTA 6 latest update, One Piece theory, iPhone 17 leaks..." value="{{ topic }}" autocomplete="off" required>
-                    <span class="creation-prompt-help">Topic, game, anime, trend or rough idea — HookSpike verifies live facts and builds your asset.</span>
+                <div class="plan-perks">
+                    ⚡ <strong>40 Neural Tokens</strong><br>
+                    • Extended infinite context window<br>
+                    • Live Google Search fact-check<br>
+                    • Instant reload top-up access
                 </div>
-
-                <button type="submit" id="submitBtn" data-content-type="{{ content_type or 'hooks' }}">
-                    <span class="create-label create-label-hooks">CREATE MY HOOKS 🚀</span>
-                    <span class="create-label create-label-script">CREATE MY SCRIPT 🎬</span>
-                    <span class="create-label create-label-thumbnail">CREATE MY THUMBNAIL 🖼️</span>
-                </button>
-            </form>
-
-            <div class="creator-studio-cta">
-                <span class="workspace-kicker">⭐ YOUR CREATOR WORKSPACE</span>
-                <strong>🚀 Creator Studio</strong>
-                <span>Complete Creator Pack + live topic radar, script refinement, hook analyzer, packaging lab, 7-day planner and repurposing — all inside one focused workspace.</span>
-                <a class="tool-action studio-open-btn" href="/creator-studio{% if topic %}?topic={{ topic|urlencode }}{% endif %}">✨ Open Creator Studio →</a>
+                <a href="intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=899&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end" id="proPayBtn" class="pay-action-btn">
+                    Unlock Creator Pro (40 Tokens)
+                </a>
             </div>
-            {% endif %}
+        </div>
+    </div>
 
-            {% if studio_page %}
-                <div class="studio-page-head">
-                    <a class="studio-back-link" href="/">← Back to Dashboard</a>
-                    <span class="workspace-kicker">💎 CREATOR STUDIO</span>
-                    <h2>Everything for your next upload.</h2>
-                    <p>One focused workspace instead of a wall of tools. Enter your working topic below, pick a workflow, and create.</p>
-                    <input id="studioTopic" class="tool-input studio-topic" type="text" placeholder="Enter your topic, game, update, trend or video idea..." value="{{ topic }}">
-                </div>
+    <!-- CORE CHAT & STREAMING LOGIC -->
+    <script>
+        let currentChatHistory = [];
+        let isGenerating = false;
 
-                <div class="studio-nav">
-                    <a href="#create">01 · Create</a>
-                    <a href="#improve">02 · Improve</a>
-                    <a href="#grow">03 · Grow</a>
-                    <a href="#library">04 · Personalize</a>
-                </div>
+        // UI Selectors
+        const chatContainer = document.getElementById("chatContainer");
+        const chatInput = document.getElementById("chatInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const welcomeScreen = document.getElementById("welcomeScreen");
+        const toolsDialBtn = document.getElementById("toolsDialBtn");
+        const toolsDropdown = document.getElementById("toolsDropdown");
+        const openDrawerBtn = document.getElementById("openDrawerBtn");
+        const sidebarDrawer = document.getElementById("sidebarDrawer");
+        const drawerOverlay = document.getElementById("drawerOverlay");
+        const newChatBtn = document.getElementById("newChatBtn");
+        const proModalOpenBtn = document.getElementById("proModalOpenBtn");
+        const paywallModal = document.getElementById("paywallModal");
+        const closeModalBtn = document.getElementById("closeModalBtn");
+        const historyList = document.getElementById("historyList");
 
-                <div id="create" class="studio-section">
-                    <div class="studio-section-head">
-                        <span class="workspace-kicker">01 · CREATE</span>
-                        <h3>Make the content</h3>
-                        <p>Start with the fastest path from idea to publish-ready content.</p>
-                    </div>
-                    <div class="studio-grid">
-                        <a class="studio-card featured" data-tool="packPanel" href="/creator-studio?tool=packPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🚀</div>
-                            <strong>Complete Creator Pack</strong>
-                            <span>One topic → verified research, 5 titles, 7 hooks, full script, 3 thumbnail concepts, SEO description, hashtags & keywords.</span>
-                            <span class="card-tag">Recommended</span>
-                        </a>
-                        <a class="studio-card" data-tool="discoverPanel" href="/creator-studio?tool=discoverPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🔥</div>
-                            <strong>Fresh Topic Radar</strong>
-                            <span>Find 6 timely, web-verified opportunities spiking right now.</span>
-                            <span class="card-tag">Research</span>
-                        </a>
-                        <a class="studio-card" data-tool="shortsPanel" href="/creator-studio?tool=shortsPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">📱</div>
-                            <strong>Shorts Mode</strong>
-                            <span>Turn any topic into a tight 60-second vertical script with fast cuts.</span>
-                            <span class="card-tag">Create</span>
-                        </a>
-                    </div>
-                </div>
+        // Tools Dropdown Toggle
+        toolsDialBtn.addEventListener("click", () => toolsDropdown.classList.toggle("active"));
+        document.addEventListener("click", (e) => {
+            if (!toolsDialBtn.contains(e.target) && !toolsDropdown.contains(e.target)) {
+                toolsDropdown.classList.remove("active");
+            }
+        });
 
-                <div id="improve" class="studio-section">
-                    <div class="studio-section-head">
-                        <span class="workspace-kicker">02 · IMPROVE</span>
-                        <h3>Make every idea stronger</h3>
-                        <p>Polish the hook, packaging and creative angle before publishing.</p>
-                    </div>
-                    <div class="studio-grid">
-                        <a class="studio-card" data-tool="refinePanel" href="/creator-studio?tool=refinePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">✨</div>
-                            <strong>Make It Better</strong>
-                            <span>Remix any script or hook to be punchier, shorter, or more curious.</span>
-                            <span class="card-tag">Refine</span>
-                        </a>
-                        <a class="studio-card" data-tool="analyzerPanel" href="/creator-studio?tool=analyzerPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🧲</div>
-                            <strong>Hook Analyzer</strong>
-                            <span>Get a 0-10 retention scorecard plus 3 stronger rewrites.</span>
-                            <span class="card-tag">Optimize</span>
-                        </a>
-                        <a class="studio-card" data-tool="packagingPanel" href="/creator-studio?tool=packagingPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">📦</div>
-                            <strong>Packaging Lab</strong>
-                            <span>Coordinate your title, thumbnail visual, and first-5-second hook.</span>
-                            <span class="card-tag">Package</span>
-                        </a>
-                        <a class="studio-card" data-tool="abPanel" href="/creator-studio?tool=abPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🅰️</div>
-                            <strong>A/B Pack Generator</strong>
-                            <span>Build 3 distinct psychological test angles (Search vs Curiosity vs Bold).</span>
-                            <span class="card-tag">Test</span>
-                        </a>
-                    </div>
-                </div>
+        function selectActionPrefix(prefix) {
+            chatInput.value = prefix;
+            chatInput.focus();
+            toolsDropdown.classList.remove("active");
+        }
 
-                <div id="grow" class="studio-section">
-                    <div class="studio-section-head">
-                        <span class="workspace-kicker">03 · GROW</span>
-                        <h3>Turn content into a system</h3>
-                        <p>Use analytics diagnosis, weekly planning and repurposing to build momentum.</p>
-                    </div>
-                    <div class="studio-grid">
-                        <a class="studio-card" data-tool="performancePanel" href="/creator-studio?tool=performancePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">📈</div>
-                            <strong>Performance Coach</strong>
-                            <span>Diagnose real CTR, AVD and 30-second retention bottlenecks.</span>
-                            <span class="card-tag">Diagnose</span>
-                        </a>
-                        <a class="studio-card" data-tool="plannerPanel" href="/creator-studio?tool=plannerPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🗓️</div>
-                            <strong>7-Day Planner</strong>
-                            <span>Build a realistic 7-day content schedule around your niche and goal.</span>
-                            <span class="card-tag">Plan</span>
-                        </a>
-                        <a class="studio-card" data-tool="repurposePanel" href="/creator-studio?tool=repurposePanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">♻️</div>
-                            <strong>Content Repurposer</strong>
-                            <span>Adapt any YouTube script or post for Reels, Shorts, TikTok or X.</span>
-                            <span class="card-tag">Repurpose</span>
-                        </a>
-                    </div>
-                </div>
+        // Drawer Controls
+        openDrawerBtn.addEventListener("click", () => {
+            sidebarDrawer.classList.add("active");
+            drawerOverlay.classList.add("active");
+        });
 
-                <div id="library" class="studio-section">
-                    <div class="studio-section-head">
-                        <span class="workspace-kicker">04 · PERSONALIZE & LIBRARY</span>
-                        <h3>Make HookSpike yours</h3>
-                        <p>Keep your signature creator voice and quickly return to previous ideas.</p>
-                    </div>
-                    <div class="studio-grid">
-                        <a class="studio-card" data-tool="brandPanel" href="/creator-studio?tool=brandPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🎙️</div>
-                            <strong>Creator Voice</strong>
-                            <span>Train HookSpike to write in your exact tone, language, and pacing.</span>
-                            <span class="card-tag">Personalize</span>
-                        </a>
-                        <a class="studio-card" data-tool="historyPanel" href="/creator-studio?tool=historyPanel{% if topic %}&topic={{ topic|urlencode }}{% endif %}">
-                            <div class="icon">🗂️</div>
-                            <strong>Recent Ideas</strong>
-                            <span>Jump back into topics you already explored on this device.</span>
-                            <span class="card-tag">Library</span>
-                        </a>
-                    </div>
-                </div>
+        drawerOverlay.addEventListener("click", () => {
+            sidebarDrawer.classList.remove("active");
+            drawerOverlay.classList.remove("active");
+        });
 
-                {% if studio_tool %}
-                <div class="studio-workspace-shell">
-                    <div class="studio-workspace-top">
-                        <a class="workspace-close" href="/creator-studio{% if topic %}?topic={{ topic|urlencode }}{% endif %}">← Back to Creator Studio</a>
-                        <span class="workspace-meta">Focused Workspace</span>
-                    </div>
-                    <div class="workspace-hero">
-                        {% if studio_tool == 'packPanel' %}
-                            <span class="workspace-kicker">01 · CREATE</span><h1>Complete Creator Pack</h1><p>One topic, one verified research pass, one complete publish-ready content system.</p>
-                        {% elif studio_tool == 'discoverPanel' %}
-                            <span class="workspace-kicker">01 · RESEARCH</span><h1>Fresh Topic Radar</h1><p>Find timely, web-verified opportunities worth creating around right now.</p>
-                        {% elif studio_tool == 'shortsPanel' %}
-                            <span class="workspace-kicker">01 · CREATE</span><h1>Shorts Mode</h1><p>Turn an idea into a tight, 60-second vertical script with fast cuts.</p>
-                        {% elif studio_tool == 'refinePanel' %}
-                            <span class="workspace-kicker">02 · IMPROVE</span><h1>Make It Better</h1><p>Remix your draft or topic toward stronger curiosity, clarity and retention.</p>
-                        {% elif studio_tool == 'analyzerPanel' %}
-                            <span class="workspace-kicker">02 · IMPROVE</span><h1>Hook Analyzer</h1><p>Get a 0-10 retention scorecard and 3 upgraded rewrites for your opening line.</p>
-                        {% elif studio_tool == 'packagingPanel' %}
-                            <span class="workspace-kicker">02 · IMPROVE</span><h1>Packaging Lab</h1><p>Coordinate the title, thumbnail visual, and first-5-second hook before you publish.</p>
-                        {% elif studio_tool == 'abPanel' %}
-                            <span class="workspace-kicker">02 · IMPROVE</span><h1>A/B Pack Generator</h1><p>Create 3 distinct psychological angles instead of betting everything on one idea.</p>
-                        {% elif studio_tool == 'performancePanel' %}
-                            <span class="workspace-kicker">03 · GROW</span><h1>Performance Coach</h1><p>Turn your real video metrics into a prioritized list of retention & CTR fixes.</p>
-                        {% elif studio_tool == 'plannerPanel' %}
-                            <span class="workspace-kicker">03 · GROW</span><h1>7-Day Content Planner</h1><p>Build a realistic week around your niche, goal and publishing rhythm.</p>
-                        {% elif studio_tool == 'repurposePanel' %}
-                            <span class="workspace-kicker">03 · GROW</span><h1>Content Repurposer</h1><p>Adapt your best content for another platform with native hooks and pacing.</p>
-                        {% elif studio_tool == 'brandPanel' %}
-                            <span class="workspace-kicker">04 · PERSONALIZE</span><h1>Creator Voice</h1><p>Give HookSpike a consistent writing style that sounds unmistakably like you.</p>
-                        {% elif studio_tool == 'historyPanel' %}
-                            <span class="workspace-kicker">04 · LIBRARY</span><h1>Recent Ideas</h1><p>Return to topics you have already explored and keep momentum.</p>
-                        {% endif %}
+        // Paywall Modal Controls
+        proModalOpenBtn.addEventListener("click", () => paywallModal.classList.add("active"));
+        closeModalBtn.addEventListener("click", () => paywallModal.classList.remove("active"));
 
-                        {% if studio_tool not in ['brandPanel', 'historyPanel'] %}
-                        <div class="workspace-context">
-                            <label for="workspaceTopicInput">WORKING TOPIC</label>
-                            <input id="workspaceTopicInput" class="workspace-topic-input" type="text" value="{{ topic }}" placeholder="Enter topic, game, anime, trend or video idea..." autocomplete="off">
-                            <span>This topic powers the tool below with live web research.</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
+        // Currency Toggle Logic
+        function setCurrency(curr) {
+            const inrBtn = document.getElementById("currInrBtn");
+            const usdBtn = document.getElementById("currUsdBtn");
+            const starterPrice = document.getElementById("starterPriceText");
+            const proPrice = document.getElementById("proPriceText");
+            const starterBtn = document.getElementById("starterPayBtn");
+            const proBtn = document.getElementById("proPayBtn");
 
-                <!-- TOOL PANELS -->
-                <div id="packPanel" class="tool-panel{% if studio_tool == 'packPanel' %} show{% endif %}">
-                    <div class="tool-title">🚀 Complete Creator Pack</div>
-                    <p style="color:#858f9a;font-size:12.5px;margin-top:0;">Generates 5 Titles, 7 Hooks, Full Script, 3 Thumbnail Concepts, Description, Hashtags & Strategy Note.</p>
-                    <button id="packBtn" class="tool-action" type="button" onclick="runPack()">✨ Build My Complete Pack</button>
-                    <div id="packOutput" class="tool-output">Your complete publish-ready creator pack will appear here.</div>
-                    <button id="copyPackBtn" class="copy-btn" type="button" onclick="copyText('packOutput', 'copyPackBtn')">📋 Copy Complete Pack</button>
-                </div>
+            if (curr === "USD") {
+                inrBtn.classList.remove("active");
+                usdBtn.classList.add("active");
+                starterPrice.innerText = "$4.99";
+                proPrice.innerText = "$19.99";
+                starterBtn.innerText = "Get Starter Pass ($4.99)";
+                proBtn.innerText = "Unlock Creator Pro ($19.99)";
+                starterBtn.href = "https://buy.stripe.com/test_starter"; // Foreign link or Stripe handler
+                proBtn.href = "https://buy.stripe.com/test_pro";
+            } else {
+                usdBtn.classList.remove("active");
+                inrBtn.classList.add("active");
+                starterPrice.innerText = "₹199";
+                proPrice.innerText = "₹899";
+                starterBtn.innerText = "Get Starter Pass (17 Tokens)";
+                proBtn.innerText = "Unlock Creator Pro (40 Tokens)";
+                starterBtn.href = "intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=199&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end";
+                proBtn.href = "intent://pay?pa=9657119506@axl&pn=HookSpike%20AI&am=899&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end";
+            }
+        }
 
-                <div id="discoverPanel" class="tool-panel{% if studio_tool == 'discoverPanel' %} show{% endif %}">
-                    <div class="tool-title">🔥 Fresh Topic Radar</div>
-                    <select id="discoverCategory" class="tool-select">
-                        <option value="general">🌐 General Creator Trends</option>
-                        <option value="gaming">🎮 Gaming & Esports</option>
-                        <option value="anime">🍥 Anime & Manga</option>
-                        <option value="tech">🤖 Tech, Gadgets & AI</option>
-                        <option value="movies">🎬 Movies & Pop Culture</option>
-                        <option value="finance">💸 Business, Money & Careers</option>
-                    </select>
-                    <button id="discoverBtn" class="tool-action" type="button" onclick="runDiscover()">🔎 Scan Live Topics Now</button>
-                    <div id="discoverOutput" class="tool-output">6 live web-verified video opportunities will appear here.</div>
-                    <button id="copyDiscoverBtn" class="copy-btn" type="button" onclick="copyText('discoverOutput', 'copyDiscoverBtn')">📋 Copy Radar</button>
-                </div>
+        // Local Storage Chat Sessions
+        function saveChatSession(title, history) {
+            try {
+                let sessions = JSON.parse(localStorage.getItem("hookspike_sessions") || "[]");
+                sessions = sessions.filter(s => s.title !== title);
+                sessions.unshift({ title, history, time: Date.now() });
+                localStorage.setItem("hookspike_sessions", JSON.stringify(sessions.slice(0, 15)));
+                renderHistoryList();
+            } catch (e) {}
+        }
 
-                <div id="shortsPanel" class="tool-panel{% if studio_tool == 'shortsPanel' %} show{% endif %}">
-                    <div class="tool-title">📱 Shorts Mode (45-60s Vertical Script)</div>
-                    <p style="color:#858f9a;font-size:12.5px;margin-top:0;">Builds a fast-paced vertical script with 3-second hook, visual cuts, and loopable ending.</p>
-                    <button id="shortsBtn" class="tool-action" type="button" onclick="runShorts()">📱 Create My Short Script</button>
-                    <div id="shortsOutput" class="tool-output">Your vertical Short/Reel script will appear here.</div>
-                    <button id="copyShortsBtn" class="copy-btn" type="button" onclick="copyText('shortsOutput', 'copyShortsBtn')">📋 Copy Short Script</button>
-                </div>
+        function renderHistoryList() {
+            try {
+                const sessions = JSON.parse(localStorage.getItem("hookspike_sessions") || "[]");
+                if (sessions.length === 0) {
+                    historyList.innerHTML = `<span style="font-size:12px; color:var(--text-muted); padding:8px;">No previous chats yet.</span>`;
+                    return;
+                }
+                historyList.innerHTML = sessions.map((s, idx) => `
+                    <div class="history-item" onclick="loadSession(${idx})">${s.title}</div>
+                `).join("");
+            } catch (e) {}
+        }
 
-                <div id="refinePanel" class="tool-panel{% if studio_tool == 'refinePanel' %} show{% endif %}">
-                    <div class="tool-title">✨ Make It Better (Content Remixer)</div>
-                    <textarea id="refineCustomInput" class="tool-input" placeholder="Paste any existing script, hook, or draft here (or leave blank to remix your Working Topic)..."></textarea>
-                    <div class="quick-actions">
-                        <button class="quick-btn" type="button" onclick="runRefine('more-curious', this)">🧲 More Curiosity</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('more-viral', this)">🔥 Punchier</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('more-natural', this)">🗣️ Human & Natural</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('shorter', this)">⚡ 40% Shorter</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('cinematic', this)">🎬 Cinematic</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('shorts', this)">📱 Convert to Short</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('gaming', this)">🎮 Gaming Tone</button>
-                        <button class="quick-btn" type="button" onclick="runRefine('anime', this)">🍥 Anime Tone</button>
-                    </div>
-                    <div id="refineOutput" class="tool-output">Tap any transformation button above to upgrade your content.</div>
-                    <button id="copyRefineBtn" class="copy-btn" type="button" onclick="copyText('refineOutput', 'copyRefineBtn')">📋 Copy Upgraded Version</button>
-                </div>
+        function loadSession(idx) {
+            try {
+                const sessions = JSON.parse(localStorage.getItem("hookspike_sessions") || "[]");
+                if (sessions[idx]) {
+                    currentChatHistory = sessions[idx].history;
+                    chatContainer.innerHTML = "";
+                    currentChatHistory.forEach(msg => appendMessageBubble(msg.role, msg.content));
+                    sidebarDrawer.classList.remove("active");
+                    drawerOverlay.classList.remove("active");
+                }
+            } catch (e) {}
+        }
 
-                <div id="analyzerPanel" class="tool-panel{% if studio_tool == 'analyzerPanel' %} show{% endif %}">
-                    <div class="tool-title">🧲 Hook Analyzer & Rewriter</div>
-                    <textarea id="hookAnalyzerInput" class="tool-input" placeholder="Paste your opening hook or first 2 sentences here..."></textarea>
-                    <button id="analyzeBtn" class="tool-action" type="button" onclick="runAnalyzer()">🔍 Diagnose & Upgrade My Hook</button>
-                    <div id="analyzerOutput" class="tool-output">You’ll get a 0-10 Retention Scorecard, #1 weakness diagnosis, and 3 stronger rewrites.</div>
-                    <button id="copyAnalyzeBtn" class="copy-btn" type="button" onclick="copyText('analyzerOutput', 'copyAnalyzeBtn')">📋 Copy Hook Analysis</button>
-                </div>
+        newChatBtn.addEventListener("click", () => {
+            currentChatHistory = [];
+            chatContainer.innerHTML = "";
+            chatContainer.appendChild(welcomeScreen);
+            sidebarDrawer.classList.remove("active");
+            drawerOverlay.classList.remove("active");
+        });
 
-                <div id="packagingPanel" class="tool-panel{% if studio_tool == 'packagingPanel' %} show{% endif %}">
-                    <div class="tool-title">📦 Video Packaging Lab</div>
-                    <p style="color:#858f9a;font-size:12.5px;margin-top:0;">Coordinates Title + Thumbnail Visual + 3-Word Text + First-5-Second Hook so they don't repeat each other.</p>
-                    <button id="packagingBtn" class="tool-action" type="button" onclick="runPackaging()">🚀 Build 3 Packaging Systems</button>
-                    <div id="packagingOutput" class="tool-output">Your 3 coordinated packaging systems will appear here.</div>
-                    <button id="copyPackagingBtn" class="copy-btn" type="button" onclick="copyText('packagingOutput', 'copyPackagingBtn')">📋 Copy Packaging</button>
-                </div>
+        // Append UI Bubbles
+        function appendMessageBubble(role, initialText = "") {
+            if (welcomeScreen && welcomeScreen.parentNode) {
+                welcomeScreen.parentNode.removeChild(welcomeScreen);
+            }
 
-                <div id="abPanel" class="tool-panel{% if studio_tool == 'abPanel' %} show{% endif %}">
-                    <div class="tool-title">🅰️ A/B Pack Generator</div>
-                    <p style="color:#858f9a;font-size:12.5px;margin-top:0;">Generates 3 distinct psychological test angles: Search/Authority vs Curiosity Loop vs Bold Contrarian.</p>
-                    <button id="abBtn" class="tool-action" type="button" onclick="runAB()">🧪 Generate 3 A/B Test Packs</button>
-                    <div id="abOutput" class="tool-output">Your 3 A/B/C test packs and testing playbook will appear here.</div>
-                    <button id="copyABBtn" class="copy-btn" type="button" onclick="copyText('abOutput', 'copyABBtn')">📋 Copy A/B Packs</button>
-                </div>
+            const row = document.createElement("div");
+            row.className = `message-row ${role}`;
 
-                <div id="performancePanel" class="tool-panel{% if studio_tool == 'performancePanel' %} show{% endif %}">
-                    <div class="tool-title">📈 Video Performance Coach</div>
-                    <textarea id="metricsInput" class="tool-input" placeholder="Paste your video stats here (Views, CTR, Retention, AVD)..."></textarea>
-                    <button id="performanceBtn" class="tool-action" type="button" onclick="runPerformance()">📊 Diagnose My Metrics</button>
-                    <div id="performanceOutput" class="tool-output">Paste your real metrics above for a surgical bottleneck diagnosis and top 3 fixes.</div>
-                    <button id="copyPerfBtn" class="copy-btn" type="button" onclick="copyText('performanceOutput', 'copyPerfBtn')">📋 Copy Diagnosis</button>
-                </div>
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            bubble.innerText = initialText;
 
-                <div id="plannerPanel" class="tool-panel{% if studio_tool == 'plannerPanel' %} show{% endif %}">
-                    <div class="tool-title">🗓️ 7-Day Content Planner</div>
-                    <input id="plannerNiche" class="tool-select" type="text" placeholder="Your niche (e.g. GTA Gaming, Tech Reviews, Anime)" value="{{ topic }}">
-                    <select id="plannerGoal" class="tool-select">
-                        <option value="growth">📈 Maximum Growth</option>
-                        <option value="short-form">📱 Short-Form Momentum</option>
-                        <option value="consistency">🗓️ Consistency</option>
-                        <option value="authority">🏆 Authority</option>
-                    </select>
-                    <button id="plannerBtn" class="tool-action" type="button" onclick="runPlanner()">🗓️ Build My 7-Day Plan</button>
-                    <div id="plannerOutput" class="tool-output">Your 7-day actionable content calendar will appear here.</div>
-                    <button id="copyPlanBtn" class="copy-btn" type="button" onclick="copyText('plannerOutput', 'copyPlanBtn')">📋 Copy 7-Day Plan</button>
-                </div>
+            row.appendChild(bubble);
 
-                <div id="repurposePanel" class="tool-panel{% if studio_tool == 'repurposePanel' %} show{% endif %}">
-                    <div class="tool-title">♻️ Content Repurposer</div>
-                    <textarea id="repurposeInput" class="tool-input" placeholder="Paste your existing YouTube script, summary, or post here..."></textarea>
-                    <select id="repurposeTarget" class="tool-select">
-                        <option value="Instagram Reels">📸 Instagram Reels</option>
-                        <option value="YouTube Shorts">▶️ YouTube Shorts</option>
-                        <option value="TikTok">🎵 TikTok</option>
-                        <option value="X (Twitter) Thread">𝕏 X (Twitter) Thread</option>
-                        <option value="LinkedIn Post">💼 LinkedIn Post</option>
-                    </select>
-                    <button id="repurposeBtn" class="tool-action" type="button" onclick="runRepurpose()">♻️ Repurpose My Content</button>
-                    <div id="repurposeOutput" class="tool-output">Your platform-native adaptation will appear here.</div>
-                    <button id="copyRepurposeBtn" class="copy-btn" type="button" onclick="copyText('repurposeOutput', 'copyRepurposeBtn')">📋 Copy Repurposed Asset</button>
-                </div>
+            if (role === "ai" && initialText) {
+                const actions = document.createElement("div");
+                actions.className = "bubble-actions";
+                actions.innerHTML = `
+                    <button class="action-chip" onclick="copySnippet(this)">📋 Copy</button>
+                    <button class="action-chip" onclick="quickEnhance('Make this punchier')">⚡ Punchier</button>
+                `;
+                row.appendChild(actions);
+            }
 
-                <div id="brandPanel" class="tool-panel{% if studio_tool == 'brandPanel' %} show{% endif %}">
-                    <div class="tool-title">🎙️ My Creator Voice</div>
-                    <textarea id="brandVoice" class="tool-input" placeholder="Describe how you speak on camera (Hinglish, energetic, gaming tone, short punchy sentences, etc)..."></textarea>
-                    <button class="tool-action" type="button" onclick="saveBrandVoice()">💾 Save My Creator Voice</button>
-                    <div id="brandSaved" class="tool-output">Saved on your device. Every HookSpike tool will follow this voice.</div>
-                </div>
+            chatContainer.appendChild(row);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return bubble;
+        }
 
-                <div id="historyPanel" class="tool-panel{% if studio_tool == 'historyPanel' %} show{% endif %}">
-                    <div class="tool-title">🗂️ Recent Ideas</div>
-                    <div id="historyList" class="history-list"></div>
-                </div>
-            {% endif %}
+        function copySnippet(btn) {
+            const bubble = btn.closest(".message-row").querySelector(".bubble");
+            if (bubble) {
+                navigator.clipboard.writeText(bubble.innerText);
+                btn.innerText = "✓ Copied!";
+                setTimeout(() => btn.innerText = "📋 Copy", 2000);
+            }
+        }
 
-        {% endif %}
+        function quickEnhance(promptText) {
+            chatInput.value = promptText;
+            handleUserSend();
+        }
 
-        <div id="loaderIcon" class="loader"></div>
-        <div id="loaderText" class="loading-text">⚡ HookSpike verifying live facts & building your asset...</div>
+        // Live SSE Streaming Message Handler
+        async function handleUserSend() {
+            const text = chatInput.value.trim();
+            if (!text || isGenerating) return;
 
-        {% if result_text and not show_paywall %}
-            <div class="result-box">
-                <div class="result-header">
-                    <h3 style="margin:0;color:#eef1f4;">
-                        {% if content_type == "hooks" %}🔥 Hook Lab (7 Angles + Winner)
-                        {% elif content_type == "script" %}🎬 Shoot-Ready Script Studio
-                        {% else %}🖼️ High-CTR Thumbnail Lab
-                        {% endif %}
-                    </h3>
-                    <span class="result-type">{{ content_type|title }}</span>
-                </div>
+            isGenerating = true;
+            chatInput.value = "";
+            sendBtn.disabled = true;
 
-                <div class="hook-card">
-                    <div id="rawText">{{ result_text }}</div>
+            // 1. Render User Message
+            appendMessageBubble("user", text);
+            currentChatHistory.push({ role: "user", content: text });
 
-                    {% if content_type == "thumbnail" %}
-                        <div id="generatedImageBox"></div>
-                        <button id="generateImageBtn" class="generate-image-btn" type="button" onclick="generateThumbnailImage()">🖼️ Generate AI Visual Example</button>
-                        <div id="imageStatus" class="image-status">💡 Want to preview the layout? Tap above to generate an AI concept image.</div>
-                    {% endif %}
+            // 2. Render Empty AI Bubble with Blinking Cursor
+            const aiBubble = appendMessageBubble("ai", "");
+            const cursor = document.createElement("span");
+            cursor.className = "cursor-blink";
+            aiBubble.appendChild(cursor);
 
-                    {% if content_type == "hooks" %}
-                        <div class="research-note">⚡ 7 distinct angles with camera delivery cues + the #1 recommended hook.</div>
-                    {% elif content_type == "script" %}
-                        <div class="research-note">🎬 Engineered for 80%+ retention with verified facts, B-roll cues, and a CTA.</div>
-                    {% else %}
-                        <div class="research-note">🎨 Built for mobile browse-feed clarity: 2-4 word punchy text + high-contrast visual.</div>
-                    {% endif %}
-                </div>
+            let accumulatedAIResponse = "";
 
-                <button id="copyBtnText" class="copy-btn" onclick="copyText('rawText', 'copyBtnText')" type="button">📋 Copy Result</button>
-            </div>
-        {% endif %}
+            try {
+                const response = await fetch("/api/chat-stream", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: text,
+                        history: currentChatHistory.slice(-10) // Multi-turn memory
+                    })
+                });
 
-    {% endif %}
+                if (!response.ok) {
+                    if (response.status === 402) {
+                        paywallModal.classList.add("active");
+                        aiBubble.innerText = "⚠️ Neural tokens exhausted. Tap 'Get Pro' to keep going without downtime.";
+                        return;
+                    }
+                    throw new Error("Network response failed");
+                }
 
-</div>
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
 
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split("\n");
+
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const dataPayload = line.replace("data: ", "");
+                            if (dataPayload === "[DONE]") {
+                                break;
+                            }
+                            try {
+                                const parsed = JSON.parse(dataPayload);
+                                if (parsed.token) {
+                                    accumulatedAIResponse += parsed.token;
+                                    aiBubble.innerText = accumulatedAIResponse;
+                                    aiBubble.appendChild(cursor);
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                }
+                                if (typeof parsed.tokens_left === "number") {
+                                    const headerBadge = document.getElementById("headerTokens");
+                                    if (headerBadge) {
+                                        headerBadge.innerText = parsed.tokens_left > 100 ? "Unlimited" : parsed.tokens_left + " left";
+                                    }
+                                }
+                            } catch (err) {
+                                // Direct stream text fallback
+                                accumulatedAIResponse += dataPayload;
+                                aiBubble.innerText = accumulatedAIResponse;
+                                aiBubble.appendChild(cursor);
+                            }
+                        }
+                    }
+                }
+
+                // Finish Stream: Remove cursor & add action buttons
+                cursor.remove();
+                currentChatHistory.push({ role: "assistant", content: accumulatedAIResponse });
+
+                const actions = document.createElement("div");
+                actions.className = "bubble-actions";
+                actions.innerHTML = `
+                    <button class="action-chip" onclick="copySnippet(this)">📋 Copy</button>
+                    <button class="action-chip" onclick="quickEnhance('Make this punchier')">⚡ Punchier</button>
+                    <button class="action-chip" onclick="quickEnhance('Give me 3 more variations')">🔄 3 Variations</button>
+                `;
+                aiBubble.parentNode.appendChild(actions);
+
+                // Save session title using first message
+                saveChatSession(currentChatHistory[0].content.slice(0, 24) + "...", currentChatHistory);
+
+            } catch (err) {
+                cursor.remove();
+                aiBubble.innerText = "⚠️ Connection timeout. Bhai ek baar dubara message bhej ke try karo!";
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Event Listeners for Input
+        sendBtn.addEventListener("click", handleUserSend);
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleUserSend();
+            }
+        });
+
+        // Initialize History on Load
+        document.addEventListener("DOMContentLoaded", () => {
+            renderHistoryList();
+        });
+    </script>
 </body>
 </html>

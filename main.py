@@ -17,7 +17,8 @@ from supabase import create_client, Client
 # Import the generation engine
 import ai_engine
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=".")
+
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_creator_secret_vault_99")
 
 # ============================================================

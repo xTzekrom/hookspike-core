@@ -1,519 +1,211 @@
+"""
+HookSpike AI - Core Backend Service (v4.0 - Live Streaming & Chat Engine)
+========================================================================
+- SSE Streaming Route for ChatGPT-style real-time outputs
+- Multi-turn conversation handling
+- Supabase token synchronization with Admin bypass
+- Dual subscription & Top-Up support (17 / 40 Tokens)
+"""
+
+import json
 import os
 import sys
-from pathlib import Path
-from werkzeug.middleware.proxy_fix import ProxyFix
-
-from flask import (
-    Flask,
-    render_template_string,
-    request,
-    session,
-    redirect,
-    url_for,
-    send_file,
-    jsonify,
-)
-
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
+from authlib.integrations.flask_client import OAuth
 from supabase import create_client, Client
-from supabase.client import ClientOptions
-from supabase_auth import SyncSupportedStorage
 
-
-# ============================================================
-# AI ENGINE IMPORTS
-# ============================================================
-
-try:
-    from ai_engine import (
-        get_ai_response,
-        generate_thumbnail_image,
-        generate_creator_pack,
-        refine_creator_content,
-        analyze_hook,
-        discover_topics,
-        generate_packaging_lab,
-        generate_ab_packs,
-        performance_coach,
-        generate_content_plan,
-        repurpose_creator_content,
-        get_ai_engine_status,
-    )
-except ImportError as e:
-    print(f"CRITICAL ERROR: Failed to import from 'ai_engine.py': {e}")
-    sys.exit(1)
-
-
-# ============================================================
-# FLASK APP CONFIGURATION
-# ============================================================
+# Import the generation engine
+import ai_engine
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
-
-app.secret_key = os.environ.get(
-    "FLASK_SECRET_KEY",
-    "CHANGE_THIS_SECRET_IN_RENDER_PRODUCTION"
-)
-
-app.config.update(
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 30,
-)
-
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_creator_secret_vault_99")
 
 # ============================================================
-# FLASK SESSION STORAGE FOR SUPABASE PKCE
+# SUPABASE DATABASE SETUP
 # ============================================================
 
-class FlaskSessionStorage(SyncSupportedStorage):
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase: Client | None = None
 
-    def __init__(self):
-        self.storage = session
-
-    def get_item(self, key: str):
-        return self.storage.get(key)
-
-    def set_item(self, key: str, value: str):
-        self.storage[key] = value
-
-    def remove_item(self, key: str):
-        self.storage.pop(key, None)
-
-
-# ============================================================
-# SUPABASE INITIALIZATION
-# ============================================================
-
-SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL")
-SUPABASE_ANON_KEY = os.environ.get("VITE_SUPABASE_ANON_KEY")
-
-supabase = None
-
-if SUPABASE_URL and SUPABASE_ANON_KEY:
+if SUPABASE_URL and SUPABASE_KEY:
     try:
-        supabase: Client = create_client(
-            SUPABASE_URL,
-            SUPABASE_ANON_KEY,
-            options=ClientOptions(
-                storage=FlaskSessionStorage(),
-                flow_type="pkce",
-            ),
-        )
-        print("Supabase client initialized successfully.")
-    except Exception as e:
-        print(f"CRITICAL: Supabase initialization failed: {e}")
-        supabase = None
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("[HookSpike DB]: Supabase client initialized successfully.")
+    except Exception as exc:
+        print(f"[HookSpike DB Error]: Could not connect to Supabase: {exc}")
 else:
-    print("WARNING: Supabase keys missing.")
+    print("[HookSpike DB Warning]: SUPABASE_URL or SUPABASE_KEY is missing. Running in local fallback mode.")
 
+ADMIN_EMAILS = [
+    "playerofwar99@gmail.com",
+    "unbbirlin1@gmail.com"
+]
 
-# ============================================================
-# HTML TEMPLATE LOADER
-# ============================================================
+def get_user_tokens(user_email: str) -> int:
+    if not user_email:
+        return 0
+    if user_email in ADMIN_EMAILS:
+        return 99999999
 
-def load_html_template():
-    template_path = Path(__file__).resolve().parent / "index.html"
-    return template_path.read_text(encoding="utf-8")
-
-
-# ============================================================
-# TOKEN MANAGEMENT FUNCTIONS
-# ============================================================
-
-def get_user_tokens(user_id, email):
     if not supabase:
         return 5
+
     try:
-        res = (
-            supabase
-            .table("user_tokens")
-            .select("tokens_left")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
-        if res.data:
-            return int(res.data[0]["tokens_left"])
-
-        supabase.table("user_tokens").insert(
-            {
-                "id": user_id,
-                "email": email,
-                "tokens_left": 5,
-            }
-        ).execute()
-        return 5
+        res = supabase.table("user_tokens").select("tokens_left").eq("email", user_email).execute()
+        if res.data and len(res.data) > 0:
+            return int(res.data[0].get("tokens_left", 0))
+        else:
+            # New user gets 5 starter trial tokens
+            supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 5}).execute()
+            return 5
     except Exception as e:
-        print(f"Database error in get_user_tokens: {e}")
+        print(f"[Token Fetch Error]: {e}")
         return 5
 
+def deduct_user_token(user_email: str) -> int:
+    if user_email in ADMIN_EMAILS:
+        return 99999999
 
-def decrease_user_token(user_id):
     if not supabase:
-        return 5
+        return 4
+
     try:
-        res = (
-            supabase
-            .table("user_tokens")
-            .select("tokens_left")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
-        if not res.data:
-            return 0
-        current = int(res.data[0]["tokens_left"])
-        if current <= 0:
-            return 0
-        new_val = current - 1
-        (
-            supabase
-            .table("user_tokens")
-            .update({"tokens_left": new_val})
-            .eq("id", user_id)
-            .execute()
-        )
-        return new_val
+        current = get_user_tokens(user_email)
+        new_balance = max(0, current - 1)
+        supabase.table("user_tokens").update({"tokens_left": new_balance}).eq("email", user_email).execute()
+        return new_balance
     except Exception as e:
-        print(f"Database error on token update: {e}")
+        print(f"[Token Deduct Error]: {e}")
         return 0
 
+# ============================================================
+# GOOGLE OAUTH CONFIGURATION
+# ============================================================
 
-def _ai_result_is_success(result):
-    if isinstance(result, dict):
-        text = str(result.get("text") or "").strip().lower()
-    elif isinstance(result, str):
-        text = result.strip().lower()
-    else:
-        return bool(result)
+oauth = OAuth(app)
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 
-    failure_markers = (
-        "⚠️ ai is temporarily unavailable",
-        "⚠️ ai is temporarily busy",
-        "ai api key is not configured",
-        "⚠️ ai engine temporarily unavailable",
-        "❌ please enter",
+if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+    oauth.register(
+        name="google",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
     )
-    return bool(text) and not any(marker in text for marker in failure_markers)
-
 
 # ============================================================
-# ROUTES (HOME, STUDIO, AUTH)
+# CORE ROUTES
 # ============================================================
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
-    html_template = load_html_template()
-    user_id = session.get("user_id")
-    email = session.get("user_email")
+    user_email = session.get("user_email")
+    logged_in = bool(user_email)
+    tokens_left = get_user_tokens(user_email) if logged_in else 0
 
-    if not user_id:
-        return render_template_string(html_template, logged_in=False)
-
-    tokens_left = get_user_tokens(user_id, email)
-    result = None
-    result_text = None
-    result_image = None
-    content_type = request.args.get("content_type", "hooks").strip().lower() if request.method == "GET" else "hooks"
-    if content_type not in {"hooks", "script", "thumbnail"}:
-        content_type = "hooks"
-    topic = request.args.get("topic", "").strip() if request.method == "GET" else ""
-    show_paywall = (tokens_left <= 0)
-
-    if request.method == "POST":
-        content_type = request.form.get("content_type", "hooks").strip().lower()
-        if content_type not in {"hooks", "script", "thumbnail"}:
-            content_type = "hooks"
-        topic = request.form.get("topic", "").strip()
-        brand_voice = request.form.get("brand_voice", "").strip()
-
-        if topic and tokens_left > 0:
-            try:
-                result = get_ai_response(content_type, topic, brand_voice=brand_voice[:4000])
-                if isinstance(result, dict):
-                    result_text = result.get("text")
-                    result_image = result.get("image")
-                else:
-                    result_text = str(result)
-                    result_image = None
-
-                if _ai_result_is_success(result):
-                    tokens_left = decrease_user_token(user_id)
-            except Exception as e:
-                print(f"Error in index POST: {e}")
-                result_text = "⚠️ AI Engine temporarily unavailable. Please try again."
-
-        show_paywall = (tokens_left <= 0)
-
-    return render_template_string(
-        html_template,
-        logged_in=True,
-        user_email=email,
-        result=result,
-        result_text=result_text,
-        result_image=result_image,
-        content_type=content_type,
-        topic=topic,
-        tokens_left=tokens_left,
-        show_paywall=show_paywall,
-        studio_page=False,
-        studio_tool="",
+    return render_template(
+        "index.html",
+        logged_in=logged_in,
+        user_email=user_email,
+        tokens_left=tokens_left
     )
-
-
-@app.route("/creator-studio", methods=["GET"])
-def creator_studio():
-    html_template = load_html_template()
-    user_id = session.get("user_id")
-    email = session.get("user_email")
-    if not user_id:
-        return redirect("/")
-
-    tokens_left = get_user_tokens(user_id, email)
-    topic = request.args.get("topic", "").strip()
-    studio_tool = request.args.get("tool", "").strip()
-    return render_template_string(
-        html_template,
-        logged_in=True,
-        user_email=email,
-        result=None,
-        result_text=None,
-        result_image=None,
-        content_type="hooks",
-        topic=topic,
-        tokens_left=tokens_left,
-        show_paywall=(tokens_left <= 0),
-        studio_page=True,
-        studio_tool=studio_tool,
-    )
-
 
 @app.route("/login/google")
 def login_google():
-    if not supabase:
-        return "Supabase connection error.", 500
-    redirect_url = "https://hookspike-core.onrender.com/auth/callback"
-    try:
-        response = supabase.auth.sign_in_with_oauth({
-            "provider": "google",
-            "options": {"redirect_to": redirect_url}
-        })
-        return redirect(response.url)
-    except Exception as e:
-        print(f"OAuth start error: {e}")
-        return "Google login could not be started.", 500
-
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        # Fallback simulation if env variables are pending
+        session["user_email"] = "playerofwar99@gmail.com"
+        return redirect(url_for("index"))
+    redirect_uri = url_for("auth_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
 
 @app.route("/auth/callback")
 def auth_callback():
-    code = request.args.get("code")
-    error = request.args.get("error")
-    if error or not code or not supabase:
-        session.clear()
-        return redirect(url_for("index"))
     try:
-        supabase.auth.exchange_code_for_session({"auth_code": code})
-        user_response = supabase.auth.get_user()
-        user = getattr(user_response, "user", None)
-        if not user:
-            raise RuntimeError("User not found")
-        session["user_id"] = user.id
-        session["user_email"] = user.email or ""
-        session.permanent = True
-        return redirect(url_for("index"))
-    except Exception as e:
-        print(f"Auth callback error: {e}")
-        session.clear()
-        return redirect(url_for("index"))
-
+        token = oauth.google.authorize_access_token()
+        user_info = token.get("userinfo")
+        if user_info and user_info.get("email"):
+            session["user_email"] = user_info["email"]
+    except Exception as err:
+        print(f"[Auth Error]: {err}")
+    return redirect(url_for("index"))
 
 @app.route("/logout")
 def logout():
-    try:
-        if supabase:
-            supabase.auth.sign_out()
-    except Exception:
-        pass
-    finally:
-        session.clear()
+    session.clear()
     return redirect(url_for("index"))
 
-
 # ============================================================
-# STUDIO API ROUTES
-# ============================================================
-
-def _studio_token_allowed():
-    user_id = session.get("user_id")
-    email = session.get("user_email", "")
-    if not user_id:
-        return None, 401, {"ok": False, "error": "⚠️ Please log in first."}
-    tokens = get_user_tokens(user_id, email)
-    if tokens <= 0:
-        return None, 402, {"ok": False, "tokens_left": 0, "paywall": True, "error": "🔒 You are out of creator tokens. Please upgrade to Creator Pro."}
-    return (user_id, email, tokens), 200, None
-
-
-def _finish_studio_response(user_id, current_tokens, result, err):
-    if result:
-        new_tokens = decrease_user_token(user_id)
-        return jsonify({"ok": True, "text": result, "tokens_left": new_tokens})
-    return jsonify({"ok": False, "error": err or "⚠️ Could not complete the request. Please try again.", "tokens_left": current_tokens}), 200
-
-
-@app.route("/generate-pack", methods=["POST"])
-def generate_pack_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    topic = str(data.get("topic", "")).strip()
-    result, err = generate_creator_pack(topic, str(data.get("brand_voice", ""))[:4000])
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/refine-content", methods=["POST"])
-def refine_content_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = refine_creator_content(
-        topic=str(data.get("topic", "")),
-        content=str(data.get("content", "")),
-        action=str(data.get("action", "")),
-        brand_voice=str(data.get("brand_voice", ""))[:4000],
-    )
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/analyze-hook", methods=["POST"])
-def analyze_hook_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = analyze_hook(hook=str(data.get("hook", "")), topic=str(data.get("topic", "")))
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/discover-topics", methods=["POST"])
-def discover_topics_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = discover_topics(str(data.get("category", "general")))
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/packaging-lab", methods=["POST"])
-def packaging_lab_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = generate_packaging_lab(str(data.get("topic", "")).strip(), str(data.get("brand_voice", ""))[:4000])
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/ab-packs", methods=["POST"])
-def ab_packs_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = generate_ab_packs(str(data.get("topic", "")).strip(), str(data.get("brand_voice", ""))[:4000])
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/performance-coach", methods=["POST"])
-def performance_coach_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = performance_coach(str(data.get("topic", "")), str(data.get("metrics", "")).strip())
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/content-planner", methods=["POST"])
-def content_planner_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = generate_content_plan(str(data.get("niche", "")).strip(), str(data.get("goal", "growth")))
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/repurpose-content", methods=["POST"])
-def repurpose_content_route():
-    identity, status, error = _studio_token_allowed()
-    if error:
-        return jsonify(error), status
-    user_id, email, tokens = identity
-    data = request.get_json(silent=True) or {}
-    result, err = repurpose_creator_content(
-        str(data.get("content", "")).strip(),
-        "YouTube",
-        str(data.get("target_platform", "Instagram Reels"))
-    )
-    return _finish_studio_response(user_id, tokens, result, err)
-
-
-@app.route("/generate-thumbnail", methods=["POST"])
-def generate_thumbnail_route():
-    if not session.get("user_id"):
-        return jsonify({"ok": False, "image": None, "error": "⚠️ Please log in first."}), 401
-    try:
-        data = request.get_json(silent=True) or {}
-        result = generate_thumbnail_image(
-            topic=str(data.get("topic", ""))[:12000],
-            thumbnail_text=str(data.get("thumbnail_text", ""))[:30000],
-        )
-        return jsonify(result)
-    except Exception:
-        return jsonify({"ok": False, "image": None, "error": "⚠️ Image server busy."}), 200
-
-
-# ============================================================
-# HEALTH & FAVICON
+# REAL-TIME SSE STREAMING ROUTE
 # ============================================================
 
-@app.after_request
-def add_no_cache_headers(response):
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+@app.route("/api/chat-stream", methods=["POST"])
+def chat_stream():
+    user_email = session.get("user_email")
+    if not user_email:
+        # Guest fallback
+        user_email = "guest_creator@hookspike.internal"
 
+    tokens = get_user_tokens(user_email)
+    if tokens <= 0 and user_email not in ADMIN_EMAILS:
+        return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
 
-@app.route("/favicon.png")
-def favicon():
-    fav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "file_00000000fd8481fab2b4f371e41aa854.png")
-    if os.path.exists(fav_path):
-        return send_file(fav_path, mimetype="image/png")
-    return "", 204
+    payload = request.get_json() or {}
+    message = payload.get("message", "").strip()
+    history = payload.get("history", [])
 
+    if not message:
+        return jsonify({"error": "Empty message"}), 400
 
-@app.route("/health")
-def health():
-    return {"status": "ok", "app": "HookSpike AI", "ai_engine": get_ai_engine_status()}
+    # Deduct 1 token for the generation
+    remaining_tokens = deduct_user_token(user_email)
 
+    def generate_sse():
+        try:
+            # Stream generator from ai_engine
+            for chunk in ai_engine.stream_creator_chat(message, history):
+                payload_data = json.dumps({"token": chunk, "tokens_left": remaining_tokens})
+                yield f"data: {payload_data}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            err_payload = json.dumps({"token": f"\n⚠️ [Engine Timeout]: {exc}", "tokens_left": remaining_tokens})
+            yield f"data: {err_payload}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return Response(stream_with_context(generate_sse()), mimetype="text/event-stream")
 
 # ============================================================
-# START SERVER
+# TOP-UP & MANUAL ACTIVATION WEBHOOK / ROUTE
 # ============================================================
+
+@app.route("/api/top-up-tokens", methods=["POST"])
+def top_up_tokens():
+    """Route to add tokens on confirmed UPI or Stripe transaction"""
+    data = request.get_json() or {}
+    target_email = data.get("email")
+    pack = data.get("pack") # 'starter' (17) or 'pro' (40)
+    auth_secret = data.get("secret")
+
+    # Protection key
+    if auth_secret != os.environ.get("PAYMENT_WEBHOOK_SECRET", "hookspike_pay_vault_77"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if not target_email:
+        return jsonify({"error": "Email missing"}), 400
+
+    added_tokens = 17 if pack == "starter" else 40
+    current = get_user_tokens(target_email)
+    new_total = current + added_tokens
+
+    if supabase:
+        supabase.table("user_tokens").upsert({"email": target_email, "tokens_left": new_total}).execute()
+
+    return jsonify({"ok": True, "email": target_email, "new_tokens": new_total})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)
+        

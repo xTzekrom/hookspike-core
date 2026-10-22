@@ -1,7 +1,7 @@
 """
 HookSpike AI Engine (Ultra-Smooth Streaming & Bhai Persona)
 ===========================================================
-- Uses official active production model (gemini-3.8-flash)
+- Auto-fallback across active models to defeat 503 high demand spikes
 - Real-time token streaming with human pacing
 - Living creative confidant & viral strategist persona
 """
@@ -14,9 +14,11 @@ from google.genai import types
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-# Official active models as suggested by Google API
+# Smart Fallback List: Ek model busy ho toh turant doosre par shift hoga
 GEMINI_MODELS = [
     "gemini-3.8-flash",
+    "gemini-3.8-flash-lite",
+    "gemini-3-flash",
     os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 ]
 GEMINI_MODELS = list(dict.fromkeys(GEMINI_MODELS))
@@ -103,3 +105,4 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     if not success:
         yield f"⚠️ Bhai connection me thoda issue lag raha hai. Ek baar Regenerate daba! (Detail: {last_error})"
+                            

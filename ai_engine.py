@@ -1,9 +1,9 @@
 """
-HookSpike AI Engine — High-Demand Auto Retry & Multi-Key Pool
-============================================================
-- Handles 503 High Demand spikes with instant backoff retry
+HookSpike AI Engine — Strictly Gemini 3.8 Flash Only
+====================================================
+- Only one model: gemini-3.8-flash (No deprecated models, no fallbacks)
 - Multi-key rotation pool for free accounts
-- Direct fast streaming
+- Fast stream execution
 """
 
 import os
@@ -14,8 +14,8 @@ from google.genai import types
 
 KEYS_ENV = ["PRIMARY_KEY", "BACKUP_KEY", "KEY_1", "KEY_2", "KEY_3"]
 
-# Priority target: 3.8-flash, backup if cluster is overloaded: 2.0-flash
-SERVE_MODELS = ["gemini-3.8-flash", "gemini-2.0-flash"]
+# Only and strictly the active Google model
+ACTIVE_MODEL = "gemini-3.8-flash"
 
 CREATOR_SYSTEM_DIRECTOR = """
 You are HookSpike AI — the world's most elite viral content director, packaging specialist, and brotherly creative co-pilot. You work with global creators worldwide across YouTube, TikTok, and Instagram Reels.
@@ -88,32 +88,32 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             last_error = exc
             continue
 
-        for model_name in SERVE_MODELS:
-            # Agar high demand 503 aaye to quick retry karega
-            for attempt in range(2):
-                try:
-                    response_stream = client.models.generate_content_stream(
-                        model=model_name,
-                        contents=contents,
-                        config=config,
-                    )
-                    for chunk in response_stream:
-                        chunk_text = getattr(chunk, "text", "")
-                        if chunk_text:
-                            yield chunk_text
-                    return
-                except Exception as exc:
-                    last_error = exc
-                    err_str = str(exc)
+        # 503 high demand spike ke liye 1 retry
+        for attempt in range(2):
+            try:
+                response_stream = client.models.generate_content_stream(
+                    model=ACTIVE_MODEL,
+                    contents=contents,
+                    config=config,
+                )
+                for chunk in response_stream:
+                    chunk_text = getattr(chunk, "text", "")
+                    if chunk_text:
+                        yield chunk_text
+                return
+            except Exception as exc:
+                last_error = exc
+                err_str = str(exc)
 
-                    # Agar 503 high demand ho to thoda sa wait karke retry ya next model
-                    if "503" in err_str or "UNAVAILABLE" in err_str:
-                        time.sleep(0.5)
-                        continue
-
-                    # Agar quota limit (429) ho to next key par switch kare
-                    if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
-                        break
+                # Quota finish (429) -> Next API key
+                if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
                     break
 
-    yield f"⚠️ High demand spike. Please tap Regenerate! (Details: {last_error})"
+                # 503 spike -> 0.5s pause fir retry
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    time.sleep(0.5)
+                    continue
+                break
+
+    yield f"⚠️ Network issue detected. Please tap Regenerate! (Details: {last_error})"
+           

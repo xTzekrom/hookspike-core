@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HookSpike AI ⚡ - Creator Command Engine</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=2">
-    <!-- Clean Markdown Parser for smooth ChatGPT/Gemini output rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
@@ -19,7 +18,6 @@
             --text-muted: #64748b;
             --accent-blue: #3b82f6;
             --accent-cyan: #06b6d4;
-            --accent-gold: #f59e0b;
             --user-bubble: #1e293b;
             --ai-bubble: #0f172a;
             --radius-lg: 18px;
@@ -44,7 +42,6 @@
             overflow: hidden;
         }
 
-        /* HEADER */
         header {
             height: 60px;
             display: flex;
@@ -106,7 +103,6 @@
             font-weight: 600;
         }
 
-        /* SIDEBAR DRAWER */
         .drawer-overlay {
             position: fixed;
             inset: 0;
@@ -194,14 +190,12 @@
         .drawer-footer {
             border-top: 1px solid var(--border-color);
             padding-top: 14px;
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: 13px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        /* TOOLS MENU DROPDOWN */
         .tools-dropdown {
             position: absolute;
             top: 65px;
@@ -242,7 +236,6 @@
             color: var(--text-primary);
         }
 
-        /* CHAT CONTAINER */
         main.chat-container {
             flex: 1;
             overflow-y: auto;
@@ -286,7 +279,6 @@
             line-height: 1.5;
         }
 
-        /* CHAT BUBBLES */
         .message-row {
             display: flex;
             flex-direction: column;
@@ -327,7 +319,6 @@
             width: 100%;
         }
 
-        /* Markdown Elements Inside AI Bubble */
         .bubble p { margin-bottom: 10px; }
         .bubble p:last-child { margin-bottom: 0; }
         .bubble strong { color: #f8fafc; }
@@ -359,7 +350,6 @@
             border-color: var(--text-secondary);
         }
 
-        /* BLINKING CURSOR STREAM */
         .cursor-blink {
             display: inline-block;
             width: 8px;
@@ -380,7 +370,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* FIXED BOTTOM INPUT BAR */
         .input-dock {
             position: fixed;
             bottom: 0;
@@ -447,7 +436,6 @@
             border-radius: 12px;
         }
 
-        /* MODAL PAYWALL */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -582,19 +570,17 @@
 </head>
 <body>
 
-    <!-- TOP HEADER -->
     <header>
         <div class="header-left">
             <button class="icon-btn" id="openDrawerBtn" title="Chat History">☰</button>
             <button class="pro-pill-btn" id="proModalOpenBtn">
                 <span>⚡ Get Pro</span>
                 <span class="token-counter" id="headerTokens">
-                    {% if tokens_left > 100 %}Unlimited{% else %}{{ tokens_left }} left{% endif %}
+                    {% if not logged_in %}Login Required{% elif tokens_left > 100 %}Unlimited{% else %}{{ tokens_left }} left{% endif %}
                 </span>
             </button>
         </div>
         <div class="header-right">
-            <!-- ChatGPT Style Chat Prompt Icon -->
             <button class="icon-btn" id="toolsDialBtn" title="Creator Tools">
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -602,7 +588,6 @@
             </button>
         </div>
 
-        <!-- QUICK TOOLS DIAL DROPDOWN -->
         <div class="tools-dropdown" id="toolsDropdown">
             <button class="tool-option" onclick="selectActionPrefix('Create 7 Viral Hooks for: ')">🔥 7 Viral Hooks</button>
             <button class="tool-option" onclick="selectActionPrefix('Write a shoot-ready 60s script for: ')">🎬 60s Video Script</button>
@@ -611,7 +596,6 @@
         </div>
     </header>
 
-    <!-- SIDEBAR DRAWER -->
     <div class="drawer-overlay" id="drawerOverlay"></div>
     <aside class="sidebar-drawer" id="sidebarDrawer">
         <button class="new-chat-btn" id="newChatBtn">
@@ -619,16 +603,18 @@
             <span>⚡</span>
         </button>
         <div class="drawer-section-title">Saved Creator Chats</div>
-        <div class="history-list" id="historyList">
-            <!-- Dynamically populated from LocalStorage -->
-        </div>
+        <div class="history-list" id="historyList"></div>
         <div class="drawer-footer">
-            <span>👤 {{ user_email or "Creator" }}</span>
-            <a href="/logout" onclick="localStorage.removeItem('hookspike_sessions');" style="color: #ef4444; text-decoration: none; font-weight: 700;">Logout 🚪</a>
+            {% if logged_in %}
+                <span style="color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 {{ user_email }}</span>
+                <a href="/logout" onclick="localStorage.removeItem('hookspike_sessions');" style="color: #ef4444; text-decoration: none; font-weight: 700;">Logout 🚪</a>
+            {% else %}
+                <span style="color: var(--text-muted);">👤 Guest</span>
+                <a href="/login/google" style="color: #3b82f6; text-decoration: none; font-weight: 700;">Login with Google ⚡</a>
+            {% endif %}
         </div>
     </aside>
 
-    <!-- CHAT WORKSPACE -->
     <main class="chat-container" id="chatContainer">
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-brand">Hook<span>Spike</span> AI ⚡</div>
@@ -636,7 +622,6 @@
         </div>
     </main>
 
-    <!-- FIXED BOTTOM INPUT DOCK -->
     <div class="input-dock">
         <div class="input-wrapper">
             <input type="text" id="chatInput" placeholder="Ask HookSpike or give an idea..." autocomplete="off">
@@ -646,7 +631,6 @@
         </div>
     </div>
 
-    <!-- GLOBAL & DOMESTIC PAYWALL MODAL -->
     <div class="modal-overlay" id="paywallModal">
         <div class="paywall-card">
             <button class="modal-close" id="closeModalBtn">&times;</button>
@@ -660,7 +644,6 @@
                 <button class="curr-btn" id="currUsdBtn" onclick="setCurrency('USD')">🌍 USD</button>
             </div>
 
-            <!-- STARTER PASS -->
             <div class="plan-item">
                 <div class="plan-row">
                     <span class="plan-title">Starter Pass</span>
@@ -676,7 +659,6 @@
                 </a>
             </div>
 
-            <!-- CREATOR PRO -->
             <div class="plan-item highlight">
                 <span class="plan-badge">Most Popular</span>
                 <div class="plan-row">
@@ -696,14 +678,13 @@
         </div>
     </div>
 
-    <!-- CORE CHAT & STREAMING LOGIC -->
     <script>
+        const IS_LOGGED_IN = {{ 'true' if logged_in else 'false' }};
         let currentChatHistory = [];
         let isGenerating = false;
         let abortController = null;
         let lastUserMessage = "";
 
-        // UI Selectors
         const chatContainer = document.getElementById("chatContainer");
         const chatInput = document.getElementById("chatInput");
         const sendBtn = document.getElementById("sendBtn");
@@ -720,7 +701,6 @@
         const closeModalBtn = document.getElementById("closeModalBtn");
         const historyList = document.getElementById("historyList");
 
-        // Tools Dropdown
         toolsDialBtn.addEventListener("click", () => toolsDropdown.classList.toggle("active"));
         document.addEventListener("click", (e) => {
             if (!toolsDialBtn.contains(e.target) && !toolsDropdown.contains(e.target)) {
@@ -734,7 +714,6 @@
             toolsDropdown.classList.remove("active");
         }
 
-        // Drawer Controls
         openDrawerBtn.addEventListener("click", () => {
             sidebarDrawer.classList.add("active");
             drawerOverlay.classList.add("active");
@@ -745,7 +724,6 @@
             drawerOverlay.classList.remove("active");
         });
 
-        // Paywall Modal
         proModalOpenBtn.addEventListener("click", () => paywallModal.classList.add("active"));
         closeModalBtn.addEventListener("click", () => paywallModal.classList.remove("active"));
 
@@ -778,7 +756,6 @@
             }
         }
 
-        // Local Storage
         function saveChatSession(title, history) {
             try {
                 let sessions = JSON.parse(localStorage.getItem("hookspike_sessions") || "[]");
@@ -865,10 +842,13 @@
             }
         }
 
-        // Live SSE Streaming with Stop & Regenerate
         async function handleUserSend() {
+            if (!IS_LOGGED_IN) {
+                window.location.href = "/login/google";
+                return;
+            }
+
             if (isGenerating) {
-                // User pressed STOP button (⏹️)
                 if (abortController) {
                     abortController.abort();
                 }
@@ -882,15 +862,12 @@
             isGenerating = true;
             chatInput.value = "";
 
-            // Change button to Red Stop Square (⏹️)
             sendBtn.classList.add("stop-btn");
             sendBtnIcon.innerText = "⏹";
 
-            // 1. Render User Message
             appendMessageBubble("user", text);
             currentChatHistory.push({ role: "user", content: text });
 
-            // 2. Render AI Bubble with Cursor
             const aiBubble = appendMessageBubble("ai", "");
             const cursor = document.createElement("span");
             cursor.className = "cursor-blink";
@@ -957,7 +934,6 @@
                     }
                 }
 
-                // Finalize Bubble
                 cursor.remove();
                 currentChatHistory.push({ role: "assistant", content: accumulatedAIResponse });
 
@@ -975,7 +951,6 @@
             } catch (err) {
                 cursor.remove();
                 if (err.name === "AbortError") {
-                    // Stopped by user
                     aiBubble.innerHTML = marked.parse(accumulatedAIResponse || "*(Generation stopped)*");
                     const actions = document.createElement("div");
                     actions.className = "bubble-actions";
@@ -995,7 +970,6 @@
             }
         }
 
-        // Send triggers
         sendBtn.addEventListener("click", handleUserSend);
         chatInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && !e.shiftKey) {

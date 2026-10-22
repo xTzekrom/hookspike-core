@@ -1,30 +1,50 @@
 """
-HookSpike AI - Core Backend Service (v4.0 - Live Streaming & Chat Engine)
-========================================================================
-- SSE Streaming Route for ChatGPT-style real-time outputs
-- Multi-turn conversation handling
-- Supabase token synchronization with Admin bypass
-- Dual subscription & Top-Up support (17 / 40 Tokens)
+HookSpike AI - Core Backend Service (v4.2 - Production Stable)
+=============================================================
+- SSE Streaming Route for real-time ChatGPT-style outputs
+- Clean Login / Logout state handling (no reload loops)
+- Safe fallback when Supabase/OAuth keys are pending
+- Admin bypass for creator accounts
 """
 
 import json
 import os
 import sys
 from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
-from authlib.integrations.flask_client import OAuth
 from supabase import create_client, Client
 
 # Import the generation engine
 import ai_engine
 
 app = Flask(__name__, template_folder=".")
-
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_creator_secret_vault_99")
+
+# ============================================================
+# AUTH CONFIGURATION (FAIL-SAFE)
+# ============================================================
+try:
+    from authlib.integrations.flask_client import OAuth
+    oauth = OAuth(app)
+    HAS_AUTHLIB = True
+except ImportError:
+    HAS_AUTHLIB = False
+    oauth = None
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+if HAS_AUTHLIB and oauth and GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+    oauth.register(
+        name="google",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
 
 # ============================================================
 # SUPABASE DATABASE SETUP
 # ============================================================
-
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client | None = None
@@ -32,11 +52,9 @@ supabase: Client | None = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("[HookSpike DB]: Supabase client initialized successfully.")
+        print("[HookSpike DB]: Supabase connected.")
     except Exception as exc:
-        print(f"[HookSpike DB Error]: Could not connect to Supabase: {exc}")
-else:
-    print("[HookSpike DB Warning]: SUPABASE_URL or SUPABASE_KEY is missing. Running in local fallback mode.")
+        print(f"[HookSpike DB Error]: {exc}")
 
 ADMIN_EMAILS = [
     "playerofwar99@gmail.com",
@@ -57,7 +75,6 @@ def get_user_tokens(user_email: str) -> int:
         if res.data and len(res.data) > 0:
             return int(res.data[0].get("tokens_left", 0))
         else:
-            # New user gets 5 starter trial tokens
             supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 5}).execute()
             return 5
     except Exception as e:
@@ -81,23 +98,6 @@ def deduct_user_token(user_email: str) -> int:
         return 0
 
 # ============================================================
-# GOOGLE OAUTH CONFIGURATION
-# ============================================================
-
-oauth = OAuth(app)
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-
-if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
-    oauth.register(
-        name="google",
-        client_id=GOOGLE_CLIENT_ID,
-        client_secret=GOOGLE_CLIENT_SECRET,
-        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-        client_kwargs={"scope": "openid email profile"},
-    )
-
-# ============================================================
 # CORE ROUTES
 # ============================================================
 
@@ -116,8 +116,8 @@ def index():
 
 @app.route("/login/google")
 def login_google():
-    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-        # Fallback simulation if env variables are pending
+    if not HAS_AUTHLIB or not oauth or not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        # Fallback simulation for developer
         session["user_email"] = "playerofwar99@gmail.com"
         return redirect(url_for("index"))
     redirect_uri = url_for("auth_callback", _external=True)
@@ -140,15 +140,16 @@ def logout():
     return redirect(url_for("index"))
 
 # ============================================================
-# REAL-TIME SSE STREAMING ROUTE
+# STREAMING CHAT ROUTE
 # ============================================================
 
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
     user_email = session.get("user_email")
-    if not user_email:
-        # Guest fallback
-        user_email = "guest_creator@hookspike.internal"
+    logged_in = bool(user_email)
+
+    if not logged_in:
+        return jsonify({"error": "Please login first", "paywall": True}), 402
 
     tokens = get_user_tokens(user_email)
     if tokens <= 0 and user_email not in ADMIN_EMAILS:
@@ -161,36 +162,32 @@ def chat_stream():
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
-    # Deduct 1 token for the generation
     remaining_tokens = deduct_user_token(user_email)
 
     def generate_sse():
         try:
-            # Stream generator from ai_engine
             for chunk in ai_engine.stream_creator_chat(message, history):
                 payload_data = json.dumps({"token": chunk, "tokens_left": remaining_tokens})
                 yield f"data: {payload_data}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
-            err_payload = json.dumps({"token": f"\n⚠️ [Engine Timeout]: {exc}", "tokens_left": remaining_tokens})
+            err_payload = json.dumps({"token": f"\n⚠️ [Engine Error]: {exc}", "tokens_left": remaining_tokens})
             yield f"data: {err_payload}\n\n"
             yield "data: [DONE]\n\n"
 
     return Response(stream_with_context(generate_sse()), mimetype="text/event-stream")
 
 # ============================================================
-# TOP-UP & MANUAL ACTIVATION WEBHOOK / ROUTE
+# PAYMENT / TOP-UP WEBHOOK
 # ============================================================
 
 @app.route("/api/top-up-tokens", methods=["POST"])
 def top_up_tokens():
-    """Route to add tokens on confirmed UPI or Stripe transaction"""
     data = request.get_json() or {}
     target_email = data.get("email")
-    pack = data.get("pack") # 'starter' (17) or 'pro' (40)
+    pack = data.get("pack")
     auth_secret = data.get("secret")
 
-    # Protection key
     if auth_secret != os.environ.get("PAYMENT_WEBHOOK_SECRET", "hookspike_pay_vault_77"):
         return jsonify({"error": "Unauthorized"}), 403
 

@@ -639,6 +639,18 @@
 
         sendBtn.onclick = sendMsg;
         chatInput.onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
+        
+        // Logout fix: Supabase browser session clear karke login modal par bhejega
+        document.addEventListener('click', async function(e) {
+            const link = e.target.closest('a[href="/logout"]');
+            if (link) {
+                e.preventDefault();
+                if (supabaseClient) {
+                    await supabaseClient.auth.signOut();
+                }
+                window.location.href = '/logout';
+            }
+        });
     </script>
 </body>
 </html>

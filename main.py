@@ -1,5 +1,9 @@
 """
-HookSpike AI - Core App Controller (v4.3 - Production Stable)
+HookSpike AI - Core Backend Service (v4.4 - Ultimate Stable)
+===========================================================
+- Full Supabase token sync & admin bypass
+- SSE Streaming Route for real-time ChatGPT-style outputs
+- Safe fallback & robust session handling
 """
 
 import json
@@ -9,7 +13,7 @@ from supabase import create_client, Client
 import ai_engine
 
 app = Flask(__name__, template_folder=".")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_secret_secure_key_2026")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_key_2026")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -32,21 +36,21 @@ def get_user_tokens(user_email: str) -> int:
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
-        return 10
+        return 15
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("email", user_email).execute()
         if res.data and len(res.data) > 0:
             return int(res.data[0].get("tokens_left", 0))
-        supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 10}).execute()
-        return 10
+        supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 15}).execute()
+        return 15
     except Exception:
-        return 10
+        return 15
 
 def deduct_user_token(user_email: str) -> int:
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
-        return 9
+        return 14
     try:
         curr = get_user_tokens(user_email)
         new_balance = max(0, curr - 1)
@@ -69,7 +73,7 @@ def auth_login():
     if email and "@" in email:
         session["user_email"] = email
         return jsonify({"ok": True, "email": email, "tokens": get_user_tokens(email)})
-    return jsonify({"error": "Valid email address required"}), 400
+    return jsonify({"error": "Valid email required"}), 400
 
 @app.route("/logout")
 def logout():
@@ -80,11 +84,11 @@ def logout():
 def chat_stream():
     user_email = session.get("user_email")
     if not user_email:
-        return jsonify({"error": "Login required", "login_needed": True}), 401
+        return jsonify({"error": "Login required", "login_needed": True}, 401)
 
     tokens = get_user_tokens(user_email)
     if tokens <= 0 and user_email not in ADMIN_EMAILS:
-        return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
+        return jsonify({"error": "Tokens exhausted", "paywall": True}, 402)
 
     payload = request.get_json() or {}
     message = payload.get("message", "").strip()
@@ -109,3 +113,4 @@ def chat_stream():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+    

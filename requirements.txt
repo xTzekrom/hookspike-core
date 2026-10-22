@@ -3,3 +3,5 @@ supabase
 supabase_auth
 google-genai>=2.25.0,<3.0.0
 openai
+Authlib>=1.3.0
+requests>=2.31.0

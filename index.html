@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HookSpike AI — Creator Command Engine</title>
+    <title>HookSpike AI — Creator Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-color: #000000;
-            --surface-color: #171717;
-            --surface-elevated: #212121;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --text-primary: #ececec;
-            --text-secondary: #8e8ea0;
-            --accent-blue: #3b82f6;
+            --bg-color: #131314;
+            --surface-color: #1e1f20;
+            --surface-elevated: #282a2c;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #e3e3e3;
+            --text-secondary: #9aa0a6;
+            --accent-blue: #8ab4f8;
+            --accent-gradient: linear-gradient(90deg, #4285f4, #9b72cb, #d96570);
         }
 
         * {
@@ -39,30 +39,31 @@
         }
 
         header {
-            height: 56px;
+            height: 58px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
-            background: var(--bg-color);
+            padding: 0 18px;
+            background: transparent;
             z-index: 30;
             position: relative;
         }
 
         .header-icon-btn {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
+            background: transparent;
+            border: none;
             color: var(--text-primary);
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s ease;
         }
 
+        .header-icon-btn:hover { background: var(--surface-color); }
         .header-icon-btn:active { background: var(--surface-elevated); }
 
         .get-plus-btn {
@@ -71,27 +72,30 @@
             color: var(--text-primary);
             font-weight: 600;
             font-size: 13px;
-            padding: 7px 14px;
+            padding: 7px 16px;
             border-radius: 9999px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             cursor: pointer;
+            transition: all 0.2s ease;
         }
+
+        .get-plus-btn:hover { border-color: rgba(255, 255, 255, 0.2); background: var(--surface-elevated); }
 
         .tools-dropdown {
             position: absolute;
-            top: 62px;
-            right: 16px;
+            top: 60px;
+            right: 18px;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
+            border-radius: 16px;
             padding: 8px;
             display: none;
             flex-direction: column;
             gap: 4px;
-            width: 230px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            width: 240px;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.6);
             z-index: 40;
         }
 
@@ -100,17 +104,18 @@
         .tool-option {
             background: transparent;
             border: none;
-            padding: 10px 12px;
+            padding: 10px 14px;
             color: var(--text-secondary);
             text-align: left;
-            border-radius: 8px;
-            font-size: 13px;
+            border-radius: 10px;
+            font-size: 13.5px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 10px;
             font-family: inherit;
+            transition: all 0.15s ease;
         }
 
         .tool-option:hover { background: var(--surface-elevated); color: var(--text-primary); }
@@ -118,10 +123,10 @@
         .drawer-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.65);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.25s ease;
             z-index: 90;
         }
 
@@ -137,7 +142,7 @@
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             flex-direction: column;
-            padding: 16px;
+            padding: 18px 16px;
         }
 
         .sidebar.active { transform: translateX(0); }
@@ -190,11 +195,11 @@
         main.chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 16px 16px 130px;
+            padding: 16px 16px 140px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            max-width: 760px;
+            gap: 22px;
+            max-width: 780px;
             width: 100%;
             margin: 0 auto;
             scroll-behavior: smooth;
@@ -207,12 +212,25 @@
             justify-content: center;
             flex: 1;
             text-align: center;
-            gap: 10px;
-            margin-top: 20vh;
+            gap: 14px;
+            margin-top: 18vh;
         }
 
-        .hero-welcome h2 { font-size: 24px; font-weight: 700; color: var(--text-primary); }
-        .hero-welcome p { font-size: 14px; color: var(--text-secondary); max-width: 320px; }
+        .hero-title-gradient {
+            font-size: 32px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-welcome p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            max-width: 380px;
+            line-height: 1.5;
+        }
 
         .msg-line {
             display: flex;
@@ -227,15 +245,16 @@
         .bubble-box {
             max-width: 90%;
             font-size: 15px;
-            line-height: 1.6;
+            line-height: 1.65;
             word-break: break-word;
         }
 
         .msg-line.user .bubble-box {
-            background: var(--surface-elevated);
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 12px 16px;
-            border-radius: 18px;
+            padding: 12px 18px;
+            border-radius: 20px;
             border-bottom-right-radius: 4px;
         }
 
@@ -246,40 +265,48 @@
             padding: 4px 0;
         }
 
-        .bubble-box p { margin-bottom: 10px; }
+        .bubble-box p { margin-bottom: 12px; }
         .bubble-box p:last-child { margin-bottom: 0; }
         .bubble-box strong { color: #ffffff; }
-        .bubble-box ul, .bubble-box ol { margin: 6px 0 10px 20px; }
-        .bubble-box li { margin-bottom: 3px; }
-        .bubble-box code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        .bubble-box ul, .bubble-box ol { margin: 6px 0 12px 22px; }
+        .bubble-box li { margin-bottom: 4px; }
+        .bubble-box code { background: rgba(255,255,255,0.08); padding: 3px 6px; border-radius: 5px; font-size: 13.5px; }
 
+        /* GEMINI STYLE ACTION PILLS */
         .ai-actions {
             display: flex;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 12px;
             flex-wrap: wrap;
         }
 
-        .chip-btn {
-            background: var(--surface-color);
+        .action-pill-btn {
+            background: transparent;
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
-            padding: 5px 12px;
+            padding: 6px 14px;
             border-radius: 9999px;
-            font-size: 11.5px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
         }
 
-        .chip-btn:hover { color: var(--text-primary); background: var(--surface-elevated); }
+        .action-pill-btn:hover {
+            color: var(--text-primary);
+            background: var(--surface-color);
+            border-color: rgba(255,255,255,0.2);
+        }
 
         .cursor-dot {
             display: inline-block;
             width: 6px;
-            height: 14px;
-            background: var(--text-primary);
-            margin-left: 3px;
+            height: 15px;
+            background: var(--accent-blue);
+            margin-left: 4px;
             vertical-align: middle;
             animation: blinkCursor 0.8s infinite;
         }
@@ -287,29 +314,34 @@
         @keyframes blinkCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* GEMINI FLOATING DOCK */
         .bottom-dock {
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            padding: 12px 16px 20px;
-            background: linear-gradient(to top, var(--bg-color) 80%, transparent);
+            padding: 12px 18px 24px;
+            background: linear-gradient(to top, var(--bg-color) 82%, transparent);
             z-index: 25;
             display: flex;
             justify-content: center;
         }
 
         .input-box-container {
-            max-width: 760px;
+            max-width: 780px;
             width: 100%;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 26px;
+            border-radius: 28px;
             display: flex;
             align-items: center;
-            padding: 8px 8px 8px 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            padding: 8px 10px 8px 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .input-box-container:focus-within { border-color: rgba(255,255,255,0.3); }
+        .input-box-container:focus-within {
+            border-color: rgba(255, 255, 255, 0.25);
+            background: var(--surface-elevated);
+        }
 
         .plus-action-btn {
             background: transparent;
@@ -320,7 +352,7 @@
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
             font-size: 22px;
-            margin-right: 8px;
+            margin-right: 6px;
         }
 
         #chatInput {
@@ -335,20 +367,21 @@
 
         #chatInput::placeholder { color: var(--text-secondary); }
 
-        .send-action-btn {
+        .circle-action-btn {
             background: #ffffff;
-            color: #000000;
+            color: #131314;
             border: none;
             width: 36px; height: 36px;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
-            transition: transform 0.15s;
+            transition: transform 0.15s ease, background 0.2s ease;
         }
 
-        .send-action-btn:active { transform: scale(0.92); }
+        .circle-action-btn:active { transform: scale(0.92); }
+        .circle-action-btn.stop-mode { background: #ea4335; color: #ffffff; }
 
-        /* GOOGLE AUTH MODAL (CIRCULAR G LOGO) */
+        /* AUTH MODAL */
         .modal-wrap {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.85);
@@ -357,15 +390,17 @@
             align-items: center; justify-content: center;
             z-index: 150; padding: 16px;
         }
+
         .modal-card {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 32px 24px; width: 100%; max-width: 380px;
             display: flex; flex-direction: column; align-items: center; gap: 18px;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.7);
         }
+
         .google-circle-btn {
             background: #ffffff;
             color: #1f1f1f;
@@ -383,6 +418,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             transition: transform 0.15s ease;
         }
+
         .google-circle-btn:active { transform: scale(0.96); }
     </style>
 </head>
@@ -390,30 +426,30 @@
 
     <header>
         <button class="header-icon-btn" id="openDrawer" title="History">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         <button class="get-plus-btn" id="openPro">
-            <span>✨ Get Plus</span>
-            <span style="font-size: 11px; opacity: 0.8;" id="headerTokens">
-                {% if not logged_in %}Sign In{% elif tokens_left > 100 %}Unlimited{% else %}{{ tokens_left }} left{% endif %}
+            <span>✨ HookSpike Pro</span>
+            <span style="font-size: 11.5px; color: var(--accent-blue);" id="headerTokens">
+                {% if not logged_in %}Sign In{% elif tokens_left > 100 %}Unlimited{% else %}{{ tokens_left }} tokens left{% endif %}
             </span>
         </button>
         <button class="header-icon-btn" id="toolsDialBtn" title="Creator Tools">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
         </button>
 
         <div class="tools-dropdown" id="toolsDropdown">
-            <button class="tool-option" onclick="selectTool('Create 7 Viral Hooks for: ')">🔥 7 Viral Hooks</button>
+            <button class="tool-option" onclick="selectTool('Create 3 Viral Hooks for: ')">🔥 3 Viral Hooks</button>
             <button class="tool-option" onclick="selectTool('Write a shoot-ready 60s script for: ')">🎬 60s Video Script</button>
-            <button class="tool-option" onclick="selectTool('Analyze retention and improve my hook: ')">🧲 Hook Analyzer</button>
-            <button class="tool-option" onclick="selectTool('Build 3 CTR Packaging ideas (Title + Thumbnail) for: ')">📦 Packaging Lab</button>
+            <button class="tool-option" onclick="selectTool('Enhance this script and boost retention: ')">⚡ Enhance & Upgrade</button>
+            <button class="tool-option" onclick="selectTool('Build 3 high-CTR Titles and Thumbnail ideas for: ')">📦 Packaging Lab</button>
         </div>
     </header>
 
     <div class="drawer-overlay" id="drawerOverlay"></div>
     <aside class="sidebar" id="sidebar">
         <button class="sidebar-new-chat" id="sidebarNewChat">
-            <span>New Chat</span>
+            <span>New Session</span>
             <span>+</span>
         </button>
         <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 6px 4px 10px; text-transform: uppercase;">History</div>
@@ -421,36 +457,37 @@
         <div class="sidebar-footer">
             {% if logged_in %}
                 <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{ user_email }}</span>
-                <a href="/logout" style="color: #ef4444; text-decoration: none; font-weight: 600;">Logout</a>
+                <a href="/logout" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
             {% else %}
-                <span style="color: var(--text-secondary);">Guest Mode</span>
-                <button onclick="openAuth()" style="background:none; border:none; color:#3b82f6; font-weight:600; cursor:pointer;">Sign In</button>
+                <span style="color: var(--text-secondary);">Guest</span>
+                <button onclick="openAuth()" style="background:none; border:none; color:var(--accent-blue); font-weight:600; cursor:pointer;">Sign In</button>
             {% endif %}
         </div>
     </aside>
 
     <main class="chat-area" id="chatArea">
         <div class="hero-welcome" id="heroWelcome">
-            <h2>HookSpike Studio</h2>
-            <p>Bhai video idea de, retention hook aur full script yahin banate hain.</p>
+            <h2 class="hero-title-gradient">Hello, Creator</h2>
+            <p>Tell HookSpike your video concept, or paste an existing draft to enhance its retention.</p>
         </div>
     </main>
 
     <div class="bottom-dock">
         <div class="input-box-container">
-            <button class="plus-action-btn" id="dockPlusBtn" title="New Chat">+</button>
-            <input type="text" id="chatInput" placeholder="Bhai ko idea bata..." autocomplete="off">
-            <button class="send-action-btn" id="sendBtn" title="Send">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            <button class="plus-action-btn" id="dockPlusBtn" title="New Session">+</button>
+            <input type="text" id="chatInput" placeholder="Ask HookSpike or enhance a script..." autocomplete="off">
+            <button class="circle-action-btn" id="sendBtn" title="Send">
+                <svg id="sendIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                <svg id="stopIcon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
             </button>
         </div>
     </div>
 
-    <!-- SUPABASE GOOGLE LOGIN MODAL -->
+    <!-- AUTH MODAL -->
     <div class="modal-wrap" id="authModal">
         <div class="modal-card">
-            <div style="font-size: 24px; font-weight: 800;">⚡ HookSpike AI</div>
-            <p style="font-size: 13.5px; color: var(--text-secondary);">Continue with your Google account to unlock your 5 free creator tokens.</p>
+            <div style="font-size: 26px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">⚡ HookSpike</div>
+            <p style="font-size: 14px; color: var(--text-secondary);">Sign in with Google to claim your creator tokens and access all studio tools.</p>
             
             <button class="google-circle-btn" onclick="loginWithSupabaseGoogle()">
                 <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 50%;">
@@ -463,7 +500,6 @@
 
     <script>
         const IS_LOGGED = {{ 'true' if logged_in else 'false' }};
-        
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
         
@@ -473,11 +509,8 @@
         }
 
         async function loginWithSupabaseGoogle() {
-            if (!supabaseClient) {
-                alert("Supabase credentials missing!");
-                return;
-            }
-            const { data, error } = await supabaseClient.auth.signInWithOAuth({
+            if (!supabaseClient) { alert("Missing credentials"); return; }
+            const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: { redirectTo: window.location.origin }
             });
@@ -501,11 +534,14 @@
         let chatHist = [];
         let ctrl = null;
         let lastMsg = "";
+        let isStreaming = false;
 
         const chatArea = document.getElementById("chatArea");
         const heroWelcome = document.getElementById("heroWelcome");
         const chatInput = document.getElementById("chatInput");
         const sendBtn = document.getElementById("sendBtn");
+        const sendIcon = document.getElementById("sendIcon");
+        const stopIcon = document.getElementById("stopIcon");
         const sidebar = document.getElementById("sidebar");
         const overlay = document.getElementById("drawerOverlay");
         const toolsDialBtn = document.getElementById("toolsDialBtn");
@@ -542,6 +578,19 @@
         function openAuth() { authModal.classList.add("active"); }
         document.getElementById("openPro").onclick = () => { if(!IS_LOGGED) openAuth(); };
 
+        function setStreamingUI(streaming) {
+            isStreaming = streaming;
+            if (streaming) {
+                sendBtn.classList.add("stop-mode");
+                sendIcon.style.display = "none";
+                stopIcon.style.display = "block";
+            } else {
+                sendBtn.classList.remove("stop-mode");
+                sendIcon.style.display = "block";
+                stopIcon.style.display = "none";
+            }
+        }
+
         function appendBubble(role, text="") {
             if(heroWelcome && heroWelcome.parentNode) heroWelcome.remove();
             const row = document.createElement("div");
@@ -557,6 +606,14 @@
 
         async function sendMsg() {
             if(!IS_LOGGED) { openAuth(); return; }
+
+            // Handle Stop button click during generation
+            if (isStreaming && ctrl) {
+                ctrl.abort();
+                setStreamingUI(false);
+                return;
+            }
+
             const txt = chatInput.value.trim();
             if(!txt) return;
 
@@ -572,6 +629,7 @@
 
             let fullReply = "";
             ctrl = new AbortController();
+            setStreamingUI(true);
 
             try {
                 const res = await fetch("/api/chat-stream", {
@@ -584,6 +642,7 @@
                 if (res.status === 401) {
                     openAuth();
                     cursor.remove();
+                    setStreamingUI(false);
                     return;
                 }
 
@@ -608,7 +667,7 @@
                                 }
                                 if(typeof parsed.tokens_left === "number") {
                                     const h = document.getElementById("headerTokens");
-                                    if(h) h.innerText = parsed.tokens_left > 100 ? "Unlimited" : parsed.tokens_left + " left";
+                                    if(h) h.innerText = parsed.tokens_left > 100 ? "Unlimited" : parsed.tokens_left + " tokens left";
                                 }
                             } catch(e) {
                                 fullReply += data;
@@ -621,17 +680,23 @@
                 cursor.remove();
                 chatHist.push({ role: "assistant", content: fullReply });
 
+                // Gemini Style Pills: Copy, Regenerate, Enhance
                 const acts = document.createElement("div");
                 acts.className = "ai-actions";
                 acts.innerHTML = `
-                    <button class="chip-btn" onclick="navigator.clipboard.writeText(this.closest('.msg-line').querySelector('.bubble-box').innerText); this.innerText='✓ Copied!'; setTimeout(()=>this.innerText='📋 Copy',1500)">📋 Copy</button>
-                    <button class="chip-btn" onclick="chatInput.value=lastMsg; sendMsg();">🔄 Regenerate</button>
+                    <button class="action-pill-btn" onclick="navigator.clipboard.writeText(this.closest('.msg-line').querySelector('.bubble-box').innerText); this.innerHTML='✓ Copied'; setTimeout(()=>this.innerHTML='📋 Copy',1500)">📋 Copy</button>
+                    <button class="action-pill-btn" onclick="chatInput.value=lastMsg; sendMsg();">🔄 Regenerate</button>
+                    <button class="action-pill-btn" onclick="chatInput.value='Enhance this script and increase the retention: ' + lastMsg; chatInput.focus();">⚡ Enhance</button>
                 `;
                 aiBox.parentNode.appendChild(acts);
 
             } catch(e) {
                 cursor.remove();
-                aiBox.innerText = "⚠️ Connection issue ho gaya bhai. Ek baar retry kar le!";
+                if (e.name !== 'AbortError') {
+                    aiBox.innerText = "⚠️ Network issue detected. Please tap Regenerate to retry!";
+                }
+            } finally {
+                setStreamingUI(false);
             }
         }
 

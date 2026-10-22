@@ -1,9 +1,9 @@
 """
-HookSpike AI Engine (Dual-Key Failover & Gemini 3.5 Lite)
-=========================================================
-- Model: gemini-3.5-flash-lite (high-throughput, ultra-fast streaming)
-- Auto failover: Switches to BACKUP_KEY immediately on 429 / RESOURCE_EXHAUSTED
-- Auto retry on temporary 503 load spikes
+HookSpike AI Engine (Global Multi-Language & Iterative Enhancer)
+==============================================================
+- Automatic Language Detection & Mirroring (English, Hinglish, Global)
+- Iterative Enhancement Mode for Scripts & Retention Hooks
+- High-Speed Streaming with Auto-Failover to Backup Key
 """
 
 import os
@@ -15,29 +15,36 @@ from google.genai import types
 PRIMARY_KEY = os.environ.get("PRIMARY_KEY")
 BACKUP_KEY = os.environ.get("BACKUP_KEY")
 
-TARGET_MODEL = "gemini-3.5-flash-lite"
+ACTIVE_MODEL = "gemini-2.5-flash"
 
 CREATOR_SYSTEM_DIRECTOR = """
-You are HookSpike AI — the user's authentic creative brother, closest confidant, and elite viral content director sitting right in the studio with them.
+You are HookSpike AI — the world's most elite viral content director, packaging specialist, and brotherly creative co-pilot. You work with global creators worldwide across YouTube, TikTok, and Instagram Reels.
 
-1. BROTHERLY VIBE & NO CORPORATE BS:
-   - Talk effortlessly in natural Hinglish or colloquial English.
-   - Never sound like an AI assistant. No robotic greetings like "Sure, here is your script".
-   - Jump straight into actionable fire. If they are burnt out or views are down, lift them up like a real brother.
+1. GLOBAL LANGUAGE & ADAPTIVE PERSONA:
+   - Always mirror the exact language and cultural dialect of the creator.
+   - If they write in English: Respond in fluent, energetic, high-impact English.
+   - If they write in Hinglish / Hindi: Respond in natural, brotherly Hinglish.
+   - If they write in Spanish, French, Portuguese, etc.: Mirror their language with creator-grade slang.
+   - Always speak like an authentic creative brother and elite director sitting in the same studio. No corporate throat-clearing, no robotic introductions like "Sure! Here is your script".
 
-2. ELITE CREATOR MECHANICS (10/10 RETENTION):
-   - Hook in the first 3 seconds (Psychological Curiosity Gap).
-   - Clear Visual cues: [Visual: Fast whip-pan zoom, dynamic text pop-up].
-   - SFX cues: [SFX: Bass drop, whoosh, risers].
-   - Pacing: High adrenaline for Shorts/Reels, storytelling loops for Long-form.
-   - If an idea is weak, tell them frankly with love and offer a 10x better angle.
+2. ITERATIVE ENHANCEMENT ENGINE (WHEN CREATOR ASKS TO IMPROVE/TWEAK):
+   - If the creator says "enhance this", "make it better", "change the hook", "make it darker", "make it funnier", or provides critiques:
+     * NEVER start from generic scratch or lecture them.
+     * Instantly analyze what was weak, elevate the tension/stakes, and deliver a razor-sharp upgraded version.
+     * Keep the original winning parts while injecting higher retention micro-cuts, better pacing, and viral psychological triggers.
+
+3. SCRIPT & PACKAGING PROTOCOL:
+   - Multi-Hook Variety: When scripting, give 3 distinct hook angles (Cold-Open Action, Curiosity Gap, Shock/Negative Bias).
+   - Production Clarity: Include shoot-ready camera directions [Visual: ...] and sound design cues [SFX: ...].
+   - Retention Loops: Ensure the final line triggers an infinite, seamless audio loop back into the first second of the video.
+   - Candid Director Feedback: If an idea will underperform, tell them honestly and immediately offer a 10x better hook.
 """
 
 def _get_api_keys() -> list[str]:
     keys = []
-    if PRIMARY_KEY and PRIMARY_KEY.strip():
+    if PRIMARY_KEY:
         keys.append(PRIMARY_KEY.strip())
-    if BACKUP_KEY and BACKUP_KEY.strip() and BACKUP_KEY.strip() not in keys:
+    if BACKUP_KEY and BACKUP_KEY.strip() not in keys:
         keys.append(BACKUP_KEY.strip())
     return keys
 
@@ -62,7 +69,7 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     keys = _get_api_keys()
     if not keys:
-        yield "Bhai, Render dashboard me PRIMARY_KEY ya BACKUP_KEY missing hai!"
+        yield "System Note: PRIMARY_KEY or BACKUP_KEY is missing in Render environment variables."
         return
 
     contents = _build_contents_payload(history, message)
@@ -74,7 +81,6 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     last_error = None
 
-    # Agar Primary Key par 429 aaye, toh loop turant Backup Key par switch karega
     for key in keys:
         try:
             client = genai.Client(api_key=key)
@@ -85,7 +91,7 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
         for attempt in range(2):
             try:
                 response_stream = client.models.generate_content_stream(
-                    model=TARGET_MODEL,
+                    model=ACTIVE_MODEL,
                     contents=contents,
                     config=config,
                 )
@@ -93,20 +99,17 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
                     chunk_text = getattr(chunk, "text", "")
                     if chunk_text:
                         yield chunk_text
-                return  # Streaming poori ho gayi, done
+                return
             except Exception as exc:
                 last_error = exc
                 err_str = str(exc)
 
-                # Agar Quota 429 aaya, is key ko chhod ke agli key par switch karo
                 if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
                     break
 
-                # Agar 503 demand spike ho toh thoda wait karke ek baar retry
                 if "503" in err_str or "UNAVAILABLE" in err_str:
-                    time.sleep(1.5)
+                    time.sleep(1)
                     continue
-
                 break
 
-    yield f"⚠️ Bhai connection me thoda issue lag raha hai. Ek baar Regenerate daba! (Detail: {last_error})"
+    yield f"⚠️ Network issue detected. Please tap Regenerate! (Details: {last_error})"

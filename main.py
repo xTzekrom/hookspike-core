@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (Supabase Auth & Streaming)
+HookSpike AI - Production Backend (Supabase Auth & Streaming + Permanent Chat Memory)
 """
 
 import json
@@ -84,6 +84,38 @@ def logout():
     session.clear()
     return redirect(url_for("index"))
 
+# --- NAYE PERMANENT CHAT MEMORY ROUTES (ADD KIYE HAIN) ---
+
+@app.route("/api/chat-sessions", methods=["GET"])
+def get_chat_sessions():
+    user_email = session.get("user_email")
+    if not user_email or not supabase:
+        return jsonify([])
+    try:
+        res = supabase.table("chat_sessions").select("id, title, created_at").eq("user_email", user_email).order("created_at", desc=True).limit(25).execute()
+        return jsonify(res.data or [])
+    except Exception as exc:
+        print(f"[Fetch Sessions Error]: {exc}")
+        return jsonify([])
+
+@app.route("/api/chat-messages/<session_id>", methods=["GET"])
+def get_chat_messages(session_id):
+    user_email = session.get("user_email")
+    if not user_email or not supabase or not session_id:
+        return jsonify([])
+    try:
+        # Verify ki session isi user ka hai
+        sess = supabase.table("chat_sessions").select("id").eq("id", session_id).eq("user_email", user_email).execute()
+        if not sess.data:
+            return jsonify([])
+        res = supabase.table("chat_messages").select("role, content, created_at").eq("session_id", session_id).order("created_at", desc=False).execute()
+        return jsonify(res.data or [])
+    except Exception as exc:
+        print(f"[Fetch Messages Error]: {exc}")
+        return jsonify([])
+
+# --------------------------------------------------------
+
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
     user_email = session.get("user_email")
@@ -97,25 +129,65 @@ def chat_stream():
     payload = request.get_json() or {}
     message = payload.get("message", "").strip()
     history = payload.get("history", [])
+    session_id = payload.get("session_id")
 
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
+    # Agar naya chat hai toh session create karo
+    current_session_id = session_id
+    if not current_session_id and supabase:
+        try:
+            # Title message ke pehle 32 characters se banayenge
+            title_text = (message[:32] + "...") if len(message) > 32 else message
+            new_sess = supabase.table("chat_sessions").insert({
+                "user_email": user_email,
+                "title": title_text
+            }).execute()
+            if new_sess.data and len(new_sess.data) > 0:
+                current_session_id = new_sess.data[0].get("id")
+        except Exception as exc:
+            print(f"[Session Create Error]: {exc}")
+
     def generate_sse():
         has_deducted = False
         remaining = tokens
+        accumulated_reply = ""
 
         try:
+            # User ka prompt database mein save karo
+            if current_session_id and supabase:
+                try:
+                    supabase.table("chat_messages").insert({
+                        "session_id": current_session_id,
+                        "role": "user",
+                        "content": message
+                    }).execute()
+                except Exception as e:
+                    print(f"[DB Save User Error]: {e}")
+
             for chunk in ai_engine.stream_creator_chat(message, history):
-                # Token sirf tabhi katega jab AI actually valid response dena shuru kare
                 if not has_deducted and not chunk.startswith("⚠️"):
                     remaining = deduct_user_token(user_email)
                     has_deducted = True
 
-                yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining})}\n\n"
+                accumulated_reply += chunk
+                yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining, 'session_id': current_session_id})}\n\n"
+
+            # Stream complete hone par assistant ka final response save karo
+            if current_session_id and supabase and accumulated_reply:
+                try:
+                    supabase.table("chat_messages").insert({
+                        "session_id": current_session_id,
+                        "role": "assistant",
+                        "content": accumulated_reply
+                    }).execute()
+                except Exception as e:
+                    print(f"[DB Save AI Error]: {e}")
+
             yield "data: [DONE]\n\n"
         except Exception as exc:
-            yield f"data: {json.dumps({'token': f'⚠️ Connection Error: {exc}', 'tokens_left': remaining})}\n\n"
+            yield f"data: {json.dumps({'token': f'⚠️ Connection Error: {exc}', 'tokens_left': remaining, 'session_id': current_session_id})}\n\n"
             yield "data: [DONE]\n\n"
 
     headers = {
@@ -129,4 +201,3 @@ def chat_stream():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-        

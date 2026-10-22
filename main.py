@@ -57,10 +57,18 @@ def deduct_user_token(user_email: str) -> int:
 
 @app.route("/")
 def index():
-    user_email = session.get("user_email")
+        user_email = session.get("user_email")
     logged_in = bool(user_email)
     tokens = get_user_tokens(user_email) if logged_in else 0
-    return render_template("index.html", logged_in=logged_in, user_email=user_email, tokens_left=tokens)
+    return render_template(
+        "index.html", 
+        logged_in=logged_in, 
+        user_email=user_email, 
+        tokens_left=tokens,
+        supabase_url=SUPABASE_URL or "",
+        supabase_key=SUPABASE_KEY or ""
+)
+
 
 @app.route("/api/auth/sync", methods=["POST"])
 def auth_sync():

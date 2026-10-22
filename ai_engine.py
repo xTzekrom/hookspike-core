@@ -1,21 +1,18 @@
 """
-HookSpike AI Engine — Strictly Gemini 3.8 Flash Only
-====================================================
-- Only one model: gemini-3.8-flash (No deprecated models, no fallbacks)
-- Multi-key rotation pool for free accounts
-- Fast stream execution
+HookSpike AI Engine — Migrated to Official Interactions API
+==========================================================
+- Uses client.interactions.create standard
+- Primary: gemini-3.5-flash-lite (Ultra-low latency, low load)
+- Secondary: gemini-3.8-flash (High intelligence backup)
+- Same viral director / tapori creator persona
 """
 
 import os
-import time
 from typing import Generator
 from google import genai
-from google.genai import types
 
 KEYS_ENV = ["PRIMARY_KEY", "BACKUP_KEY", "KEY_1", "KEY_2", "KEY_3"]
-
-# Only and strictly the active Google model
-ACTIVE_MODEL = "gemini-3.8-flash"
+MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
 
 CREATOR_SYSTEM_DIRECTOR = """
 You are HookSpike AI — the world's most elite viral content director, packaging specialist, and brotherly creative co-pilot. You work with global creators worldwide across YouTube, TikTok, and Instagram Reels.
@@ -48,20 +45,21 @@ def _get_api_keys() -> list[str]:
             keys.append(val.strip())
     return keys
 
-def _build_contents_payload(history: list[dict], current_message: str):
-    contents = []
+def _build_full_prompt(history: list[dict], current_message: str) -> str:
+    conversation_lines = [f"System Instruction: {CREATOR_SYSTEM_DIRECTOR}\n"]
     for item in history:
-        role = item.get("role")
+        role = item.get("role", "")
         content = item.get("content", "").strip()
         if not content:
             continue
         if role == "user":
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=content)]))
+            conversation_lines.append(f"Creator: {content}")
         elif role in ("assistant", "ai"):
-            contents.append(types.Content(role="model", parts=[types.Part.from_text(text=content)]))
+            conversation_lines.append(f"HookSpike AI: {content}")
 
-    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=current_message)]))
-    return contents
+    conversation_lines.append(f"Creator: {current_message}")
+    conversation_lines.append("HookSpike AI:")
+    return "\n\n".join(conversation_lines)
 
 def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[str, None, None]:
     if history is None:
@@ -69,16 +67,10 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     keys = _get_api_keys()
     if not keys:
-        yield "System Note: API keys are missing in Render environment variables."
+        yield "System Note: No valid API keys found in Render Environment Variables."
         return
 
-    contents = _build_contents_payload(history, message)
-    config = types.GenerateContentConfig(
-        system_instruction=CREATOR_SYSTEM_DIRECTOR,
-        max_output_tokens=3000,
-        temperature=0.8,
-    )
-
+    full_input = _build_full_prompt(history, message)
     last_error = None
 
     for key in keys:
@@ -88,32 +80,39 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             last_error = exc
             continue
 
-        # 503 high demand spike ke liye 1 retry
-        for attempt in range(2):
+        for model_name in MODELS_TO_TRY:
+            # 1. Pehle official Interactions API try karega
             try:
-                response_stream = client.models.generate_content_stream(
-                    model=ACTIVE_MODEL,
-                    contents=contents,
-                    config=config,
+                interaction = client.interactions.create(
+                    model=model_name,
+                    input=full_input,
                 )
-                for chunk in response_stream:
-                    chunk_text = getattr(chunk, "text", "")
-                    if chunk_text:
-                        yield chunk_text
-                return
+                output = getattr(interaction, "output_text", None)
+                if not output and hasattr(interaction, "text"):
+                    output = interaction.text
+                if output:
+                    yield output
+                    return
             except Exception as exc:
                 last_error = exc
                 err_str = str(exc)
 
-                # Quota finish (429) -> Next API key
-                if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
-                    break
+                # 2. Agar interactions module SDK version me directly available na ho, fallback generate_content
+                try:
+                    res = client.models.generate_content(
+                        model=model_name,
+                        contents=full_input,
+                    )
+                    text = getattr(res, "text", "")
+                    if text:
+                        yield text
+                        return
+                except Exception as inner_exc:
+                    last_error = inner_exc
+                    inner_str = str(inner_exc)
+                    if "404" in inner_str or "NOT_FOUND" in inner_str or "503" in inner_str:
+                        continue
+                    if "RESOURCE_EXHAUSTED" in inner_str or "429" in inner_str:
+                        break
 
-                # 503 spike -> 0.5s pause fir retry
-                if "503" in err_str or "UNAVAILABLE" in err_str:
-                    time.sleep(0.5)
-                    continue
-                break
-
-    yield f"⚠️ Network issue detected. Please tap Regenerate! (Details: {last_error})"
-           
+    yield f"⚠️ Server Busy / Key Issue. Please tap Regenerate! (Details: {last_error})"

@@ -68,8 +68,6 @@ def index():
         supabase_url=SUPABASE_URL or "",
         supabase_key=SUPABASE_KEY or ""
     )
-    
-
 
 @app.route("/api/auth/sync", methods=["POST"])
 def auth_sync():
@@ -103,19 +101,32 @@ def chat_stream():
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
-    remaining = deduct_user_token(user_email)
-
     def generate_sse():
+        has_deducted = False
+        remaining = tokens
+
         try:
             for chunk in ai_engine.stream_creator_chat(message, history):
+                # Token sirf tabhi katega jab AI actually valid response dena shuru kare
+                if not has_deducted and not chunk.startswith("⚠️"):
+                    remaining = deduct_user_token(user_email)
+                    has_deducted = True
+
                 yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
-            yield f"data: {json.dumps({'token': f'⚠️ Error: {exc}', 'tokens_left': remaining})}\n\n"
+            yield f"data: {json.dumps({'token': f'⚠️ Connection Error: {exc}', 'tokens_left': remaining})}\n\n"
             yield "data: [DONE]\n\n"
 
-    return Response(stream_with_context(generate_sse()), mimetype="text/event-stream")
+    headers = {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no"
+    }
+
+    return Response(stream_with_context(generate_sse()), headers=headers)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+        

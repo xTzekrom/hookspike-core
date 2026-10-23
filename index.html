@@ -530,7 +530,7 @@
 
         .sheet-tool-btn:hover { background: var(--surface-elevated); color: var(--text-primary); }
 
-        /* AUTH MODAL */
+        /* AUTH MODAL (FIXED BUG 1: Added .active class support) */
         .modal-wrap {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.85);
@@ -538,6 +538,10 @@
             display: {% if not logged_in %}flex{% else %}none{% endif %};
             align-items: center; justify-content: center;
             z-index: 150; padding: 16px;
+        }
+
+        .modal-wrap.active {
+            display: flex !important;
         }
 
         .modal-card {
@@ -583,7 +587,7 @@
         </div>
 
         <div class="user-avatar-pill" id="openPro">
-            <div class="user-avatar-circle">
+            <div class="user-avatar-circle" id="avatarCircle">
                 {% if logged_in and user_email %}{{ user_email[0]|upper }}{% else %}?{% endif %}
             </div>
             <span id="headerTokens">
@@ -600,7 +604,7 @@
         </button>
         <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 6px 4px 10px; text-transform: uppercase;">Workspace History</div>
         <div class="history-list" id="historyList"></div>
-        <div class="sidebar-footer">
+        <div class="sidebar-footer" id="sidebarFooter">
             {% if logged_in %}
                 <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">{{ user_email }}</span>
                 <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
@@ -671,8 +675,9 @@
     <script>
         const BACKEND_URL = window.location.origin;
 
-        const IS_LOGGED = {{ 'true' if logged_in else 'false' }};
+        let IS_LOGGED = {{ 'true' if logged_in else 'false' }};
         let CURRENT_USER_EMAIL = "{{ user_email or '' }}";
+        let CURRENT_ACCESS_TOKEN = "";
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
         
@@ -746,17 +751,27 @@
             chatInput.placeholder = "Ask HookSpike or drop your concept...";
         }
 
-        // LOAD WORKSPACE SESSIONS HISTORY (FIX: Email param sath pass hoga)
+        // HELPER FOR AUTH HEADERS
+        function getAuthHeaders() {
+            const headers = { "Content-Type": "application/json" };
+            if (CURRENT_ACCESS_TOKEN) {
+                headers["Authorization"] = `Bearer ${CURRENT_ACCESS_TOKEN}`;
+            }
+            return headers;
+        }
+
+        // LOAD WORKSPACE SESSIONS HISTORY
         async function loadHistorySessions() {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
-            if (!emailToUse) return;
+            if (!emailToUse && !IS_LOGGED) return;
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(emailToUse)}`, {
+                    headers: getAuthHeaders(),
                     credentials: "include"
                 });
                 const sessions = await res.json();
                 historyList.innerHTML = "";
-                if (!sessions || sessions.length === 0) {
+                if (!Array.isArray(sessions) || sessions.length === 0) {
                     historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">No sessions yet</div>`;
                     return;
                 }
@@ -773,7 +788,7 @@
             }
         }
 
-        // LOAD PAST SESSION MESSAGES ON SCREEN (FIX: Email param attach kiya gaya)
+        // LOAD PAST SESSION MESSAGES ON SCREEN (FIXED BUG 4: Track lastUserPrompt for Regenerate/Enhance)
         async function loadPastSession(sessionId) {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             currentSessionId = sessionId;
@@ -784,15 +799,21 @@
 
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(emailToUse)}`, {
+                    headers: getAuthHeaders(),
                     credentials: "include"
                 });
                 const msgs = await res.json();
-                if (msgs && msgs.length > 0) {
+                if (Array.isArray(msgs) && msgs.length > 0) {
+                    let lastUserPrompt = "";
                     msgs.forEach(m => {
+                        if (m.role === "user") {
+                            lastUserPrompt = m.content;
+                            lastMsg = m.content;
+                        }
                         const box = appendBubble(m.role === "assistant" ? "ai" : "user", m.content);
                         if (m.role === "assistant") {
                             box.innerHTML = marked.parse(m.content);
-                            attachActionPills(box, m.content, "");
+                            attachActionPills(box, m.content, lastUserPrompt);
                         }
                         chatHist.push({ role: m.role, content: m.content });
                     });
@@ -826,7 +847,15 @@
 
         document.getElementById("sidebarNewChat").onclick = resetChat;
 
-        function openAuth() { authModal.classList.add("active"); }
+        function openAuth() {
+            authModal.style.display = "flex";
+            authModal.classList.add("active");
+        }
+        function closeAuth() {
+            authModal.style.display = "none";
+            authModal.classList.remove("active");
+        }
+
         document.getElementById("openPro").onclick = () => { if(!IS_LOGGED && !CURRENT_USER_EMAIL) openAuth(); };
 
         function setStreamingUI(streaming) {
@@ -945,13 +974,14 @@
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-stream`, {
                     method: "POST", 
-                    headers: {"Content-Type": "application/json"},
+                    headers: getAuthHeaders(),
                     credentials: "include",
                     body: JSON.stringify({ 
                         message: finalMessage, 
                         history: chatHist.slice(-6),
                         session_id: currentSessionId,
-                        user_email: emailToUse
+                        user_email: emailToUse,
+                        access_token: CURRENT_ACCESS_TOKEN
                     }),
                     signal: ctrl.signal
                 });
@@ -970,16 +1000,22 @@
                     return;
                 }
 
+                // FIXED BUG 3: Buffer incomplete SSE lines so half-JSON chunks never break the UI
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
+                let buffer = "";
 
                 while(true) {
                     const { done, value } = await reader.read();
                     if(done) break;
-                    const chunk = decoder.decode(value, {stream: true});
-                    for(const line of chunk.split("\n")) {
+                    buffer += decoder.decode(value, {stream: true});
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop(); // Keep incomplete line for next chunk
+
+                    for(const rawLine of lines) {
+                        const line = rawLine.trim();
                         if(line.startsWith("data: ")) {
-                            const data = line.replace("data: ", "");
+                            const data = line.slice(6).trim();
                             if(data === "[DONE]") break;
                             try {
                                 const parsed = JSON.parse(data);
@@ -998,9 +1034,7 @@
                                     if(h) h.innerText = parsed.tokens_left > 100 ? "Pro" : parsed.tokens_left;
                                 }
                             } catch(e) {
-                                fullReply += data;
-                                aiBox.innerHTML = marked.parse(fullReply);
-                                aiBox.appendChild(cursor);
+                                // Ignore broken JSON fragments safely
                             }
                         }
                     }
@@ -1032,22 +1066,48 @@
             } 
         };
         
+        // FIXED BUG 2: No Infinite Reload Loop + Instant UI Sync on Login
         window.addEventListener('DOMContentLoaded', async () => {
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session && session.user && session.user.email) {
-                    CURRENT_USER_EMAIL = session.user.email;
+                    CURRENT_USER_EMAIL = session.user.email.toLowerCase();
+                    CURRENT_ACCESS_TOKEN = session.access_token || "";
                     try {
-                        await fetch(`${BACKEND_URL}/api/auth/sync`, {
+                        const res = await fetch(`${BACKEND_URL}/api/auth/sync`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: getAuthHeaders(),
                             credentials: "include",
-                            body: JSON.stringify({ email: session.user.email })
+                            body: JSON.stringify({ 
+                                email: CURRENT_USER_EMAIL,
+                                access_token: CURRENT_ACCESS_TOKEN
+                            })
                         });
+                        if (res.ok) {
+                            const syncData = await res.json();
+                            IS_LOGGED = true;
+                            closeAuth();
+
+                            // Dynamically update header & sidebar without needing page reload
+                            const avatar = document.getElementById("avatarCircle");
+                            if (avatar && CURRENT_USER_EMAIL) avatar.innerText = CURRENT_USER_EMAIL[0].toUpperCase();
+
+                            const hTokens = document.getElementById("headerTokens");
+                            if (hTokens && typeof syncData.tokens === "number") {
+                                hTokens.innerText = syncData.tokens > 100 ? "Pro" : syncData.tokens;
+                            }
+
+                            const footer = document.getElementById("sidebarFooter");
+                            if (footer) {
+                                footer.innerHTML = `
+                                    <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">${CURRENT_USER_EMAIL}</span>
+                                    <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
+                                `;
+                            }
+                        }
                     } catch(err) {
                         console.warn("Sync failed:", err);
                     }
-                    if (!IS_LOGGED) window.location.href = "/";
                 }
             }
             if (IS_LOGGED || CURRENT_USER_EMAIL) {
@@ -1059,6 +1119,7 @@
             const link = e.target.closest('a#logoutBtn');
             if (link) {
                 e.preventDefault();
+                sessionStorage.removeItem("auth_synced");
                 if (supabaseClient) {
                     await supabaseClient.auth.signOut();
                 }

@@ -48,11 +48,13 @@ def get_user_tokens(user_email: str) -> int:
         res = supabase.table("user_tokens").select("tokens_left").eq("email", user_email).execute()
         if res.data and len(res.data) > 0:
             return int(res.data[0].get("tokens_left", 0))
-        supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 5}).execute()
+        
+        # Naye user ke liye 5 tokens set karo
+        supabase.table("user_tokens").upsert({"email": user_email, "tokens_left": 5}).execute()
         return 5
     except Exception as e:
         print(f"[Token Fetch Error]: {e}")
-        return 5
+        return 0
 
 def deduct_user_token(user_email: str) -> int:
     if not user_email:
@@ -60,7 +62,7 @@ def deduct_user_token(user_email: str) -> int:
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
-        return 4
+        return 0
     try:
         curr = get_user_tokens(user_email)
         new_balance = max(0, curr - 1)

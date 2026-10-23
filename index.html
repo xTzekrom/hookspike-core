@@ -603,7 +603,7 @@
         <div class="sidebar-footer">
             {% if logged_in %}
                 <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">{{ user_email }}</span>
-                <a href="/logout" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
+                <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
             {% else %}
                 <span style="color: var(--text-secondary);">Guest</span>
                 <button onclick="openAuth()" style="background:none; border:none; color:var(--accent-blue); font-weight:600; cursor:pointer;">Sign In</button>
@@ -669,8 +669,11 @@
     </div>
 
     <script>
+        // BACKEND BASE URL: Agar direct Render par host hai toh blank raho "", warna apna Render link daal do
+        const BACKEND_URL = window.location.origin;
+
         const IS_LOGGED = {{ 'true' if logged_in else 'false' }};
-        const CURRENT_USER_EMAIL = "{{ user_email or '' }}";
+        let CURRENT_USER_EMAIL = "{{ user_email or '' }}";
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
         
@@ -746,9 +749,11 @@
 
         // LOAD WORKSPACE SESSIONS HISTORY
         async function loadHistorySessions() {
-            if (!IS_LOGGED) return;
+            if (!IS_LOGGED && !CURRENT_USER_EMAIL) return;
             try {
-                const res = await fetch("/api/chat-sessions");
+                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+                    credentials: "include"
+                });
                 const sessions = await res.json();
                 historyList.innerHTML = "";
                 if (!sessions || sessions.length === 0) {
@@ -777,7 +782,9 @@
             chatHist = [];
 
             try {
-                const res = await fetch(`/api/chat-messages/${sessionId}`);
+                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}`, {
+                    credentials: "include"
+                });
                 const msgs = await res.json();
                 if (msgs && msgs.length > 0) {
                     msgs.forEach(m => {
@@ -819,7 +826,7 @@
         document.getElementById("sidebarNewChat").onclick = resetChat;
 
         function openAuth() { authModal.classList.add("active"); }
-        document.getElementById("openPro").onclick = () => { if(!IS_LOGGED) openAuth(); };
+        document.getElementById("openPro").onclick = () => { if(!IS_LOGGED && !CURRENT_USER_EMAIL) openAuth(); };
 
         function setStreamingUI(streaming) {
             isStreaming = streaming;
@@ -905,7 +912,7 @@
         }
 
         async function sendMsg() {
-            if(!IS_LOGGED) { openAuth(); return; }
+            if(!IS_LOGGED && !CURRENT_USER_EMAIL) { openAuth(); return; }
 
             if (isStreaming && ctrl) {
                 ctrl.abort();
@@ -934,9 +941,10 @@
             setStreamingUI(true);
 
             try {
-                const res = await fetch("/api/chat-stream", {
+                const res = await fetch(`${BACKEND_URL}/api/chat-stream`, {
                     method: "POST", 
                     headers: {"Content-Type": "application/json"},
+                    credentials: "include",
                     body: JSON.stringify({ 
                         message: finalMessage, 
                         history: chatHist.slice(-6),
@@ -1012,9 +1020,6 @@
 
         sendBtn.onclick = sendMsg;
 
-        // MOBILE-SAFE KEYBOARD BEHAVIOR:
-        // Desktop par Enter = Send, Shift+Enter = Newline.
-        // Mobile / Touch devices par Enter = Newline (Lines neeche jayegi, Send sirf button se hoga).
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         chatInput.onkeydown = (e) => { 
             if(e.key === "Enter") {
@@ -1029,27 +1034,33 @@
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session && session.user && session.user.email) {
-                    await fetch('/api/auth/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: session.user.email })
-                    });
+                    CURRENT_USER_EMAIL = session.user.email;
+                    try {
+                        await fetch(`${BACKEND_URL}/api/auth/sync`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: "include",
+                            body: JSON.stringify({ email: session.user.email })
+                        });
+                    } catch(err) {
+                        console.warn("Sync failed:", err);
+                    }
                     if (!IS_LOGGED) window.location.href = "/";
                 }
             }
-            if (IS_LOGGED) {
+            if (IS_LOGGED || CURRENT_USER_EMAIL) {
                 loadHistorySessions();
             }
         });
 
         document.addEventListener('click', async function(e) {
-            const link = e.target.closest('a[href="/logout"]');
+            const link = e.target.closest('a#logoutBtn');
             if (link) {
                 e.preventDefault();
                 if (supabaseClient) {
                     await supabaseClient.auth.signOut();
                 }
-                window.location.href = '/logout';
+                window.location.href = `${BACKEND_URL}/logout`;
             }
         });
     </script>

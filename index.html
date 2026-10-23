@@ -602,7 +602,7 @@
         <div class="history-list" id="historyList"></div>
         <div class="sidebar-footer">
             {% if logged_in %}
-                <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{ user_email }}</span>
+                <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">{{ user_email }}</span>
                 <a href="/logout" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
             {% else %}
                 <span style="color: var(--text-secondary);">Guest</span>
@@ -620,7 +620,6 @@
 
     <!-- NATIVE FLOATING DOCK -->
     <div class="bottom-dock">
-        <!-- MODE ACTIVE BANNER -->
         <div class="mode-banner" id="modeBanner">
             <span id="modeBannerText">🔥 Mode: 3 Viral Hooks Active</span>
             <button class="mode-close-btn" onclick="clearActiveMode()">✕</button>
@@ -646,7 +645,6 @@
             </div>
         </div>
 
-        <!-- TOOLS MENU OPENED BY + -->
         <div class="tools-sheet" id="toolsSheet">
             <button class="sheet-tool-btn" onclick="setDirectorMode('🔥 3 Viral Hooks', 'Create 3 Viral Hooks (Negative bias, Curiosity gap, Action) for: ')">🔥 3 Viral Hooks</button>
             <button class="sheet-tool-btn" onclick="setDirectorMode('🎬 60s Reel Script', 'Write a shoot-ready 60s video script with visuals and SFX for: ')">🎬 60s Reel Script</button>
@@ -672,6 +670,7 @@
 
     <script>
         const IS_LOGGED = {{ 'true' if logged_in else 'false' }};
+        const CURRENT_USER_EMAIL = "{{ user_email or '' }}";
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
         
@@ -848,7 +847,6 @@
             return box;
         }
 
-        // 1-TAP BULLETPROOF COPY
         async function copyText(btn, text) {
             try {
                 if (navigator.clipboard && window.isSecureContext) {
@@ -942,7 +940,8 @@
                     body: JSON.stringify({ 
                         message: finalMessage, 
                         history: chatHist.slice(-6),
-                        session_id: currentSessionId
+                        session_id: currentSessionId,
+                        user_email: CURRENT_USER_EMAIL
                     }),
                     signal: ctrl.signal
                 });
@@ -951,6 +950,13 @@
                     openAuth();
                     cursor.remove();
                     setStreamingUI(false);
+                    return;
+                }
+
+                if (res.status === 402) {
+                    cursor.remove();
+                    setStreamingUI(false);
+                    aiBox.innerHTML = `⚠️ <strong>Tokens exhausted!</strong> Upgrade to HookSpike Pro to continue unlimited generations.`;
                     return;
                 }
 
@@ -992,6 +998,7 @@
                 cursor.remove();
                 chatHist.push({ role: "assistant", content: fullReply });
                 attachActionPills(aiBox, fullReply, rawTxt);
+                loadHistorySessions();
 
             } catch(e) {
                 cursor.remove();
@@ -1004,10 +1011,17 @@
         }
 
         sendBtn.onclick = sendMsg;
+
+        // MOBILE-SAFE KEYBOARD BEHAVIOR:
+        // Desktop par Enter = Send, Shift+Enter = Newline.
+        // Mobile / Touch devices par Enter = Newline (Lines neeche jayegi, Send sirf button se hoga).
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         chatInput.onkeydown = (e) => { 
-            if(e.key === "Enter" && !e.shiftKey) { 
-                e.preventDefault(); 
-                sendMsg(); 
+            if(e.key === "Enter") {
+                if(!isTouchDevice && !e.shiftKey) {
+                    e.preventDefault(); 
+                    sendMsg(); 
+                }
             } 
         };
         

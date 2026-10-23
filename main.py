@@ -22,8 +22,9 @@ import ai_engine
 app = Flask(__name__, template_folder=".")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_key_2026")
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
 supabase: Client | None = None
 
 if SUPABASE_URL and SUPABASE_KEY:

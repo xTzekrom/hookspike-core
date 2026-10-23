@@ -32,12 +32,13 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supa
 PUBLIC_ANON_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU"
 
 # Backend key from Render Environment (or fallback to public key)
- raw_env_key = (
+raw_env_key = (
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     or os.environ.get("SUPABASE_SECRET_KEY")
     or os.environ.get("SUPABASE_KEY")
     or PUBLIC_ANON_KEY
 ).strip()
+
 
 SUPABASE_KEY = raw_env_key if raw_env_key else PUBLIC_ANON_KEY
 

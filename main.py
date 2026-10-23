@@ -148,14 +148,11 @@ def get_chat_messages(session_id):
 
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
-    user_email = session.get("user_email")
     payload = request.get_json() or {}
+    user_email = session.get("user_email") or payload.get("user_email")
     
-    # Fallback to payload email if session cookie got delayed
-    if not user_email:
-        user_email = payload.get("user_email")
-        if user_email:
-            session["user_email"] = user_email
+    if user_email and not session.get("user_email"):
+        session["user_email"] = user_email
 
     if not user_email:
         return jsonify({"error": "Login required", "login_needed": True}), 401
@@ -168,17 +165,20 @@ def chat_stream():
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
-    # Casual chat check
     casual = is_casual_message(message)
 
-    # Check paywall only on real tasks
     if not casual and tokens <= 0 and user_email not in ADMIN_EMAILS:
         return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
+
+    # Pre-deduct token if heavy task
+    remaining_tokens = tokens
+    if not casual:
+        remaining_tokens = deduct_user_token(user_email)
 
     current_session_id = session_id
     if not current_session_id and supabase:
         try:
-            title_text = (message[:28] + "...") if len(message) > 28 else message
+            title_text = (message[:26] + "...") if len(message) > 26 else message
             new_sess = supabase.table("chat_sessions").insert({
                 "user_email": user_email,
                 "title": title_text
@@ -189,12 +189,9 @@ def chat_stream():
             print(f"[Session Create Error]: {exc}")
 
     def generate_sse():
-        has_deducted = False
-        remaining = tokens
         accumulated_reply = ""
 
         try:
-            # Save user prompt in history table
             if current_session_id and supabase:
                 try:
                     supabase.table("chat_messages").insert({
@@ -206,15 +203,9 @@ def chat_stream():
                     print(f"[DB Save User Error]: {e}")
 
             for chunk in ai_engine.stream_creator_chat(message, history):
-                # Smart Token Deduction: Sirf real/heavy creator queries par 1 token katega
-                if not casual and not has_deducted and not chunk.startswith("⚠️"):
-                    remaining = deduct_user_token(user_email)
-                    has_deducted = True
-
                 accumulated_reply += chunk
-                yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining, 'session_id': current_session_id})}\n\n"
+                yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining_tokens, 'session_id': current_session_id})}\n\n"
 
-            # Save full AI response in history table
             if current_session_id and supabase and accumulated_reply:
                 try:
                     supabase.table("chat_messages").insert({
@@ -227,7 +218,7 @@ def chat_stream():
 
             yield "data: [DONE]\n\n"
         except Exception as exc:
-            yield f"data: {json.dumps({'token': f'⚠️ Connection Error: {exc}', 'tokens_left': remaining, 'session_id': current_session_id})}\n\n"
+            yield f"data: {json.dumps({'token': f'⚠️ Connection Error: {exc}', 'tokens_left': remaining_tokens, 'session_id': current_session_id})}\n\n"
             yield "data: [DONE]\n\n"
 
     headers = {

@@ -669,7 +669,6 @@
     </div>
 
     <script>
-        // BACKEND BASE URL: Agar direct Render par host hai toh blank raho "", warna apna Render link daal do
         const BACKEND_URL = window.location.origin;
 
         const IS_LOGGED = {{ 'true' if logged_in else 'false' }};
@@ -747,11 +746,12 @@
             chatInput.placeholder = "Ask HookSpike or drop your concept...";
         }
 
-        // LOAD WORKSPACE SESSIONS HISTORY
+        // LOAD WORKSPACE SESSIONS HISTORY (FIX: Email param sath pass hoga)
         async function loadHistorySessions() {
-            if (!IS_LOGGED && !CURRENT_USER_EMAIL) return;
+            const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
+            if (!emailToUse) return;
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(emailToUse)}`, {
                     credentials: "include"
                 });
                 const sessions = await res.json();
@@ -773,8 +773,9 @@
             }
         }
 
-        // LOAD PAST SESSION MESSAGES ON SCREEN
+        // LOAD PAST SESSION MESSAGES ON SCREEN (FIX: Email param attach kiya gaya)
         async function loadPastSession(sessionId) {
+            const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             currentSessionId = sessionId;
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
@@ -782,7 +783,7 @@
             chatHist = [];
 
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(emailToUse)}`, {
                     credentials: "include"
                 });
                 const msgs = await res.json();
@@ -912,7 +913,8 @@
         }
 
         async function sendMsg() {
-            if(!IS_LOGGED && !CURRENT_USER_EMAIL) { openAuth(); return; }
+            const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
+            if(!IS_LOGGED && !emailToUse) { openAuth(); return; }
 
             if (isStreaming && ctrl) {
                 ctrl.abort();
@@ -949,7 +951,7 @@
                         message: finalMessage, 
                         history: chatHist.slice(-6),
                         session_id: currentSessionId,
-                        user_email: CURRENT_USER_EMAIL
+                        user_email: emailToUse
                     }),
                     signal: ctrl.signal
                 });

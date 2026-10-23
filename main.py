@@ -50,10 +50,13 @@ def get_user_tokens(user_email: str) -> int:
             return int(res.data[0].get("tokens_left", 0))
         supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 5}).execute()
         return 5
-    except Exception:
+    except Exception as e:
+        print(f"[Token Fetch Error]: {e}")
         return 5
 
 def deduct_user_token(user_email: str) -> int:
+    if not user_email:
+        return 0
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
@@ -63,8 +66,21 @@ def deduct_user_token(user_email: str) -> int:
         new_balance = max(0, curr - 1)
         supabase.table("user_tokens").update({"tokens_left": new_balance}).eq("email", user_email).execute()
         return new_balance
-    except Exception:
+    except Exception as e:
+        print(f"[Token Deduct Error]: {e}")
         return 0
+
+def is_casual_message(text: str) -> bool:
+    """Free casual greetings par token na katne ke liye filter"""
+    t = text.strip().lower()
+    casual_words = {
+        "hi", "hello", "heyy", "heyyy", "hey", "yo", "wassup", 
+        "sup", "kya haal hai", "kaise ho", "bol bhai", "kya chal rha", 
+        "test", "ok", "okay", "haan", "theek hai"
+    }
+    if t in casual_words or len(t) <= 6:
+        return True
+    return False
 
 @app.route("/")
 def index():
@@ -107,7 +123,7 @@ def get_chat_sessions():
     if not user_email or not supabase:
         return jsonify([])
     try:
-        res = supabase.table("chat_sessions").select("id, title, created_at").eq("user_email", user_email).order("created_at", desc=True).limit(25).execute()
+        res = supabase.table("chat_sessions").select("id, title, created_at").eq("user_email", user_email).order("created_at", desc=True).limit(30).execute()
         return jsonify(res.data or [])
     except Exception as exc:
         print(f"[Fetch Sessions Error]: {exc}")
@@ -133,14 +149,18 @@ def get_chat_messages(session_id):
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
     user_email = session.get("user_email")
+    payload = request.get_json() or {}
+    
+    # Fallback to payload email if session cookie got delayed
+    if not user_email:
+        user_email = payload.get("user_email")
+        if user_email:
+            session["user_email"] = user_email
+
     if not user_email:
         return jsonify({"error": "Login required", "login_needed": True}), 401
 
     tokens = get_user_tokens(user_email)
-    if tokens <= 0 and user_email not in ADMIN_EMAILS:
-        return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
-
-    payload = request.get_json() or {}
     message = payload.get("message", "").strip()
     history = payload.get("history", [])
     session_id = payload.get("session_id")
@@ -148,10 +168,17 @@ def chat_stream():
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
+    # Casual chat check
+    casual = is_casual_message(message)
+
+    # Check paywall only on real tasks
+    if not casual and tokens <= 0 and user_email not in ADMIN_EMAILS:
+        return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
+
     current_session_id = session_id
     if not current_session_id and supabase:
         try:
-            title_text = (message[:32] + "...") if len(message) > 32 else message
+            title_text = (message[:28] + "...") if len(message) > 28 else message
             new_sess = supabase.table("chat_sessions").insert({
                 "user_email": user_email,
                 "title": title_text
@@ -167,6 +194,7 @@ def chat_stream():
         accumulated_reply = ""
 
         try:
+            # Save user prompt in history table
             if current_session_id and supabase:
                 try:
                     supabase.table("chat_messages").insert({
@@ -178,13 +206,15 @@ def chat_stream():
                     print(f"[DB Save User Error]: {e}")
 
             for chunk in ai_engine.stream_creator_chat(message, history):
-                if not has_deducted and not chunk.startswith("⚠️"):
+                # Smart Token Deduction: Sirf real/heavy creator queries par 1 token katega
+                if not casual and not has_deducted and not chunk.startswith("⚠️"):
                     remaining = deduct_user_token(user_email)
                     has_deducted = True
 
                 accumulated_reply += chunk
                 yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining, 'session_id': current_session_id})}\n\n"
 
+            # Save full AI response in history table
             if current_session_id and supabase and accumulated_reply:
                 try:
                     supabase.table("chat_messages").insert({

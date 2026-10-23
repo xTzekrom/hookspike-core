@@ -44,14 +44,14 @@ def get_user_tokens(user_email: str) -> int:
     if user_email in ADMIN_EMAILS:
         return 99999999
     if not supabase:
-        return 5
+        return 0  # FIX: Fail hone par 5 tokens ka loophole block kar diya
     try:
         res = supabase.table("user_tokens").select("tokens_left").eq("email", user_email).execute()
         if res.data and len(res.data) > 0:
             return int(res.data[0].get("tokens_left", 0))
         
-        # Naye user ke liye 5 tokens set karo
-        supabase.table("user_tokens").upsert({"email": user_email, "tokens_left": 5}).execute()
+        # Naye user ke liye sirf pehli baar 5 tokens set karo
+        supabase.table("user_tokens").insert({"email": user_email, "tokens_left": 5}).execute()
         return 5
     except Exception as e:
         print(f"[Token Fetch Error]: {e}")
@@ -78,12 +78,10 @@ def is_casual_message(text: str) -> bool:
     t = text.strip().lower()
     casual_words = {
         "hi", "hello", "heyy", "heyyy", "hey", "yo", "wassup", 
-        "sup", "kya haal hai", "kaise ho", "bol bhai", "kya chal rha", 
-        "test", "ok", "okay", "haan", "theek hai"
+        "sup", "kya haal hai", "kaise ho", "bol bhai", "kya chal rha"
     }
-    if t in casual_words or len(t) <= 6:
-        return True
-    return False
+    # FIX: len(t) <= 6 hata diya taaki chote prompts loophole na banein
+    return t in casual_words
 
 @app.route("/")
 def index():
@@ -122,7 +120,8 @@ def serve_logo():
 
 @app.route("/api/chat-sessions", methods=["GET"])
 def get_chat_sessions():
-    user_email = session.get("user_email")
+    # FIX: Session cookie + URL param dono se email accept karega
+    user_email = session.get("user_email") or request.args.get("email")
     if not user_email or not supabase:
         return jsonify([])
     try:
@@ -134,7 +133,8 @@ def get_chat_sessions():
 
 @app.route("/api/chat-messages/<session_id>", methods=["GET"])
 def get_chat_messages(session_id):
-    user_email = session.get("user_email")
+    # FIX: Session cookie + URL param dono se email accept karega
+    user_email = session.get("user_email") or request.args.get("email")
     if not user_email or not supabase or not session_id:
         return jsonify([])
     try:
@@ -170,7 +170,8 @@ def chat_stream():
 
     casual = is_casual_message(message)
 
-    if not casual and tokens <= 0 and user_email not in ADMIN_EMAILS:
+    # FIX: Strict check - agar tokens 0 hain toh request AI tak jayegi hi nahi
+    if tokens <= 0 and user_email not in ADMIN_EMAILS:
         return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
 
     # Pre-deduct token if heavy task
@@ -235,3 +236,4 @@ def chat_stream():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+            

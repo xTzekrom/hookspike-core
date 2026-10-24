@@ -49,14 +49,13 @@ ADMIN_EMAILS = {
 
 
 def sb_headers() -> dict:
-    headers = {
+    # Fixed: Always include Authorization Bearer header for Supabase PostgREST
+    return {
         "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
-    if SUPABASE_KEY.startswith("eyJ"):
-        headers["Authorization"] = f"Bearer {SUPABASE_KEY}"
-    return headers
 
 
 def db_select(table: str, query_params: str) -> list:

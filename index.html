@@ -781,9 +781,13 @@
         const BACKEND_URL = window.location.origin;
 
         let IS_LOGGED = {{ 'true' if logged_in else 'false' }};
-        let CURRENT_USER_EMAIL = "{{ user_email or '' }}";
-        let CURRENT_ACCESS_TOKEN = "";
+        let CURRENT_USER_EMAIL = ("{{ user_email or '' }}" || localStorage.getItem("hs_user_email") || "").trim().toLowerCase();
+        let CURRENT_ACCESS_TOKEN = localStorage.getItem("hs_access_token") || "";
         let isSyncingAuth = false;
+
+        if (CURRENT_USER_EMAIL) {
+            IS_LOGGED = true;
+        }
 
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
@@ -828,6 +832,35 @@
         function renderSafeMarkdown(mdText) {
             const rawHtml = marked.parse(mdText || "");
             return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        }
+
+        // Update UI immediately for logged-in user (Admin or Normal User)
+        function applyLoggedUI(email, tokensVal = null) {
+            if (!email) return;
+            IS_LOGGED = true;
+            CURRENT_USER_EMAIL = email.trim().toLowerCase();
+            localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
+            closeAuth();
+
+            const avatar = document.getElementById("avatarCircle");
+            if (avatar) avatar.innerText = CURRENT_USER_EMAIL[0].toUpperCase();
+
+            const footer = document.getElementById("sidebarFooter");
+            if (footer) {
+                footer.innerHTML = `
+                    <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">${CURRENT_USER_EMAIL}</span>
+                    <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
+                `;
+            }
+
+            const hTokens = document.getElementById("headerTokens");
+            if (hTokens) {
+                if (typeof tokensVal === "number") {
+                    hTokens.innerText = tokensVal > 100 ? "Pro" : tokensVal;
+                } else if (hTokens.innerText.trim() === "Sign In") {
+                    hTokens.innerText = "5";
+                }
+            }
         }
 
         // SMART SCROLL DOWN BUTTON TRACKER
@@ -1287,27 +1320,18 @@
             } 
         };
 
-        // Prevent duplicate concurrent sync calls on page load / OAuth redirect
+        // Sync user session with backend reliably
         async function syncUserWithBackend(session) {
             if (!session || !session.user || !session.user.email) return false;
-            const normalizedEmail = session.user.email.toLowerCase();
+            const normalizedEmail = session.user.email.trim().toLowerCase();
 
-            // Update local state immediately so UI never blocks
-            CURRENT_USER_EMAIL = normalizedEmail;
             CURRENT_ACCESS_TOKEN = session.access_token || "";
-            IS_LOGGED = true;
-            closeAuth();
-
-            const avatar = document.getElementById("avatarCircle");
-            if (avatar && CURRENT_USER_EMAIL) avatar.innerText = CURRENT_USER_EMAIL[0].toUpperCase();
-
-            const footer = document.getElementById("sidebarFooter");
-            if (footer) {
-                footer.innerHTML = `
-                    <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">${CURRENT_USER_EMAIL}</span>
-                    <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
-                `;
+            if (CURRENT_ACCESS_TOKEN) {
+                localStorage.setItem("hs_access_token", CURRENT_ACCESS_TOKEN);
             }
+
+            // Update local UI state immediately so normal user is never stuck in Guest mode
+            applyLoggedUI(normalizedEmail);
 
             if (isSyncingAuth) return true;
             isSyncingAuth = true;
@@ -1318,17 +1342,14 @@
                     headers: getAuthHeaders(),
                     credentials: "include",
                     body: JSON.stringify({ 
-                        email: CURRENT_USER_EMAIL,
+                        email: normalizedEmail,
                         access_token: CURRENT_ACCESS_TOKEN
                     })
                 });
                 if (res.ok) {
                     const syncData = await res.json();
-                    const hTokens = document.getElementById("headerTokens");
-                    if (hTokens && typeof syncData.tokens === "number") {
-                        hTokens.innerText = syncData.tokens > 100 ? "Pro" : syncData.tokens;
-                    } else if (hTokens && hTokens.innerText.trim() === "Sign In") {
-                        hTokens.innerText = "Pro";
+                    if (typeof syncData.tokens === "number") {
+                        applyLoggedUI(normalizedEmail, syncData.tokens);
                     }
                 }
             } catch(err) {
@@ -1344,15 +1365,28 @@
             const hasAuthCallback = (window.location.hash && window.location.hash.includes("access_token")) ||
                                     (window.location.search && window.location.search.includes("code="));
 
+            if (CURRENT_USER_EMAIL) {
+                applyLoggedUI(CURRENT_USER_EMAIL);
+            }
+
             if (supabaseClient) {
-                // Single source of truth for session state & OAuth callbacks
+                // Explicitly check active session first
+                const { data: { session: initialSess } } = await supabaseClient.auth.getSession();
+                if (initialSess && initialSess.user) {
+                    await syncUserWithBackend(initialSess);
+                    if (window.location.hash && window.location.hash.includes("access_token")) {
+                        history.replaceState(null, null, window.location.pathname);
+                    }
+                }
+
+                // Listen for auth changes / OAuth redirect completion
                 supabaseClient.auth.onAuthStateChange(async (event, session) => {
                     if (session && session.user) {
                         await syncUserWithBackend(session);
                         if (window.location.hash && window.location.hash.includes("access_token")) {
                             history.replaceState(null, null, window.location.pathname);
                         }
-                    } else if (event === 'INITIAL_SESSION' && !session) {
+                    } else if (event === 'INITIAL_SESSION' && !session && !initialSess) {
                         if (IS_LOGGED || CURRENT_USER_EMAIL) {
                             closeAuth();
                             loadHistorySessions();
@@ -1375,6 +1409,8 @@
             const link = e.target.closest('a#logoutBtn');
             if (link) {
                 e.preventDefault();
+                localStorage.removeItem("hs_user_email");
+                localStorage.removeItem("hs_access_token");
                 sessionStorage.removeItem("auth_synced");
                 if (supabaseClient) {
                     try { await supabaseClient.auth.signOut(); } catch(err) {}

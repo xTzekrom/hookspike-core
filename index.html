@@ -8,14 +8,15 @@
     <!-- Bulletproof Favicons for Browsers, Google, Tabs & Mobile -->
     <link rel="shortcut icon" href="/logo.png" type="image/png">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/logo.png">
+    <link rel="icon" href="/logo.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/logo.png" type="image/png" sizes="192x192">
     <link rel="apple-touch-icon" href="/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -274,12 +275,14 @@
             padding: 12px 18px;
             border-radius: 20px;
             border-bottom-right-radius: 6px;
+            white-space: pre-wrap;
         }
 
         .msg-line.ai .bubble-box {
             background: transparent;
             color: var(--text-primary);
             width: 100%;
+            max-width: 100%;
             padding: 4px 0;
         }
 
@@ -288,7 +291,27 @@
         .bubble-box strong { color: #ffffff; }
         .bubble-box ul, .bubble-box ol { margin: 6px 0 12px 22px; }
         .bubble-box li { margin-bottom: 4px; }
-        .bubble-box code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
+        .bubble-box code {
+            background: rgba(255,255,255,0.08);
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-size: 13.5px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .bubble-box pre {
+            background: #111215;
+            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .bubble-box pre code {
+            background: transparent;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
 
         .paused-draft-note {
             display: inline-flex;
@@ -347,6 +370,8 @@
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(112, 165, 248, 0.7);
             animation: pulseGlow 0.9s infinite alternate;
+            vertical-align: middle;
+            margin-left: 4px;
         }
 
         @keyframes pulseGlow {
@@ -427,6 +452,7 @@
         }
 
         .gemini-card-dock {
+            position: relative;
             max-width: 760px;
             width: 100%;
             background: var(--surface-dock);
@@ -529,11 +555,11 @@
             box-shadow: 0 0 10px rgba(112, 165, 248, 0.3);
         }
 
-        /* CLEAN ACCORDION SHEET */
+        /* CLEAN ACCORDION SHEET (Relative to Dock) */
         .tools-sheet {
             position: absolute;
-            bottom: 78px;
-            left: 14px;
+            bottom: calc(100% + 10px);
+            left: 0;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: 18px;
@@ -579,11 +605,12 @@
 
         .sheet-tool-btn:hover { background: var(--surface-elevated); color: var(--text-primary); }
 
+        /* AUTH MODAL */
         .modal-wrap {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(8px);
-            display: {% if not logged_in %}flex{% else %}none{% endif %};
+            display: none;
             align-items: center; justify-content: center;
             z-index: 150; padding: 16px;
         }
@@ -591,6 +618,7 @@
         .modal-wrap.active { display: flex !important; }
 
         .modal-card {
+            position: relative;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: 24px;
@@ -599,6 +627,24 @@
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.7);
         }
+
+        .modal-close-x {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close-x:hover { background: var(--surface-elevated); color: var(--text-primary); }
 
         .google-circle-btn {
             background: #ffffff;
@@ -617,6 +663,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             transition: transform 0.15s ease;
         }
+        .google-circle-btn:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
@@ -679,6 +726,22 @@
         </div>
 
         <div class="gemini-card-dock">
+            <!-- Tools Sheet Placed Inside Dock for Accurate Desktop & Mobile Positioning -->
+            <div class="tools-sheet" id="toolsSheet">
+                <div class="sheet-category-title">Dev & Strategy</div>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('💻 Code Architect', 'Write production-ready, clean, well-architected code with edge-case handling for: ')">💻 Code Architect</button>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('🔍 Debug & Fix', 'Analyze this code, find the hidden bugs/bottlenecks, and provide the exact fix: ')">🔍 Debug & Fix</button>
+
+                <div class="sheet-category-title">Creators & Media</div>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('🔥 3 Viral Hooks', 'Create 3 Viral Hooks (Negative bias, Curiosity gap, Action) for: ')">🔥 3 Viral Hooks</button>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('🎬 60s Reel Script', 'Write a shoot-ready 60s video script with visuals and SFX for: ')">🎬 60s Reel Script</button>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('⚡ Retention & Loop', 'Enhance this script and add an infinite audio loop: ')">⚡ Retention & Loop</button>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('📦 Packaging Lab', 'Build 3 high-CTR Titles and visual hooks for: ')">📦 Packaging Lab</button>
+
+                <div class="sheet-category-title">Personal</div>
+                <button class="sheet-tool-btn" onclick="setDirectorMode('🫂 Real Talk', 'Bhai main thoda low feel kar raha hoon, bas dil se baat sun meri: ')">🫂 Real Talk</button>
+            </div>
+
             <textarea id="chatInput" rows="1" placeholder="Ask anything, discuss ideas, or drop code..." autocomplete="off"></textarea>
             
             <div class="dock-toolbar">
@@ -697,25 +760,11 @@
                 </div>
             </div>
         </div>
-
-        <div class="tools-sheet" id="toolsSheet">
-            <div class="sheet-category-title">Dev & Strategy</div>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('💻 Code Architect', 'Write production-ready, clean, well-architected code with edge-case handling for: ')">💻 Code Architect</button>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('🔍 Debug & Fix', 'Analyze this code, find the hidden bugs/bottlenecks, and provide the exact fix: ')">🔍 Debug & Fix</button>
-
-            <div class="sheet-category-title">Creators & Media</div>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('🔥 3 Viral Hooks', 'Create 3 Viral Hooks (Negative bias, Curiosity gap, Action) for: ')">🔥 3 Viral Hooks</button>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('🎬 60s Reel Script', 'Write a shoot-ready 60s video script with visuals and SFX for: ')">🎬 60s Reel Script</button>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('⚡ Retention & Loop', 'Enhance this script and add an infinite audio loop: ')">⚡ Retention & Loop</button>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('📦 Packaging Lab', 'Build 3 high-CTR Titles and visual hooks for: ')">📦 Packaging Lab</button>
-
-            <div class="sheet-category-title">Personal</div>
-            <button class="sheet-tool-btn" onclick="setDirectorMode('🫂 Real Talk', 'Bhai main thoda low feel kar raha hoon, bas dil se baat sun meri: ')">🫂 Real Talk</button>
-        </div>
     </div>
 
-    <div class="modal-wrap" id="authModal">
+    <div class="modal-wrap" id="authModal" onclick="if(event.target === this) closeAuth()">
         <div class="modal-card">
+            <button class="modal-close-x" onclick="closeAuth()" title="Close">✕</button>
             <div style="font-size: 26px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">⚡ HookSpike</div>
             <p style="font-size: 14px; color: var(--text-secondary);">Sign in with Google to claim creator access and studio tools.</p>
             
@@ -734,26 +783,18 @@
         let IS_LOGGED = {{ 'true' if logged_in else 'false' }};
         let CURRENT_USER_EMAIL = "{{ user_email or '' }}";
         let CURRENT_ACCESS_TOKEN = "";
+        let isSyncingAuth = false;
+
         const SUPABASE_URL = "https://jhiqvsuigdfjwjbtlnwh.supabase.co";
         const SUPABASE_KEY = "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU";
         
         let supabaseClient = null;
-        if (SUPABASE_URL && SUPABASE_KEY) {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (session && session.access_token) {
-                    CURRENT_ACCESS_TOKEN = session.access_token;
-                    if (session.user && session.user.email) {
-                        CURRENT_USER_EMAIL = session.user.email.toLowerCase();
-                        IS_LOGGED = true;
-                    }
-                }
-            });
+        if (window.supabase && SUPABASE_URL && SUPABASE_KEY) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
         async function loginWithSupabaseGoogle() {
-            if (!supabaseClient) { alert("Missing credentials"); return; }
+            if (!supabaseClient) { alert("Auth service unavailable."); return; }
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: { redirectTo: window.location.origin }
@@ -784,6 +825,11 @@
         const historyList = document.getElementById("historyList");
         const jumpBottomBtn = document.getElementById("jumpBottomBtn");
 
+        function renderSafeMarkdown(mdText) {
+            const rawHtml = marked.parse(mdText || "");
+            return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        }
+
         // SMART SCROLL DOWN BUTTON TRACKER
         chatArea.addEventListener("scroll", () => {
             const distanceFromBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight;
@@ -808,11 +854,11 @@
             toolsSheet.classList.toggle("active");
         };
 
-        document.onclick = (e) => {
+        document.addEventListener("click", (e) => {
             if (!toolsPlusBtn.contains(e.target) && !toolsSheet.contains(e.target)) {
                 toolsSheet.classList.remove("active");
             }
-        };
+        });
 
         function setDirectorMode(name, prefix) {
             activeToolPrefix = prefix;
@@ -837,14 +883,22 @@
             return headers;
         }
 
+        function abortActiveStreamIfAny() {
+            if (isStreaming && ctrl) {
+                ctrl.abort();
+                setStreamingUI(false);
+            }
+        }
+
         async function loadHistorySessions() {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             if (!emailToUse && !IS_LOGGED) return;
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-sessions`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(emailToUse)}`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
+                if (!res.ok) return;
                 const sessions = await res.json();
                 historyList.innerHTML = "";
                 if (!Array.isArray(sessions) || sessions.length === 0) {
@@ -855,7 +909,7 @@
                     const row = document.createElement("div");
                     row.className = `history-row ${sess.id === currentSessionId ? 'active-session' : ''}`;
                     row.innerText = sess.title || "Studio Session";
-                    row.title = sess.title;
+                    row.title = sess.title || "Studio Session";
                     row.onclick = () => loadPastSession(sess.id);
                     historyList.appendChild(row);
                 });
@@ -865,6 +919,8 @@
         }
 
         async function loadPastSession(sessionId) {
+            abortActiveStreamIfAny();
+            const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             currentSessionId = sessionId;
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
@@ -872,10 +928,11 @@
             chatHist = [];
 
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(emailToUse)}`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
+                if (!res.ok) throw new Error("Failed to load messages");
                 const msgs = await res.json();
                 if (Array.isArray(msgs) && msgs.length > 0) {
                     let lastUserPrompt = "";
@@ -887,8 +944,8 @@
                             const uBox = appendBubble("user", m.content);
                             lastUserRow = uBox.parentNode;
                         } else if (m.role === "assistant") {
-                            const box = appendBubble("ai", m.content);
-                            box.innerHTML = marked.parse(m.content);
+                            const box = appendBubble("ai", "");
+                            box.innerHTML = renderSafeMarkdown(m.content);
                             attachActionPills(box, m.content, lastUserPrompt, false, lastUserRow);
                         }
                         chatHist.push({ role: m.role, content: m.content });
@@ -900,6 +957,7 @@
                 loadHistorySessions();
             } catch(e) {
                 console.error("Failed to load past session", e);
+                chatArea.appendChild(heroWelcome);
             }
         }
 
@@ -912,6 +970,7 @@
         overlay.onclick = () => { sidebar.classList.remove("active"); overlay.classList.remove("active"); };
 
         function resetChat() {
+            abortActiveStreamIfAny();
             currentSessionId = null;
             chatHist = [];
             chatArea.innerHTML = "";
@@ -933,7 +992,9 @@
             authModal.classList.remove("active");
         }
 
-        document.getElementById("openPro").onclick = () => { if(!IS_LOGGED && !CURRENT_USER_EMAIL) openAuth(); };
+        document.getElementById("openPro").onclick = () => {
+            if (!IS_LOGGED && !CURRENT_USER_EMAIL) openAuth();
+        };
 
         function setStreamingUI(streaming) {
             isStreaming = streaming;
@@ -949,12 +1010,12 @@
         }
 
         function appendBubble(role, text="") {
-            if(heroWelcome && heroWelcome.parentNode) heroWelcome.remove();
+            if (heroWelcome && heroWelcome.parentNode) heroWelcome.remove();
             const row = document.createElement("div");
             row.className = `msg-line ${role}`;
             const box = document.createElement("div");
             box.className = "bubble-box";
-            box.innerText = text;
+            if (text) box.innerText = text;
             row.appendChild(box);
             chatArea.appendChild(row);
             return box;
@@ -991,6 +1052,9 @@
             const existingActs = parentRow.querySelector(".ai-actions");
             if (existingActs) existingActs.remove();
 
+            const existingNote = parentRow.querySelector(".paused-draft-note");
+            if (existingNote) existingNote.remove();
+
             if (isPausedDraft) {
                 const draftBadge = document.createElement("div");
                 draftBadge.className = "paused-draft-note";
@@ -1010,14 +1074,18 @@
             regenBtn.className = "action-pill-btn";
             regenBtn.innerHTML = `🔄 Regenerate`;
             regenBtn.onclick = () => {
-                if (userRowEl && userRowEl.parentNode) userRowEl.remove();
-                if (parentRow && parentRow.parentNode) parentRow.remove();
+                if (isStreaming) return;
+                const allRows = Array.from(chatArea.querySelectorAll(".msg-line"));
+                const isLastResponse = allRows[allRows.length - 1] === parentRow;
 
-                if (!isPausedDraft && chatHist.length >= 2) {
-                    chatHist.splice(-2, 2);
+                if (isLastResponse) {
+                    if (userRowEl && userRowEl.parentNode) userRowEl.remove();
+                    if (parentRow && parentRow.parentNode) parentRow.remove();
+                    if (!isPausedDraft && chatHist.length >= 2) {
+                        chatHist.splice(-2, 2);
+                    }
                 }
-
-                sendMsg(originalPrompt || lastMsg, true);
+                sendMsg(originalPrompt || lastMsg, false);
             };
 
             const enhanceBtn = document.createElement("button");
@@ -1052,7 +1120,7 @@
 
         async function sendMsg(overrideRawText = null, skipPrefix = false) {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
-            if(!IS_LOGGED && !emailToUse) { openAuth(); return; }
+            if (!IS_LOGGED && !emailToUse) { openAuth(); return; }
 
             if (isStreaming && ctrl) {
                 ctrl.abort();
@@ -1060,7 +1128,7 @@
             }
 
             let rawTxt = (overrideRawText !== null) ? overrideRawText.trim() : chatInput.value.trim();
-            if(!rawTxt) return;
+            if (!rawTxt) return;
 
             let finalMessage = rawTxt;
             if (!skipPrefix && activeToolPrefix && !rawTxt.startsWith(activeToolPrefix.trim())) {
@@ -1129,41 +1197,48 @@
                     return;
                 }
 
+                if (!res.ok || !res.body) {
+                    throw new Error(`Server returned ${res.status}`);
+                }
+
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = "";
 
-                while(true) {
+                while (true) {
                     const { done, value } = await reader.read();
-                    if(done) break;
-                    buffer += decoder.decode(value, {stream: true});
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split("\n");
                     buffer = lines.pop();
 
-                    for(const rawLine of lines) {
+                    for (const rawLine of lines) {
                         const line = rawLine.trim();
-                        if(line.startsWith("data: ")) {
+                        if (line.startsWith("data: ")) {
                             const data = line.slice(6).trim();
-                            if(data === "[DONE]") break;
+                            if (data === "[DONE]") break;
                             try {
                                 const parsed = JSON.parse(data);
-                                if(parsed.token) {
-                                    if(!firstChunkReceived) {
+                                if (parsed.token) {
+                                    if (!firstChunkReceived) {
                                         firstChunkReceived = true;
                                         statusWrap.remove();
-                                        chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
                                     }
                                     fullReply += parsed.token;
-                                    aiBox.innerHTML = marked.parse(fullReply);
+                                    const isNearBottom = (chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight) < 150;
+                                    aiBox.innerHTML = renderSafeMarkdown(fullReply);
                                     aiBox.appendChild(cursor);
+                                    if (isNearBottom) {
+                                        chatArea.scrollTop = chatArea.scrollHeight;
+                                    }
                                 }
-                                if(parsed.session_id && !currentSessionId) {
+                                if (parsed.session_id && !currentSessionId) {
                                     currentSessionId = parsed.session_id;
                                     loadHistorySessions();
                                 }
-                                if(typeof parsed.tokens_left === "number") {
+                                if (typeof parsed.tokens_left === "number") {
                                     const h = document.getElementById("headerTokens");
-                                    if(h) h.innerText = parsed.tokens_left > 100 ? "Pro" : parsed.tokens_left;
+                                    if (h) h.innerText = parsed.tokens_left > 100 ? "Pro" : parsed.tokens_left;
                                 }
                             } catch(e) {}
                         }
@@ -1172,10 +1247,15 @@
                 cursor.remove();
                 statusWrap.remove();
 
-                chatHist.push({ role: "user", content: finalMessage });
-                chatHist.push({ role: "assistant", content: fullReply });
-                attachActionPills(aiBox, fullReply, rawTxt, false, userRowEl);
-                loadHistorySessions();
+                if (!fullReply.trim()) {
+                    aiBox.innerText = "⚠️ Empty response from server. Tap Regenerate to retry.";
+                    attachActionPills(aiBox, "", rawTxt, true, userRowEl);
+                } else {
+                    chatHist.push({ role: "user", content: finalMessage });
+                    chatHist.push({ role: "assistant", content: fullReply });
+                    attachActionPills(aiBox, fullReply, rawTxt, false, userRowEl);
+                    loadHistorySessions();
+                }
 
             } catch(e) {
                 statusWrap.remove();
@@ -1183,11 +1263,11 @@
                 if (e.name === 'AbortError') {
                     if (!fullReply.trim()) {
                         fullReply = "*Generation paused.*";
-                        aiBox.innerHTML = marked.parse(fullReply);
+                        aiBox.innerHTML = renderSafeMarkdown(fullReply);
                     }
                     attachActionPills(aiBox, fullReply, rawTxt, true, userRowEl);
                 } else {
-                    aiBox.innerText = "⚠️ Network issue detected. Please tap Regenerate to retry!";
+                    aiBox.innerText = "⚠️ Network or server issue detected. Please tap Regenerate to retry!";
                     attachActionPills(aiBox, "", rawTxt, true, userRowEl);
                 }
             } finally {
@@ -1199,58 +1279,95 @@
 
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         chatInput.onkeydown = (e) => { 
-            if(e.key === "Enter") {
-                if(!isTouchDevice && !e.shiftKey) {
+            if (e.key === "Enter") {
+                if (!isTouchDevice && !e.shiftKey) {
                     e.preventDefault(); 
                     sendMsg(); 
                 }
             } 
         };
-        
-        window.addEventListener('DOMContentLoaded', async () => {
-            if (supabaseClient) {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.user && session.user.email) {
-                    CURRENT_USER_EMAIL = session.user.email.toLowerCase();
-                    CURRENT_ACCESS_TOKEN = session.access_token || "";
-                    try {
-                        const res = await fetch(`${BACKEND_URL}/api/auth/sync`, {
-                            method: 'POST',
-                            headers: getAuthHeaders(),
-                            credentials: "include",
-                            body: JSON.stringify({ 
-                                email: CURRENT_USER_EMAIL,
-                                access_token: CURRENT_ACCESS_TOKEN
-                            })
-                        });
-                        if (res.ok) {
-                            const syncData = await res.json();
-                            IS_LOGGED = true;
-                            closeAuth();
 
-                            const avatar = document.getElementById("avatarCircle");
-                            if (avatar && CURRENT_USER_EMAIL) avatar.innerText = CURRENT_USER_EMAIL[0].toUpperCase();
+        // Prevent duplicate concurrent sync calls on page load / OAuth redirect
+        async function syncUserWithBackend(session) {
+            if (!session || !session.user || !session.user.email) return false;
+            const normalizedEmail = session.user.email.toLowerCase();
 
-                            const hTokens = document.getElementById("headerTokens");
-                            if (hTokens && typeof syncData.tokens === "number") {
-                                hTokens.innerText = syncData.tokens > 100 ? "Pro" : syncData.tokens;
-                            }
+            // Update local state immediately so UI never blocks
+            CURRENT_USER_EMAIL = normalizedEmail;
+            CURRENT_ACCESS_TOKEN = session.access_token || "";
+            IS_LOGGED = true;
+            closeAuth();
 
-                            const footer = document.getElementById("sidebarFooter");
-                            if (footer) {
-                                footer.innerHTML = `
-                                    <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">${CURRENT_USER_EMAIL}</span>
-                                    <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
-                                `;
-                            }
-                        }
-                    } catch(err) {
-                        console.warn("Sync failed:", err);
+            const avatar = document.getElementById("avatarCircle");
+            if (avatar && CURRENT_USER_EMAIL) avatar.innerText = CURRENT_USER_EMAIL[0].toUpperCase();
+
+            const footer = document.getElementById("sidebarFooter");
+            if (footer) {
+                footer.innerHTML = `
+                    <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">${CURRENT_USER_EMAIL}</span>
+                    <a href="/logout" id="logoutBtn" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
+                `;
+            }
+
+            if (isSyncingAuth) return true;
+            isSyncingAuth = true;
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/auth/sync`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    credentials: "include",
+                    body: JSON.stringify({ 
+                        email: CURRENT_USER_EMAIL,
+                        access_token: CURRENT_ACCESS_TOKEN
+                    })
+                });
+                if (res.ok) {
+                    const syncData = await res.json();
+                    const hTokens = document.getElementById("headerTokens");
+                    if (hTokens && typeof syncData.tokens === "number") {
+                        hTokens.innerText = syncData.tokens > 100 ? "Pro" : syncData.tokens;
+                    } else if (hTokens && hTokens.innerText.trim() === "Sign In") {
+                        hTokens.innerText = "Pro";
                     }
                 }
+            } catch(err) {
+                console.warn("Sync failed:", err);
+            } finally {
+                isSyncingAuth = false;
             }
-            if (IS_LOGGED || CURRENT_USER_EMAIL) {
-                loadHistorySessions();
+            loadHistorySessions();
+            return true;
+        }
+        
+        window.addEventListener('DOMContentLoaded', async () => {
+            const hasAuthCallback = (window.location.hash && window.location.hash.includes("access_token")) ||
+                                    (window.location.search && window.location.search.includes("code="));
+
+            if (supabaseClient) {
+                // Single source of truth for session state & OAuth callbacks
+                supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                    if (session && session.user) {
+                        await syncUserWithBackend(session);
+                        if (window.location.hash && window.location.hash.includes("access_token")) {
+                            history.replaceState(null, null, window.location.pathname);
+                        }
+                    } else if (event === 'INITIAL_SESSION' && !session) {
+                        if (IS_LOGGED || CURRENT_USER_EMAIL) {
+                            closeAuth();
+                            loadHistorySessions();
+                        } else if (!hasAuthCallback) {
+                            openAuth();
+                        }
+                    }
+                });
+            } else {
+                if (IS_LOGGED || CURRENT_USER_EMAIL) {
+                    closeAuth();
+                    loadHistorySessions();
+                } else if (!hasAuthCallback) {
+                    openAuth();
+                }
             }
         });
 
@@ -1258,11 +1375,10 @@
             const link = e.target.closest('a#logoutBtn');
             if (link) {
                 e.preventDefault();
+                sessionStorage.removeItem("auth_synced");
                 if (supabaseClient) {
-                    await supabaseClient.auth.signOut();
+                    try { await supabaseClient.auth.signOut(); } catch(err) {}
                 }
-                localStorage.clear();
-                sessionStorage.clear();
                 window.location.href = `${BACKEND_URL}/logout`;
             }
         });

@@ -80,19 +80,10 @@
         .header-title-wrap {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 17px;
-            font-weight: 700;
-            letter-spacing: -0.2px;
-        }
-
-        .header-logo-badge {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
-            box-shadow: 0 0 10px rgba(112, 165, 248, 0.45);
+            gap: 6px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
         }
 
         .header-title-gradient {
@@ -326,21 +317,29 @@
 
         .action-pill-btn:active { transform: scale(0.96); }
 
-        /* GEMINI PULSE DOT CURSOR */
+        /* DYNAMIC THINKING LOADER */
+        .status-loader-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            font-weight: 500;
+            padding: 4px 0;
+        }
+
         .cursor-dot {
             display: inline-block;
-            width: 8px;
-            height: 8px;
+            width: 9px;
+            height: 9px;
             background: var(--accent-gradient);
             border-radius: 50%;
-            margin-left: 6px;
-            vertical-align: middle;
             box-shadow: 0 0 10px rgba(112, 165, 248, 0.7);
-            animation: pulseGlow 1s infinite alternate;
+            animation: pulseGlow 0.9s infinite alternate;
         }
 
         @keyframes pulseGlow {
-            0% { transform: scale(0.8); opacity: 0.5; }
+            0% { transform: scale(0.75); opacity: 0.45; }
             100% { transform: scale(1.3); opacity: 1; }
         }
 
@@ -358,7 +357,6 @@
             align-items: center;
         }
 
-        /* ACTIVE MODE NOTIFICATION BANNER */
         .mode-banner {
             display: none;
             align-items: center;
@@ -491,7 +489,6 @@
             box-shadow: 0 0 10px rgba(112, 165, 248, 0.3);
         }
 
-        /* CREATOR TOOLS SHEET (Opened by + Button) */
         .tools-sheet {
             position: absolute;
             bottom: 84px;
@@ -530,7 +527,7 @@
 
         .sheet-tool-btn:hover { background: var(--surface-elevated); color: var(--text-primary); }
 
-        /* AUTH MODAL (FIXED BUG 1: Added .active class support) */
+        /* AUTH MODAL */
         .modal-wrap {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.85);
@@ -540,9 +537,7 @@
             z-index: 150; padding: 16px;
         }
 
-        .modal-wrap.active {
-            display: flex !important;
-        }
+        .modal-wrap.active { display: flex !important; }
 
         .modal-card {
             background: var(--surface-color);
@@ -580,10 +575,10 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
 
+        <!-- Fixed Point 4: Logo removed, only clean HookSpike AI title -->
         <div class="header-title-wrap">
-            <img src="/logo.png" class="header-logo-badge" alt="HookSpike Logo">
             <span class="header-title-gradient">HookSpike</span>
-            <span style="font-weight: 500; font-size: 15px; color: var(--text-secondary);">AI</span>
+            <span style="font-weight: 600; font-size: 16px; color: var(--text-secondary);">AI</span>
         </div>
 
         <div class="user-avatar-pill" id="openPro">
@@ -618,7 +613,7 @@
     <main class="chat-area" id="chatArea">
         <div class="hero-welcome" id="heroWelcome">
             <h2 class="hero-title">Where should we <span>start?</span></h2>
-            <p class="hero-sub">Drop a raw concept, paste a script to enhance, or tap <strong>+</strong> for Director Modes.</p>
+            <p class="hero-sub">Drop an idea, ask for direction, or tap <strong>+</strong> for specialized Creator Modes.</p>
         </div>
     </main>
 
@@ -717,13 +712,11 @@
         const modeBannerText = document.getElementById("modeBannerText");
         const historyList = document.getElementById("historyList");
 
-        // AUTO-EXPAND TEXTAREA
         chatInput.addEventListener("input", function() {
             this.style.height = "auto";
             this.style.height = Math.min(this.scrollHeight, 120) + "px";
         });
 
-        // + BUTTON TOGGLE
         toolsPlusBtn.onclick = (e) => {
             e.stopPropagation();
             toolsSheet.classList.toggle("active");
@@ -735,7 +728,6 @@
             }
         };
 
-        // MODE SELECTION & BANNER
         function setDirectorMode(name, prefix) {
             activeToolPrefix = prefix;
             modeBannerText.innerText = `${name} Active`;
@@ -751,7 +743,6 @@
             chatInput.placeholder = "Ask HookSpike or drop your concept...";
         }
 
-        // HELPER FOR AUTH HEADERS
         function getAuthHeaders() {
             const headers = { "Content-Type": "application/json" };
             if (CURRENT_ACCESS_TOKEN) {
@@ -760,12 +751,11 @@
             return headers;
         }
 
-        // LOAD WORKSPACE SESSIONS HISTORY
         async function loadHistorySessions() {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             if (!emailToUse && !IS_LOGGED) return;
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(emailToUse)}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-sessions`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
@@ -788,9 +778,7 @@
             }
         }
 
-        // LOAD PAST SESSION MESSAGES ON SCREEN (FIXED BUG 4: Track lastUserPrompt for Regenerate/Enhance)
         async function loadPastSession(sessionId) {
-            const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             currentSessionId = sessionId;
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
@@ -798,7 +786,7 @@
             chatHist = [];
 
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(emailToUse)}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
@@ -941,6 +929,17 @@
             aiBox.parentNode.appendChild(acts);
         }
 
+        // Point 3: Compute dynamic task status for the loading state
+        function getTaskActionText(prompt) {
+            const p = prompt.toLowerCase();
+            if (p.includes("enhance") || p.includes("improve") || p.includes("tweak")) return "Enhancing results...";
+            if (p.includes("hook") || p.includes("viral")) return "Drafting viral hooks...";
+            if (p.includes("script") || p.includes("reel") || p.includes("video")) return "Crafting 60s script...";
+            if (p.includes("title") || p.includes("packaging")) return "Building packaging...";
+            if (p.includes("code") || p.includes("bug") || p.includes("fix")) return "Analyzing code logic...";
+            return "Thinking...";
+        }
+
         async function sendMsg() {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             if(!IS_LOGGED && !emailToUse) { openAuth(); return; }
@@ -962,12 +961,23 @@
             appendBubble("user", rawTxt);
             chatHist.push({ role: "user", content: finalMessage });
 
+            // Create AI Bubble with dynamic Thinking status & pulse dot
             const aiBox = appendBubble("ai", "");
+            const statusWrap = document.createElement("div");
+            statusWrap.className = "status-loader-wrap";
+            
             const cursor = document.createElement("span");
             cursor.className = "cursor-dot";
-            aiBox.appendChild(cursor);
+            
+            const statusLabel = document.createElement("span");
+            statusLabel.innerText = getTaskActionText(rawTxt);
+            
+            statusWrap.appendChild(cursor);
+            statusWrap.appendChild(statusLabel);
+            aiBox.appendChild(statusWrap);
 
             let fullReply = "";
+            let firstChunkReceived = false;
             ctrl = new AbortController();
             setStreamingUI(true);
 
@@ -988,19 +998,18 @@
                 
                 if (res.status === 401) {
                     openAuth();
-                    cursor.remove();
+                    statusWrap.remove();
                     setStreamingUI(false);
                     return;
                 }
 
                 if (res.status === 402) {
-                    cursor.remove();
+                    statusWrap.remove();
                     setStreamingUI(false);
                     aiBox.innerHTML = `⚠️ <strong>Tokens exhausted!</strong> Upgrade to HookSpike Pro to continue unlimited generations.`;
                     return;
                 }
 
-                // FIXED BUG 3: Buffer incomplete SSE lines so half-JSON chunks never break the UI
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = "";
@@ -1010,7 +1019,7 @@
                     if(done) break;
                     buffer += decoder.decode(value, {stream: true});
                     const lines = buffer.split("\n");
-                    buffer = lines.pop(); // Keep incomplete line for next chunk
+                    buffer = lines.pop();
 
                     for(const rawLine of lines) {
                         const line = rawLine.trim();
@@ -1020,6 +1029,10 @@
                             try {
                                 const parsed = JSON.parse(data);
                                 if(parsed.token) {
+                                    if(!firstChunkReceived) {
+                                        firstChunkReceived = true;
+                                        statusWrap.remove(); // Clean status text once streaming starts
+                                    }
                                     fullReply += parsed.token;
                                     aiBox.innerHTML = marked.parse(fullReply);
                                     aiBox.appendChild(cursor);
@@ -1033,18 +1046,18 @@
                                     const h = document.getElementById("headerTokens");
                                     if(h) h.innerText = parsed.tokens_left > 100 ? "Pro" : parsed.tokens_left;
                                 }
-                            } catch(e) {
-                                // Ignore broken JSON fragments safely
-                            }
+                            } catch(e) {}
                         }
                     }
                 }
                 cursor.remove();
+                statusWrap.remove();
                 chatHist.push({ role: "assistant", content: fullReply });
                 attachActionPills(aiBox, fullReply, rawTxt);
                 loadHistorySessions();
 
             } catch(e) {
+                statusWrap.remove();
                 cursor.remove();
                 if (e.name !== 'AbortError') {
                     aiBox.innerText = "⚠️ Network issue detected. Please tap Regenerate to retry!";
@@ -1066,7 +1079,7 @@
             } 
         };
         
-        // FIXED BUG 2: No Infinite Reload Loop + Instant UI Sync on Login
+        // Immediate Session Sync
         window.addEventListener('DOMContentLoaded', async () => {
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1088,7 +1101,6 @@
                             IS_LOGGED = true;
                             closeAuth();
 
-                            // Dynamically update header & sidebar without needing page reload
                             const avatar = document.getElementById("avatarCircle");
                             if (avatar && CURRENT_USER_EMAIL) avatar.innerText = CURRENT_USER_EMAIL[0].toUpperCase();
 
@@ -1119,10 +1131,11 @@
             const link = e.target.closest('a#logoutBtn');
             if (link) {
                 e.preventDefault();
-                sessionStorage.removeItem("auth_synced");
                 if (supabaseClient) {
                     await supabaseClient.auth.signOut();
                 }
+                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = `${BACKEND_URL}/logout`;
             }
         });

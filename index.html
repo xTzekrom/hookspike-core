@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HookSpike AI</title>
 
+    <!-- Bulletproof Favicons for Browsers, Google, Tabs & Mobile -->
+    <link rel="shortcut icon" href="/logo.png" type="image/png">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/png" sizes="32x32" href="/logo.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/logo.png">
     <link rel="apple-touch-icon" href="/logo.png">
@@ -526,7 +529,7 @@
             box-shadow: 0 0 10px rgba(112, 165, 248, 0.3);
         }
 
-        /* CLEAN ACCORDION SHEET (No overlap with mobile view) */
+        /* CLEAN ACCORDION SHEET */
         .tools-sheet {
             position: absolute;
             bottom: 78px;
@@ -1087,7 +1090,6 @@
             statusWrap.appendChild(statusLabel);
             aiBox.appendChild(statusWrap);
 
-            // Automatically scroll to the new query when user sends
             chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
 
             let fullReply = "";
@@ -1154,7 +1156,6 @@
                                     fullReply += parsed.token;
                                     aiBox.innerHTML = marked.parse(fullReply);
                                     aiBox.appendChild(cursor);
-                                    // Removed forceful auto-scroll on every token to prevent stutter
                                 }
                                 if(parsed.session_id && !currentSessionId) {
                                     currentSessionId = parsed.session_id;

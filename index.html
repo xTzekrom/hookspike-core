@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HookSpike AI</title>
 
-    <!-- Circular Favicons for Google, Tabs & Mobile -->
     <link rel="icon" type="image/png" sizes="32x32" href="/logo.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/logo.png">
     <link rel="apple-touch-icon" href="/logo.png">
@@ -47,7 +46,6 @@
             overflow: hidden;
         }
 
-        /* GEMINI STYLE HEADER */
         header {
             height: 56px;
             display: flex;
@@ -119,7 +117,6 @@
             font-weight: 800;
         }
 
-        /* SIDEBAR DRAWER */
         .drawer-overlay {
             position: fixed; inset: 0;
             background: rgba(0, 0, 0, 0.7);
@@ -204,7 +201,6 @@
             font-size: 13px;
         }
 
-        /* MAIN CHAT AREA */
         main.chat-area {
             flex: 1;
             overflow-y: auto;
@@ -247,11 +243,10 @@
         .hero-sub {
             font-size: 14.5px;
             color: var(--text-secondary);
-            max-width: 400px;
+            max-width: 440px;
             line-height: 1.5;
         }
 
-        /* MESSAGES */
         .msg-line {
             display: flex;
             flex-direction: column;
@@ -292,7 +287,6 @@
         .bubble-box li { margin-bottom: 4px; }
         .bubble-box code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
 
-        /* PAUSED DRAFT BADGE */
         .paused-draft-note {
             display: inline-flex;
             align-items: center;
@@ -307,7 +301,6 @@
             font-weight: 600;
         }
 
-        /* ACTION PILLS */
         .ai-actions {
             display: flex;
             gap: 8px;
@@ -333,7 +326,6 @@
         .action-pill-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
         .action-pill-btn:active { transform: scale(0.96); }
 
-        /* DYNAMIC THINKING LOADER */
         .status-loader-wrap {
             display: inline-flex;
             align-items: center;
@@ -361,7 +353,6 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* GEMINI-STYLE NATIVE INPUT DOCK */
         .bottom-dock {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -505,6 +496,7 @@
             box-shadow: 0 0 10px rgba(112, 165, 248, 0.3);
         }
 
+        /* TOOLS SHEET ACCORDION */
         .tools-sheet {
             position: absolute;
             bottom: 84px;
@@ -512,11 +504,13 @@
             background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: 18px;
-            padding: 8px;
+            padding: 10px;
             display: none;
             flex-direction: column;
             gap: 4px;
-            width: 260px;
+            width: 270px;
+            max-height: 340px;
+            overflow-y: auto;
             box-shadow: 0 16px 36px rgba(0,0,0,0.8);
             z-index: 45;
             animation: fadeIn 0.15s ease;
@@ -524,26 +518,34 @@
 
         .tools-sheet.active { display: flex; }
 
+        .sheet-category-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            padding: 6px 8px 2px;
+            letter-spacing: 0.4px;
+        }
+
         .sheet-tool-btn {
             background: transparent;
             border: none;
-            padding: 10px 12px;
+            padding: 8px 10px;
             color: var(--text-secondary);
             text-align: left;
-            border-radius: 10px;
-            font-size: 13.5px;
+            border-radius: 8px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-family: inherit;
             transition: all 0.15s ease;
         }
 
         .sheet-tool-btn:hover { background: var(--surface-elevated); color: var(--text-primary); }
 
-        /* AUTH MODAL */
         .modal-wrap {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.85);
@@ -609,7 +611,7 @@
     <div class="drawer-overlay" id="drawerOverlay"></div>
     <aside class="sidebar" id="sidebar">
         <button class="sidebar-new-btn" id="sidebarNewChat">
-            <span>New Studio Session</span>
+            <span>New Chat Session</span>
             <span>+</span>
         </button>
         <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 6px 4px 10px; text-transform: uppercase;">Workspace History</div>
@@ -627,24 +629,23 @@
 
     <main class="chat-area" id="chatArea">
         <div class="hero-welcome" id="heroWelcome">
-            <h2 class="hero-title">Where should we <span>start?</span></h2>
-            <p class="hero-sub">Drop an idea, ask for direction, or tap <strong>+</strong> for specialized Creator Modes.</p>
+            <h2 class="hero-title">How can I <span>help today?</span></h2>
+            <p class="hero-sub">Solve complex problems, brainstorm code & strategy, vent your heart out, or tap <strong>+</strong> for specialized Studio Tools.</p>
         </div>
     </main>
 
-    <!-- NATIVE FLOATING DOCK -->
     <div class="bottom-dock">
         <div class="mode-banner" id="modeBanner">
-            <span id="modeBannerText">🔥 Mode: 3 Viral Hooks Active</span>
+            <span id="modeBannerText">Active Mode</span>
             <button class="mode-close-btn" onclick="clearActiveMode()">✕</button>
         </div>
 
         <div class="gemini-card-dock">
-            <textarea id="chatInput" rows="1" placeholder="Ask HookSpike or drop your concept..." autocomplete="off"></textarea>
+            <textarea id="chatInput" rows="1" placeholder="Ask anything, discuss ideas, or drop code..." autocomplete="off"></textarea>
             
             <div class="dock-toolbar">
                 <div class="dock-left-tools">
-                    <button class="dock-icon-btn" id="toolsPlusBtn" title="Creator Tools">
+                    <button class="dock-icon-btn" id="toolsPlusBtn" title="Studio & Logic Modes">
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
                 </div>
@@ -659,15 +660,23 @@
             </div>
         </div>
 
+        <!-- Categorized Universal Modes -->
         <div class="tools-sheet" id="toolsSheet">
+            <div class="sheet-category-title">Dev & Strategy</div>
+            <button class="sheet-tool-btn" onclick="setDirectorMode('💻 Code Architect', 'Write production-ready, clean, well-architected code with edge-case handling for: ')">💻 Code Architect</button>
+            <button class="sheet-tool-btn" onclick="setDirectorMode('🔍 Debug & Fix', 'Analyze this code, find the hidden bugs/bottlenecks, and provide the exact fix: ')">🔍 Debug & Fix</button>
+
+            <div class="sheet-category-title">Creators & Media</div>
             <button class="sheet-tool-btn" onclick="setDirectorMode('🔥 3 Viral Hooks', 'Create 3 Viral Hooks (Negative bias, Curiosity gap, Action) for: ')">🔥 3 Viral Hooks</button>
             <button class="sheet-tool-btn" onclick="setDirectorMode('🎬 60s Reel Script', 'Write a shoot-ready 60s video script with visuals and SFX for: ')">🎬 60s Reel Script</button>
             <button class="sheet-tool-btn" onclick="setDirectorMode('⚡ Retention & Loop', 'Enhance this script and add an infinite audio loop: ')">⚡ Retention & Loop</button>
             <button class="sheet-tool-btn" onclick="setDirectorMode('📦 Packaging Lab', 'Build 3 high-CTR Titles and visual hooks for: ')">📦 Packaging Lab</button>
+
+            <div class="sheet-category-title">Personal</div>
+            <button class="sheet-tool-btn" onclick="setDirectorMode('🫂 Real Talk (Bhai Mode)', 'Bhai main thoda low feel kar raha hoon, bas dil se baat sun meri: ')">🫂 Real Talk (Bhai Mode)</button>
         </div>
     </div>
 
-    <!-- AUTH MODAL -->
     <div class="modal-wrap" id="authModal">
         <div class="modal-card">
             <div style="font-size: 26px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">⚡ HookSpike</div>
@@ -695,7 +704,6 @@
         if (SUPABASE_URL && SUPABASE_KEY) {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            // Auto-refresh token in background so session never drops
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 if (session && session.access_token) {
                     CURRENT_ACCESS_TOKEN = session.access_token;
@@ -759,14 +767,14 @@
             modeBannerText.innerText = `${name} Active`;
             modeBanner.classList.add("active");
             toolsSheet.classList.remove("active");
-            chatInput.placeholder = `Describe your video topic for ${name}...`;
+            chatInput.placeholder = `Describe what you need for ${name}...`;
             chatInput.focus();
         }
 
         function clearActiveMode() {
             activeToolPrefix = "";
             modeBanner.classList.remove("active");
-            chatInput.placeholder = "Ask HookSpike or drop your concept...";
+            chatInput.placeholder = "Ask anything, discuss ideas, or drop code...";
         }
 
         function getAuthHeaders() {
@@ -926,7 +934,6 @@
             }
         }
 
-        // Action Pills with support for Paused Drafts & Clean Regenerate
         function attachActionPills(aiBox, fullText, originalPrompt, isPausedDraft = false, userRowEl = null) {
             const parentRow = aiBox.parentNode;
             const existingActs = parentRow.querySelector(".ai-actions");
@@ -951,11 +958,9 @@
             regenBtn.className = "action-pill-btn";
             regenBtn.innerHTML = `🔄 Regenerate`;
             regenBtn.onclick = () => {
-                // Remove previous attempt bubbles cleanly before regenerating
                 if (userRowEl && userRowEl.parentNode) userRowEl.remove();
                 if (parentRow && parentRow.parentNode) parentRow.remove();
 
-                // Clean up history array if it was saved
                 if (!isPausedDraft && chatHist.length >= 2) {
                     chatHist.splice(-2, 2);
                 }
@@ -968,9 +973,9 @@
             enhanceBtn.innerHTML = isPausedDraft ? `⚡ Complete & Add Details` : `⚡ Enhance`;
             enhanceBtn.onclick = () => { 
                 if (isPausedDraft) {
-                    chatInput.value = `Is ruke hue answer ko nayi details ke sath poora aur behtar kar: "${originalPrompt || lastMsg}" — `;
+                    chatInput.value = `Is ruke hue answer ko poora aur behtar kar: "${originalPrompt || lastMsg}" — `;
                 } else {
-                    chatInput.value = `Bhai, is result ko aur zyada sharp aur high-impact details ke sath enhance kar: "${originalPrompt || lastMsg}"`;
+                    chatInput.value = `Bhai, isko aur zyada deeply aur high-impact details ke sath enhance kar: "${originalPrompt || lastMsg}"`;
                 }
                 chatInput.focus();
                 chatInput.dispatchEvent(new Event("input"));
@@ -985,11 +990,12 @@
 
         function getTaskActionText(prompt) {
             const p = prompt.toLowerCase();
-            if (p.includes("enhance") || p.includes("improve") || p.includes("behtar")) return "Enhancing results...";
+            if (p.includes("enhance") || p.includes("improve") || p.includes("behtar")) return "Enhancing output...";
             if (p.includes("hook") || p.includes("viral")) return "Drafting viral hooks...";
             if (p.includes("script") || p.includes("reel") || p.includes("video")) return "Crafting 60s script...";
             if (p.includes("title") || p.includes("packaging")) return "Building packaging...";
-            if (p.includes("code") || p.includes("bug") || p.includes("fix")) return "Analyzing code logic...";
+            if (p.includes("code") || p.includes("bug") || p.includes("fix") || p.includes("python") || p.includes("javascript")) return "Solving logic & code...";
+            if (p.includes("low feel") || p.includes("sad") || p.includes("tension") || p.includes("mann halka") || p.includes("bhai")) return "Listening closely...";
             return "Thinking...";
         }
 
@@ -997,7 +1003,6 @@
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             if(!IS_LOGGED && !emailToUse) { openAuth(); return; }
 
-            // If user clicks Stop/Pause during generation
             if (isStreaming && ctrl) {
                 ctrl.abort();
                 return;
@@ -1006,7 +1011,6 @@
             let rawTxt = (overrideRawText !== null) ? overrideRawText.trim() : chatInput.value.trim();
             if(!rawTxt) return;
 
-            // Avoid double prefixing when regenerating
             let finalMessage = rawTxt;
             if (!skipPrefix && activeToolPrefix && !rawTxt.startsWith(activeToolPrefix.trim())) {
                 finalMessage = `${activeToolPrefix} ${rawTxt}`;
@@ -1021,7 +1025,6 @@
             const userBox = appendBubble("user", rawTxt);
             const userRowEl = userBox.parentNode;
 
-            // Create AI Bubble with dynamic Thinking status & pulse dot
             const aiBox = appendBubble("ai", "");
             const statusWrap = document.createElement("div");
             statusWrap.className = "status-loader-wrap";
@@ -1041,7 +1044,6 @@
             ctrl = new AbortController();
             setStreamingUI(true);
 
-            // Send history snapshot before current turn
             const historySnapshot = chatHist.slice(-6);
 
             try {
@@ -1117,7 +1119,6 @@
                 cursor.remove();
                 statusWrap.remove();
 
-                // Stream completed naturally -> commit to local history & show normal pills
                 chatHist.push({ role: "user", content: finalMessage });
                 chatHist.push({ role: "assistant", content: fullReply });
                 attachActionPills(aiBox, fullReply, rawTxt, false, userRowEl);
@@ -1127,9 +1128,8 @@
                 statusWrap.remove();
                 cursor.remove();
                 if (e.name === 'AbortError') {
-                    // User Paused Generation: Keep on screen as unsaved draft with Action Pills!
                     if (!fullReply.trim()) {
-                        fullReply = "*Generation paused before output.*";
+                        fullReply = "*Generation paused.*";
                         aiBox.innerHTML = marked.parse(fullReply);
                     }
                     attachActionPills(aiBox, fullReply, rawTxt, true, userRowEl);

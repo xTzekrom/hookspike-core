@@ -292,6 +292,21 @@
         .bubble-box li { margin-bottom: 4px; }
         .bubble-box code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
 
+        /* PAUSED DRAFT BADGE */
+        .paused-draft-note {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(255, 180, 50, 0.1);
+            border: 1px solid rgba(255, 180, 50, 0.25);
+            color: #fbbf24;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
         /* ACTION PILLS */
         .ai-actions {
             display: flex;
@@ -315,6 +330,7 @@
             transition: all 0.15s ease;
         }
 
+        .action-pill-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
         .action-pill-btn:active { transform: scale(0.96); }
 
         /* DYNAMIC THINKING LOADER */
@@ -575,7 +591,6 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
 
-        <!-- Fixed Point 4: Logo removed, only clean HookSpike AI title -->
         <div class="header-title-wrap">
             <span class="header-title-gradient">HookSpike</span>
             <span style="font-weight: 600; font-size: 16px; color: var(--text-secondary);">AI</span>
@@ -679,6 +694,17 @@
         let supabaseClient = null;
         if (SUPABASE_URL && SUPABASE_KEY) {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            // Auto-refresh token in background so session never drops
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (session && session.access_token) {
+                    CURRENT_ACCESS_TOKEN = session.access_token;
+                    if (session.user && session.user.email) {
+                        CURRENT_USER_EMAIL = session.user.email.toLowerCase();
+                        IS_LOGGED = true;
+                    }
+                }
+            });
         }
 
         async function loginWithSupabaseGoogle() {
@@ -793,15 +819,17 @@
                 const msgs = await res.json();
                 if (Array.isArray(msgs) && msgs.length > 0) {
                     let lastUserPrompt = "";
+                    let lastUserRow = null;
                     msgs.forEach(m => {
                         if (m.role === "user") {
                             lastUserPrompt = m.content;
                             lastMsg = m.content;
-                        }
-                        const box = appendBubble(m.role === "assistant" ? "ai" : "user", m.content);
-                        if (m.role === "assistant") {
+                            const uBox = appendBubble("user", m.content);
+                            lastUserRow = uBox.parentNode;
+                        } else if (m.role === "assistant") {
+                            const box = appendBubble("ai", m.content);
                             box.innerHTML = marked.parse(m.content);
-                            attachActionPills(box, m.content, lastUserPrompt);
+                            attachActionPills(box, m.content, lastUserPrompt, false, lastUserRow);
                         }
                         chatHist.push({ role: m.role, content: m.content });
                     });
@@ -898,7 +926,19 @@
             }
         }
 
-        function attachActionPills(aiBox, fullText, originalPrompt) {
+        // Action Pills with support for Paused Drafts & Clean Regenerate
+        function attachActionPills(aiBox, fullText, originalPrompt, isPausedDraft = false, userRowEl = null) {
+            const parentRow = aiBox.parentNode;
+            const existingActs = parentRow.querySelector(".ai-actions");
+            if (existingActs) existingActs.remove();
+
+            if (isPausedDraft) {
+                const draftBadge = document.createElement("div");
+                draftBadge.className = "paused-draft-note";
+                draftBadge.innerHTML = `⏸️ Paused (Not saved to history until regenerated or refined)`;
+                parentRow.appendChild(draftBadge);
+            }
+
             const acts = document.createElement("div");
             acts.className = "ai-actions";
             
@@ -910,29 +950,42 @@
             const regenBtn = document.createElement("button");
             regenBtn.className = "action-pill-btn";
             regenBtn.innerHTML = `🔄 Regenerate`;
-            regenBtn.onclick = () => { 
-                chatInput.value = originalPrompt || lastMsg; 
-                sendMsg(); 
+            regenBtn.onclick = () => {
+                // Remove previous attempt bubbles cleanly before regenerating
+                if (userRowEl && userRowEl.parentNode) userRowEl.remove();
+                if (parentRow && parentRow.parentNode) parentRow.remove();
+
+                // Clean up history array if it was saved
+                if (!isPausedDraft && chatHist.length >= 2) {
+                    chatHist.splice(-2, 2);
+                }
+
+                sendMsg(originalPrompt || lastMsg, true);
             };
 
             const enhanceBtn = document.createElement("button");
             enhanceBtn.className = "action-pill-btn";
-            enhanceBtn.innerHTML = `⚡ Enhance`;
+            enhanceBtn.innerHTML = isPausedDraft ? `⚡ Complete & Add Details` : `⚡ Enhance`;
             enhanceBtn.onclick = () => { 
-                chatInput.value = 'Director bhai, is script ko 10x high tension cuts ke sath enhance kar: ' + (originalPrompt || lastMsg);
-                chatInput.focus(); 
+                if (isPausedDraft) {
+                    chatInput.value = `Is ruke hue answer ko nayi details ke sath poora aur behtar kar: "${originalPrompt || lastMsg}" — `;
+                } else {
+                    chatInput.value = `Bhai, is result ko aur zyada sharp aur high-impact details ke sath enhance kar: "${originalPrompt || lastMsg}"`;
+                }
+                chatInput.focus();
+                chatInput.dispatchEvent(new Event("input"));
             };
 
             acts.appendChild(copyBtn);
             acts.appendChild(regenBtn);
             acts.appendChild(enhanceBtn);
-            aiBox.parentNode.appendChild(acts);
+            parentRow.appendChild(acts);
+            chatArea.scrollTop = chatArea.scrollHeight;
         }
 
-        // Point 3: Compute dynamic task status for the loading state
         function getTaskActionText(prompt) {
             const p = prompt.toLowerCase();
-            if (p.includes("enhance") || p.includes("improve") || p.includes("tweak")) return "Enhancing results...";
+            if (p.includes("enhance") || p.includes("improve") || p.includes("behtar")) return "Enhancing results...";
             if (p.includes("hook") || p.includes("viral")) return "Drafting viral hooks...";
             if (p.includes("script") || p.includes("reel") || p.includes("video")) return "Crafting 60s script...";
             if (p.includes("title") || p.includes("packaging")) return "Building packaging...";
@@ -940,26 +993,33 @@
             return "Thinking...";
         }
 
-        async function sendMsg() {
+        async function sendMsg(overrideRawText = null, skipPrefix = false) {
             const emailToUse = CURRENT_USER_EMAIL || "{{ user_email or '' }}";
             if(!IS_LOGGED && !emailToUse) { openAuth(); return; }
 
+            // If user clicks Stop/Pause during generation
             if (isStreaming && ctrl) {
                 ctrl.abort();
-                setStreamingUI(false);
                 return;
             }
 
-            let rawTxt = chatInput.value.trim();
+            let rawTxt = (overrideRawText !== null) ? overrideRawText.trim() : chatInput.value.trim();
             if(!rawTxt) return;
 
-            let finalMessage = activeToolPrefix ? `${activeToolPrefix} ${rawTxt}` : rawTxt;
+            // Avoid double prefixing when regenerating
+            let finalMessage = rawTxt;
+            if (!skipPrefix && activeToolPrefix && !rawTxt.startsWith(activeToolPrefix.trim())) {
+                finalMessage = `${activeToolPrefix} ${rawTxt}`;
+            }
             lastMsg = rawTxt;
             
-            chatInput.value = "";
-            chatInput.style.height = "auto";
-            appendBubble("user", rawTxt);
-            chatHist.push({ role: "user", content: finalMessage });
+            if (overrideRawText === null) {
+                chatInput.value = "";
+                chatInput.style.height = "auto";
+            }
+
+            const userBox = appendBubble("user", rawTxt);
+            const userRowEl = userBox.parentNode;
 
             // Create AI Bubble with dynamic Thinking status & pulse dot
             const aiBox = appendBubble("ai", "");
@@ -981,6 +1041,9 @@
             ctrl = new AbortController();
             setStreamingUI(true);
 
+            // Send history snapshot before current turn
+            const historySnapshot = chatHist.slice(-6);
+
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-stream`, {
                     method: "POST", 
@@ -988,7 +1051,8 @@
                     credentials: "include",
                     body: JSON.stringify({ 
                         message: finalMessage, 
-                        history: chatHist.slice(-6),
+                        display_message: rawTxt,
+                        history: historySnapshot,
                         session_id: currentSessionId,
                         user_email: emailToUse,
                         access_token: CURRENT_ACCESS_TOKEN
@@ -1031,7 +1095,7 @@
                                 if(parsed.token) {
                                     if(!firstChunkReceived) {
                                         firstChunkReceived = true;
-                                        statusWrap.remove(); // Clean status text once streaming starts
+                                        statusWrap.remove();
                                     }
                                     fullReply += parsed.token;
                                     aiBox.innerHTML = marked.parse(fullReply);
@@ -1052,22 +1116,33 @@
                 }
                 cursor.remove();
                 statusWrap.remove();
+
+                // Stream completed naturally -> commit to local history & show normal pills
+                chatHist.push({ role: "user", content: finalMessage });
                 chatHist.push({ role: "assistant", content: fullReply });
-                attachActionPills(aiBox, fullReply, rawTxt);
+                attachActionPills(aiBox, fullReply, rawTxt, false, userRowEl);
                 loadHistorySessions();
 
             } catch(e) {
                 statusWrap.remove();
                 cursor.remove();
-                if (e.name !== 'AbortError') {
+                if (e.name === 'AbortError') {
+                    // User Paused Generation: Keep on screen as unsaved draft with Action Pills!
+                    if (!fullReply.trim()) {
+                        fullReply = "*Generation paused before output.*";
+                        aiBox.innerHTML = marked.parse(fullReply);
+                    }
+                    attachActionPills(aiBox, fullReply, rawTxt, true, userRowEl);
+                } else {
                     aiBox.innerText = "⚠️ Network issue detected. Please tap Regenerate to retry!";
+                    attachActionPills(aiBox, "", rawTxt, true, userRowEl);
                 }
             } finally {
                 setStreamingUI(false);
             }
         }
 
-        sendBtn.onclick = sendMsg;
+        sendBtn.onclick = () => sendMsg();
 
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         chatInput.onkeydown = (e) => { 
@@ -1079,7 +1154,6 @@
             } 
         };
         
-        // Immediate Session Sync
         window.addEventListener('DOMContentLoaded', async () => {
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();

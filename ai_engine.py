@@ -1,10 +1,9 @@
 """
-HookSpike AI Engine — Migrated to Official Interactions API
-==========================================================
-- Uses client.interactions.create standard
-- Primary: gemini-3.5-flash-lite (Ultra-low latency, low load)
-- Secondary: gemini-3.8-flash (High intelligence backup)
-- Same viral director / tapori creator persona
+HookSpike AI Engine — Ultra-Fast Real Streaming + Intent-Adaptive Mindset
+========================================================================
+- True Token-by-Token Streaming (0 Latency wait, cuts response wait to sub-second)
+- Contextual Adaptive Intelligence: Brotherly advisor & smart companion by default,
+  switches to elite script/hook director ONLY when prompted for content.
 """
 
 import os
@@ -15,26 +14,27 @@ KEYS_ENV = ["PRIMARY_KEY", "BACKUP_KEY", "KEY_1", "KEY_2", "KEY_3"]
 MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
 
 CREATOR_SYSTEM_DIRECTOR = """
-You are HookSpike AI — the world's most elite viral content director, packaging specialist, and brotherly creative co-pilot. You work with global creators worldwide across YouTube, TikTok, and Instagram Reels.
+You are HookSpike AI — a deeply intelligent, culturally grounded AI co-pilot, creative partner, and brotherly director for global creators. You are sharp, authentic, and adaptive.
 
-1. GLOBAL LANGUAGE & ADAPTIVE PERSONA:
-   - Always mirror the exact language and cultural dialect of the creator.
-   - If they write in English: Respond in fluent, energetic, high-impact English.
-   - If they write in Hinglish / Hindi: Respond in natural, brotherly Hinglish.
-   - If they write in Spanish, French, Portuguese, etc.: Mirror their language with creator-grade slang.
-   - Always speak like an authentic creative brother and elite director sitting in the same studio. No corporate throat-clearing, no robotic introductions like "Sure! Here is your script".
+--- INTELLECTUAL DUAL MINDSET ---
 
-2. ITERATIVE ENHANCEMENT ENGINE (WHEN CREATOR ASKS TO IMPROVE/TWEAK):
-   - If the creator says "enhance this", "make it better", "change the hook", "make it darker", "make it funnier", or provides critiques:
-     * NEVER start from generic scratch or lecture them.
-     * Instantly analyze what was weak, elevate the tension/stakes, and deliver a razor-sharp upgraded version.
-     * Keep the original winning parts while injecting higher retention micro-cuts, better pacing, and viral psychological triggers.
+1. MODE 1: THE SMART CO-PILOT & PEER (DEFAULT CONVERSATION)
+- Active when the creator asks general questions, seeks advice, shares personal thoughts, asks about code/tech, or has a casual conversation.
+- Talk like a trusted, authentic brother and razor-sharp intellectual collaborator. 
+- Give direct, concise, insightful answers with warmth and wit.
+- CRITICAL: DO NOT mention 3 viral hooks, video scripts, camera visual directions [Visual:...], or audio loops unless the user explicitly asks for content creation, scripts, or video ideas! Keep it grounded.
 
-3. SCRIPT & PACKAGING PROTOCOL:
-   - Multi-Hook Variety: When scripting, give 3 distinct hook angles (Cold-Open Action, Curiosity Gap, Shock/Negative Bias).
-   - Production Clarity: Include shoot-ready camera directions [Visual: ...] and sound design cues [SFX: ...].
-   - Retention Loops: Ensure the final line triggers an infinite, seamless audio loop back into the first second of the video.
-   - Candid Director Feedback: If an idea will underperform, tell them honestly and immediately offer a 10x better hook.
+2. MODE 2: THE ELITE CONTENT DIRECTOR (CONTENT CREATION MODE)
+- Active ONLY when the creator says: "generate a script", "give me hooks", "video idea", "enhance this reel", "make a 60s video", or selects one of the Director mode tools.
+- Deliver elite production-grade content immediately with zero fluff or polite introductions:
+  * 3 Psychological Hook Angles (Shock/Negative Bias, Curiosity Gap, Action-first).
+  * Shoot-ready camera directions [Visual: ...] and sound cues [SFX: ...].
+  * Seamless Retention Loops (connecting the ending line directly back to the opening hook).
+  * Honest, high-leverage feedback to 10x their engagement.
+
+3. CORE RULES:
+- Match the creator's language dialect naturally (English, Hindi, Hinglish, Spanish, etc.).
+- Never use robotic openers like "Sure, here is your answer:" or "As an AI...". Jump directly into the answer.
 """
 
 def _get_api_keys() -> list[str]:
@@ -67,7 +67,7 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
 
     keys = _get_api_keys()
     if not keys:
-        yield "System Note: No valid API keys found in Render Environment Variables."
+        yield "System Note: No valid API keys found in Environment Variables."
         return
 
     full_input = _build_full_prompt(history, message)
@@ -81,38 +81,38 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
             continue
 
         for model_name in MODELS_TO_TRY:
-            # 1. Pehle official Interactions API try karega
+            # 1. Official Token-by-Token Streaming (Instant word-by-word UI)
+            try:
+                response = client.models.generate_content_stream(
+                    model=model_name,
+                    contents=full_input,
+                )
+                yielded_any = False
+                for chunk in response:
+                    text_chunk = getattr(chunk, "text", "")
+                    if text_chunk:
+                        yielded_any = True
+                        yield text_chunk
+                if yielded_any:
+                    return
+            except Exception as stream_exc:
+                last_error = stream_exc
+                s_err = str(stream_exc)
+                if "RESOURCE_EXHAUSTED" in s_err or "429" in s_err:
+                    break
+
+            # 2. Fallback to interactions if streaming fails
             try:
                 interaction = client.interactions.create(
                     model=model_name,
                     input=full_input,
                 )
-                output = getattr(interaction, "output_text", None)
-                if not output and hasattr(interaction, "text"):
-                    output = interaction.text
+                output = getattr(interaction, "output_text", None) or getattr(interaction, "text", "")
                 if output:
                     yield output
                     return
-            except Exception as exc:
-                last_error = exc
-                err_str = str(exc)
-
-                # 2. Agar interactions module SDK version me directly available na ho, fallback generate_content
-                try:
-                    res = client.models.generate_content(
-                        model=model_name,
-                        contents=full_input,
-                    )
-                    text = getattr(res, "text", "")
-                    if text:
-                        yield text
-                        return
-                except Exception as inner_exc:
-                    last_error = inner_exc
-                    inner_str = str(inner_exc)
-                    if "404" in inner_str or "NOT_FOUND" in inner_str or "503" in inner_str:
-                        continue
-                    if "RESOURCE_EXHAUSTED" in inner_str or "429" in inner_str:
-                        break
+            except Exception as int_exc:
+                last_error = int_exc
+                continue
 
     yield f"⚠️ Server Busy / Key Issue. Please tap Regenerate! (Details: {last_error})"

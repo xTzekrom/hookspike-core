@@ -3,6 +3,7 @@ HookSpike AI - Production Backend (Supabase Auth & Streaming + Permanent Chat Me
 Features:
 - Paused / Aborted generations are NOT saved to Supabase until completed or refined.
 - Strict session ownership check so users can only view their own chat history.
+- Added /favicon.ico route for browser URL bars & search suggestions.
 """
 
 import json
@@ -206,7 +207,12 @@ def logout():
 
 @app.route("/logo.png")
 def serve_logo():
-    return send_from_directory(".", "logo.png")
+    return send_from_directory(".", "logo.png", mimetype="image/png")
+
+
+@app.route("/favicon.ico")
+def serve_favicon():
+    return send_from_directory(".", "logo.png", mimetype="image/png")
 
 
 @app.route("/api/chat-sessions", methods=["GET"])

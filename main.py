@@ -1,6 +1,8 @@
 """
 HookSpike AI - Production Backend (Supabase Auth & Streaming + Permanent Chat Memory)
-Full Stream Support with Optimized Auth Security
+Features:
+- Paused / Aborted generations are NOT saved to Supabase until completed or refined.
+- Strict session ownership check so users can only view their own chat history.
 """
 
 import json
@@ -228,6 +230,16 @@ def get_chat_messages(session_id):
         return jsonify([])
 
     encoded_sess = urllib.parse.quote(str(session_id))
+    encoded_email = urllib.parse.quote(user_email)
+
+    # Security Fix: Verify that this session belongs to the logged-in user
+    ownership = db_select(
+        "chat_sessions",
+        f"id=eq.{encoded_sess}&user_email=eq.{encoded_email}&select=id"
+    )
+    if not ownership:
+        return jsonify([])
+
     messages = db_select(
         "chat_messages",
         f"session_id=eq.{encoded_sess}&select=role,content,created_at&order=created_at.asc"
@@ -246,40 +258,25 @@ def chat_stream():
     session["user_email"] = user_email
     tokens = get_user_tokens(user_email)
     message = payload.get("message", "").strip()
+    display_message = payload.get("display_message", message).strip()
     history = payload.get("history", [])
     session_id = payload.get("session_id")
 
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
-    casual = is_casual_message(message)
+    casual = is_casual_message(display_message)
 
     if tokens <= 0 and user_email not in ADMIN_EMAILS:
         return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
 
-    current_session_id = session_id
-    if not current_session_id:
-        title_text = (message[:28] + "...") if len(message) > 28 else message
-        inserted = db_insert("chat_sessions", {
-            "user_email": user_email,
-            "title": title_text
-        })
-        if inserted and len(inserted) > 0:
-            current_session_id = str(inserted[0].get("id"))
-
-    def generate_sse(active_sess_id: str | None):
+    def generate_sse(existing_sess_id: str | None):
         accumulated_reply = ""
         remaining_tokens = tokens
         token_deducted = False
+        active_sess_id = existing_sess_id
 
         try:
-            if active_sess_id:
-                db_insert("chat_messages", {
-                    "session_id": active_sess_id,
-                    "role": "user",
-                    "content": message
-                })
-
             # Stream chunks token-by-token
             for chunk in ai_engine.stream_creator_chat(message, history):
                 if chunk:
@@ -290,14 +287,34 @@ def chat_stream():
                     accumulated_reply += chunk
                     yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining_tokens, 'session_id': active_sess_id})}\n\n"
 
-            if active_sess_id and accumulated_reply:
-                db_insert("chat_messages", {
-                    "session_id": active_sess_id,
-                    "role": "assistant",
-                    "content": accumulated_reply
-                })
+            # Smart Pause Feature: Save to Supabase ONLY after generation finishes without interruption!
+            if accumulated_reply.strip():
+                if not active_sess_id:
+                    title_text = (display_message[:28] + "...") if len(display_message) > 28 else display_message
+                    inserted = db_insert("chat_sessions", {
+                        "user_email": user_email,
+                        "title": title_text
+                    })
+                    if inserted and len(inserted) > 0:
+                        active_sess_id = str(inserted[0].get("id"))
+
+                if active_sess_id:
+                    db_insert("chat_messages", {
+                        "session_id": active_sess_id,
+                        "role": "user",
+                        "content": display_message
+                    })
+                    db_insert("chat_messages", {
+                        "session_id": active_sess_id,
+                        "role": "assistant",
+                        "content": accumulated_reply
+                    })
+                    yield f"data: {json.dumps({'session_id': active_sess_id, 'tokens_left': remaining_tokens})}\n\n"
 
             yield "data: [DONE]\n\n"
+        except GeneratorExit:
+            # User clicked Stop/Pause -> Do NOT save incomplete draft to Supabase
+            print("[Stream Paused by User]: Draft kept on client only.", flush=True)
         except Exception as exc:
             print(f"[Stream Error]: {exc}", flush=True)
             yield f"data: {json.dumps({'token': f'⚠️ Connection Error: {exc}', 'tokens_left': remaining_tokens, 'session_id': active_sess_id})}\n\n"
@@ -309,7 +326,7 @@ def chat_stream():
         "X-Accel-Buffering": "no"
     }
 
-    return Response(stream_with_context(generate_sse(current_session_id)), headers=headers)
+    return Response(stream_with_context(generate_sse(session_id)), headers=headers)
 
 
 if __name__ == "__main__":

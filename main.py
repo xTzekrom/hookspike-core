@@ -1,6 +1,6 @@
 """
 HookSpike AI - Production Backend (Supabase Auth & Streaming + Permanent Chat Memory)
-100% Fixed Direct REST + SDK Hybrid for Bulletproof Database Saving
+Full Stream Support with Optimized Auth Security
 """
 
 import json
@@ -25,8 +25,6 @@ import ai_engine
 
 app = Flask(__name__, template_folder=".")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_key_2026")
-
-# Session cookie settings taaki Render HTTPS par session kabhi drop na ho
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co").rstrip("/")
@@ -39,7 +37,7 @@ if SUPABASE_URL and SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         print("[DB Status]: Supabase SDK client initialized!", flush=True)
     except Exception as exc:
-        print(f"[DB SDK Warning - Using Direct REST Fallback]: {exc}", flush=True)
+        print(f"[DB SDK Warning - Fallback Direct REST]: {exc}", flush=True)
 
 ADMIN_EMAILS = {
     "playerofwar99@gmail.com",
@@ -47,23 +45,18 @@ ADMIN_EMAILS = {
 }
 
 
-# --- BULLETPROOF SUPABASE DIRECT REST HELPERS ---
-# Ye helpers tab bhi kaam karenge jab Python SDK 'sb_publishable_' key par fail ho jaye!
-
 def sb_headers() -> dict:
     headers = {
         "apikey": SUPABASE_KEY,
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
-    # JWT key starts with eyJ
     if SUPABASE_KEY.startswith("eyJ"):
         headers["Authorization"] = f"Bearer {SUPABASE_KEY}"
     return headers
 
 
 def db_select(table: str, query_params: str) -> list:
-    """Safely fetch rows from Supabase table via SDK or Direct REST API"""
     url = f"{SUPABASE_URL}/rest/v1/{table}?{query_params}"
     try:
         req = urllib.request.Request(url, headers=sb_headers(), method="GET")
@@ -76,7 +69,6 @@ def db_select(table: str, query_params: str) -> list:
 
 
 def db_insert(table: str, payload: dict) -> list:
-    """Safely insert row into Supabase table and return created record"""
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     try:
         body = json.dumps(payload).encode("utf-8")
@@ -94,7 +86,6 @@ def db_insert(table: str, payload: dict) -> list:
 
 
 def db_update(table: str, match_query: str, payload: dict) -> bool:
-    """Safely update row in Supabase table"""
     url = f"{SUPABASE_URL}/rest/v1/{table}?{match_query}"
     try:
         body = json.dumps(payload).encode("utf-8")
@@ -106,19 +97,13 @@ def db_update(table: str, match_query: str, payload: dict) -> bool:
         return False
 
 
-# ------------------------------------------------
-
-
 def verify_and_get_email(req_data: dict | None = None) -> str:
-    """
-    Resolves user email from Flask session, Supabase token, or request parameters.
-    """
-    # 1. Check Flask session first
+    # 1. Flask verified session check
     sess_email = (session.get("user_email") or "").strip().lower()
     if sess_email and "@" in sess_email:
         return sess_email
 
-    # 2. Check Authorization Bearer token via Supabase
+    # 2. Bearer Token Auth via Supabase
     auth_header = request.headers.get("Authorization", "")
     token = ""
     if auth_header.startswith("Bearer "):
@@ -136,16 +121,12 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
         except Exception as exc:
             print(f"[Token Auth Note]: {exc}", flush=True)
 
-    # 3. Fallback to query/body email (Fixed: No longer blocks Admin from loading history!)
-    raw_email = ""
+    # 3. Synchronized Payload check
     if req_data:
         raw_email = (req_data.get("email") or req_data.get("user_email") or "").strip().lower()
-    if not raw_email:
-        raw_email = (request.args.get("email") or "").strip().lower()
-
-    if raw_email and "@" in raw_email:
-        session["user_email"] = raw_email
-        return raw_email
+        if raw_email and "@" in raw_email:
+            session["user_email"] = raw_email
+            return raw_email
 
     return ""
 
@@ -162,7 +143,6 @@ def get_user_tokens(user_email: str) -> int:
     if rows and len(rows) > 0:
         return int(rows[0].get("tokens_left", 0))
 
-    # Naye user ke liye 5 tokens insert karo
     db_insert("user_tokens", {"email": user_email, "tokens_left": 5})
     return 5
 
@@ -213,7 +193,7 @@ def auth_sync():
         session["user_email"] = email
         tokens = get_user_tokens(email)
         return jsonify({"ok": True, "email": email, "tokens": tokens})
-    return jsonify({"error": "Invalid email"}), 400
+    return jsonify({"error": "Invalid auth credentials"}), 400
 
 
 @app.route("/logout")
@@ -226,8 +206,6 @@ def logout():
 def serve_logo():
     return send_from_directory(".", "logo.png")
 
-
-# --- PERMANENT CHAT MEMORY ROUTES ---
 
 @app.route("/api/chat-sessions", methods=["GET"])
 def get_chat_sessions():
@@ -257,9 +235,6 @@ def get_chat_messages(session_id):
     return jsonify(messages)
 
 
-# ------------------------------------
-
-
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
     payload = request.get_json() or {}
@@ -282,7 +257,6 @@ def chat_stream():
     if tokens <= 0 and user_email not in ADMIN_EMAILS:
         return jsonify({"error": "Tokens exhausted", "paywall": True}), 402
 
-    # Create new session in Supabase if not exists
     current_session_id = session_id
     if not current_session_id:
         title_text = (message[:28] + "...") if len(message) > 28 else message
@@ -292,7 +266,6 @@ def chat_stream():
         })
         if inserted and len(inserted) > 0:
             current_session_id = str(inserted[0].get("id"))
-            print(f"[Session Created]: {current_session_id} for {user_email}", flush=True)
 
     def generate_sse(active_sess_id: str | None):
         accumulated_reply = ""
@@ -300,7 +273,6 @@ def chat_stream():
         token_deducted = False
 
         try:
-            # 1. Save user message immediately
             if active_sess_id:
                 db_insert("chat_messages", {
                     "session_id": active_sess_id,
@@ -308,23 +280,22 @@ def chat_stream():
                     "content": message
                 })
 
-            # 2. Stream AI response
+            # Stream chunks token-by-token
             for chunk in ai_engine.stream_creator_chat(message, history):
-                if chunk and not token_deducted and not casual:
-                    remaining_tokens = deduct_user_token(user_email)
-                    token_deducted = True
+                if chunk:
+                    if not token_deducted and not casual:
+                        remaining_tokens = deduct_user_token(user_email)
+                        token_deducted = True
 
-                accumulated_reply += chunk
-                yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining_tokens, 'session_id': active_sess_id})}\n\n"
+                    accumulated_reply += chunk
+                    yield f"data: {json.dumps({'token': chunk, 'tokens_left': remaining_tokens, 'session_id': active_sess_id})}\n\n"
 
-            # 3. Save AI reply after stream finishes
             if active_sess_id and accumulated_reply:
                 db_insert("chat_messages", {
                     "session_id": active_sess_id,
                     "role": "assistant",
                     "content": accumulated_reply
                 })
-                print(f"[Messages Saved] Session: {active_sess_id}", flush=True)
 
             yield "data: [DONE]\n\n"
         except Exception as exc:

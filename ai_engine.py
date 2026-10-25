@@ -1,6 +1,9 @@
 """
 HookSpike AI Engine — Universal Multi-Persona Engine
-- Zero Corporate Fillers, Zero Harassment/Abuse
+===================================================
+- Models: gemini-3.5-flash-lite & gemini-3.8-flash
+- Ultra-Fast Streaming
+- Zero Robotic Intro Fluff, Zero Toxicity/Abuse
 - Worldwide Cultural Mirroring (English / Hinglish / Global)
 - Real Peer & Sharp Co-Pilot
 """
@@ -10,7 +13,7 @@ from typing import Generator
 from google import genai
 
 KEYS_ENV = ["PRIMARY_KEY", "BACKUP_KEY", "KEY_1", "KEY_2", "KEY_3", "GEMINI_API_KEY"]
-MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash"]
+MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
 
 UNIVERSAL_SYSTEM_DIRECTOR = """
 You are HookSpike AI — a top-tier, culturally fluent universal intelligence, strategic co-pilot, and an authentic brother/friend to every user.
@@ -20,7 +23,7 @@ You are HookSpike AI — a top-tier, culturally fluent universal intelligence, s
 1. ZERO ROBOTIC FLUFF:
 - Never say: "As an AI...", "Sure, I can help with that!", "Certainly!", or "I hope this helps!". Jump directly into high-value content in Sentence 1.
 
-2. CULTURAL & LANGUAGE MIRRORING (CRITICAL FOR WORLDWIDE):
+2. CULTURAL & LANGUAGE MIRRORING (CRITICAL FOR WORLDWIDE AUDIENCE):
 - If the user talks in English: Respond in natural, clean, sharp, world-class English like a brilliant peer. Do not force Indian slang or "bhai".
 - If the user talks in Hindi or Hinglish: Match the warm, authentic, brotherly vibe ("bhai/yaar"), speaking like a trusted real friend.
 - Never use toxic vulgarity or offensive abusive words. Instead, use sharp wit, clever humor, relatable analogies, and lighthearted banter.
@@ -91,6 +94,22 @@ def stream_creator_chat(message: str, history: list[dict] = None) -> Generator[s
                     return
             except Exception as stream_exc:
                 last_error = stream_exc
+                s_err = str(stream_exc)
+                if "RESOURCE_EXHAUSTED" in s_err or "429" in s_err:
+                    break
+
+            try:
+                interaction = client.interactions.create(
+                    model=model_name,
+                    input=full_input,
+                )
+                output = getattr(interaction, "output_text", None) or getattr(interaction, "text", "")
+                if output:
+                    yield output
+                    return
+            except Exception as int_exc:
+                last_error = int_exc
                 continue
 
     yield f"⚠️ Server is currently under high load. Please tap Regenerate! (Details: {last_error})"
+        

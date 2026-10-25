@@ -1,5 +1,5 @@
 """
-HookSpike AI - Universal Backend (No Tokens, Fixed Session & Chat History DB Sync)
+HookSpike AI - Production Backend (Fixed Supabase Writes, No Tokens, Fast Streaming)
 """
 
 import json
@@ -35,6 +35,7 @@ supabase: Client | None = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("[DB Status]: Supabase client connected!", flush=True)
     except Exception as exc:
         print(f"[Supabase Init Warning]: {exc}", flush=True)
 
@@ -65,7 +66,7 @@ def db_select(table: str, query_params: str, user_jwt: str = "") -> list:
     url = f"{SUPABASE_URL}/rest/v1/{table}?{query_params}"
     try:
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data if isinstance(data, list) else []
     except Exception as exc:
@@ -76,18 +77,18 @@ def db_insert(table: str, payload: dict, user_jwt: str = "") -> list:
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     try:
         body = json.dumps(payload).encode("utf-8")
-        headers = sb_headers(user_jwt)
-        headers["Prefer"] = "return=representation"
-        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data if isinstance(data, list) else []
+        req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            res_text = resp.read().decode("utf-8")
+            data = json.loads(res_text) if res_text.strip() else []
+            print(f"[DB Insert Success ({table})]: {data}", flush=True)
+            return data if isinstance(data, list) else [data]
     except urllib.error.HTTPError as he:
         err_body = he.read().decode("utf-8", errors="ignore")
-        print(f"[DB Insert HTTP Error ({table})]: {he.code} - {err_body}", flush=True)
+        print(f"[DB Insert HTTP FAIL ({table})]: {he.code} -> {err_body}", flush=True)
         return []
     except Exception as exc:
-        print(f"[DB Insert Error ({table})]: {exc}", flush=True)
+        print(f"[DB Insert General FAIL ({table})]: {exc}", flush=True)
         return []
 
 def verify_and_get_email(req_data: dict | None = None) -> str:
@@ -95,32 +96,28 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
     if token:
         session["access_token"] = token
 
-    # 1. Payload email check
     if req_data:
-        raw_email = (req_data.get("email") or req_data.get("user_email") or "").strip().lower()
-        if raw_email and "@" in raw_email:
-            session["user_email"] = raw_email
-            return raw_email
+        raw = (req_data.get("user_email") or req_data.get("email") or "").strip().lower()
+        if raw and "@" in raw:
+            session["user_email"] = raw
+            return raw
 
-    # 2. URL Query Params check
-    arg_email = (request.args.get("email") or request.args.get("user_email") or "").strip().lower()
-    if arg_email and "@" in arg_email:
-        session["user_email"] = arg_email
-        return arg_email
+    arg = (request.args.get("user_email") or request.args.get("email") or "").strip().lower()
+    if arg and "@" in arg:
+        session["user_email"] = arg
+        return arg
 
-    # 3. Session cookie check
-    sess_email = (session.get("user_email") or "").strip().lower()
-    if sess_email and "@" in sess_email:
-        return sess_email
+    sess = (session.get("user_email") or "").strip().lower()
+    if sess and "@" in sess:
+        return sess
 
-    # 4. Supabase JWT Auth check
     if token and supabase:
         try:
             user_res = supabase.auth.get_user(token)
             if user_res and user_res.user and user_res.user.email:
-                verified_email = user_res.user.email.strip().lower()
-                session["user_email"] = verified_email
-                return verified_email
+                verified = user_res.user.email.strip().lower()
+                session["user_email"] = verified
+                return verified
         except Exception:
             pass
 
@@ -244,9 +241,14 @@ def chat_stream():
         if is_limited:
             return jsonify({"error": limit_msg, "memory_full": True}), 429
 
-    def generate_sse(existing_sess_id: str | None):
+    # Local captured copy for generator context
+    target_email = str(user_email)
+    target_jwt = str(user_jwt)
+    initial_sess_id = session_id
+
+    def generate_sse():
         accumulated_reply = ""
-        active_sess_id = existing_sess_id
+        active_sess_id = initial_sess_id
 
         try:
             for chunk in ai_engine.stream_creator_chat(message, history):
@@ -254,34 +256,38 @@ def chat_stream():
                     accumulated_reply += chunk
                     yield f"data: {json.dumps({'token': chunk, 'session_id': active_sess_id})}\n\n"
 
-            # Save to Supabase when reply completes and user is logged in
-            if accumulated_reply.strip() and user_email:
+            # SAVE CHAT DIRECTLY TO SUPABASE
+            if accumulated_reply.strip() and target_email:
+                print(f"[Stream Finished]: Saving chat for email: {target_email}", flush=True)
+
                 if not active_sess_id:
                     title_text = (display_message[:30] + "...") if len(display_message) > 30 else display_message
                     inserted = db_insert("chat_sessions", {
-                        "user_email": user_email,
+                        "user_email": target_email,
                         "title": title_text
-                    }, user_jwt)
+                    }, target_jwt)
                     if inserted and len(inserted) > 0 and inserted[0].get("id"):
                         active_sess_id = str(inserted[0].get("id"))
+                        print(f"[New Session Created]: {active_sess_id}", flush=True)
 
                 if active_sess_id:
                     db_insert("chat_messages", {
                         "session_id": active_sess_id,
                         "role": "user",
                         "content": display_message
-                    }, user_jwt)
+                    }, target_jwt)
                     db_insert("chat_messages", {
                         "session_id": active_sess_id,
                         "role": "assistant",
                         "content": accumulated_reply
-                    }, user_jwt)
+                    }, target_jwt)
                     yield f"data: {json.dumps({'session_id': active_sess_id})}\n\n"
 
             yield "data: [DONE]\n\n"
         except GeneratorExit:
             pass
         except Exception as exc:
+            print(f"[Stream Error]: {exc}", flush=True)
             yield f"data: {json.dumps({'token': f'⚠️ Connection issue: {exc}', 'session_id': active_sess_id})}\n\n"
             yield "data: [DONE]\n\n"
 
@@ -291,7 +297,7 @@ def chat_stream():
         "X-Accel-Buffering": "no"
     }
 
-    return Response(stream_with_context(generate_sse(session_id)), headers=headers)
+    return Response(stream_with_context(generate_sse()), headers=headers)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

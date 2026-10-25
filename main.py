@@ -1,5 +1,5 @@
 """
-HookSpike AI - Universal Backend (No Tokens, Pure Session Memory & High Speed)
+HookSpike AI - Universal Backend (No Tokens, Fixed Session & Chat History DB Sync)
 """
 
 import json
@@ -44,11 +44,11 @@ def get_request_jwt(req_data: dict | None = None) -> str:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         tok = auth_header.split(" ", 1)[1].strip()
-        if tok and tok != "undefined" and tok != "null":
+        if tok and tok not in ("undefined", "null"):
             return tok
     if req_data and req_data.get("access_token"):
         tok = str(req_data.get("access_token")).strip()
-        if tok and tok != "undefined" and tok != "null":
+        if tok and tok not in ("undefined", "null"):
             return tok
     return session.get("access_token", "")
 
@@ -68,17 +68,24 @@ def db_select(table: str, query_params: str, user_jwt: str = "") -> list:
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data if isinstance(data, list) else []
-    except Exception:
+    except Exception as exc:
+        print(f"[DB Select Error ({table})]: {exc}", flush=True)
         return []
 
 def db_insert(table: str, payload: dict, user_jwt: str = "") -> list:
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     try:
         body = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
+        headers = sb_headers(user_jwt)
+        headers["Prefer"] = "return=representation"
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data if isinstance(data, list) else []
+    except urllib.error.HTTPError as he:
+        err_body = he.read().decode("utf-8", errors="ignore")
+        print(f"[DB Insert HTTP Error ({table})]: {he.code} - {err_body}", flush=True)
+        return []
     except Exception as exc:
         print(f"[DB Insert Error ({table})]: {exc}", flush=True)
         return []
@@ -88,10 +95,25 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
     if token:
         session["access_token"] = token
 
+    # 1. Payload email check
+    if req_data:
+        raw_email = (req_data.get("email") or req_data.get("user_email") or "").strip().lower()
+        if raw_email and "@" in raw_email:
+            session["user_email"] = raw_email
+            return raw_email
+
+    # 2. URL Query Params check
+    arg_email = (request.args.get("email") or request.args.get("user_email") or "").strip().lower()
+    if arg_email and "@" in arg_email:
+        session["user_email"] = arg_email
+        return arg_email
+
+    # 3. Session cookie check
     sess_email = (session.get("user_email") or "").strip().lower()
     if sess_email and "@" in sess_email:
         return sess_email
 
+    # 4. Supabase JWT Auth check
     if token and supabase:
         try:
             user_res = supabase.auth.get_user(token)
@@ -102,21 +124,9 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
         except Exception:
             pass
 
-    if req_data:
-        raw_email = (req_data.get("email") or req_data.get("user_email") or "").strip().lower()
-        if raw_email and "@" in raw_email:
-            session["user_email"] = raw_email
-            return raw_email
-
-    arg_email = (request.args.get("email") or request.args.get("user_email") or "").strip().lower()
-    if arg_email and "@" in arg_email:
-        session["user_email"] = arg_email
-        return arg_email
-
     return ""
 
 def check_session_memory_limit(session_id: str, user_jwt: str = "") -> tuple[bool, str]:
-    """Checks if current session hit limit and if 24 hours have passed since creation."""
     if not session_id:
         return False, ""
     encoded_id = urllib.parse.quote(str(session_id))
@@ -244,6 +254,7 @@ def chat_stream():
                     accumulated_reply += chunk
                     yield f"data: {json.dumps({'token': chunk, 'session_id': active_sess_id})}\n\n"
 
+            # Save to Supabase when reply completes and user is logged in
             if accumulated_reply.strip() and user_email:
                 if not active_sess_id:
                     title_text = (display_message[:30] + "...") if len(display_message) > 30 else display_message
@@ -251,7 +262,7 @@ def chat_stream():
                         "user_email": user_email,
                         "title": title_text
                     }, user_jwt)
-                    if inserted and len(inserted) > 0:
+                    if inserted and len(inserted) > 0 and inserted[0].get("id"):
                         active_sess_id = str(inserted[0].get("id"))
 
                 if active_sess_id:

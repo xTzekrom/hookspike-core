@@ -184,7 +184,7 @@
         main.chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 16px 175px;
+            padding: 20px 16px 190px;
             display: flex;
             flex-direction: column;
             gap: 22px;
@@ -234,22 +234,53 @@
         .msg-line.user { align-items: flex-end; }
         .msg-line.ai { align-items: flex-start; }
 
-        .bubble-box {
+        /* USER BUBBLE WITH COLLAPSE & ARROW */
+        .user-bubble-container {
+            position: relative;
             max-width: 90%;
-            font-size: 15px;
-            line-height: 1.65;
-            word-break: break-word;
-        }
-
-        .msg-line.user .bubble-box {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 12px 18px;
             border-radius: 20px;
             border-bottom-right-radius: 6px;
-            white-space: pre-wrap;
+            padding: 12px 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            transition: all 0.2s ease;
         }
+
+        .user-bubble-text {
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+            flex: 1;
+        }
+
+        .user-bubble-text.collapsed {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .collapse-arrow-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, color 0.15s ease;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .collapse-arrow-btn:hover { color: var(--text-primary); }
+        .collapse-arrow-btn.expanded { transform: rotate(180deg); }
 
         .msg-line.ai .bubble-box {
             background: transparent;
@@ -257,6 +288,9 @@
             width: 100%;
             max-width: 100%;
             padding: 4px 0;
+            font-size: 15px;
+            line-height: 1.65;
+            word-break: break-word;
         }
 
         .bubble-box p { margin-bottom: 12px; }
@@ -330,7 +364,7 @@
 
         .jump-bottom-btn {
             position: fixed;
-            bottom: 95px;
+            bottom: 105px;
             right: 20px;
             width: 36px;
             height: 36px;
@@ -349,8 +383,8 @@
         .bottom-dock {
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            padding: 8px 14px 18px;
-            background: linear-gradient(to top, var(--bg-color) 86%, transparent);
+            padding: 8px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+            background: linear-gradient(to top, var(--bg-color) 88%, transparent);
             z-index: 25;
             display: flex;
             flex-direction: column;
@@ -382,23 +416,27 @@
             background: var(--surface-dock);
             border: 1px solid var(--border-color);
             border-radius: 24px;
-            padding: 10px 14px 8px;
+            padding: 12px 14px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
+        /* AUTO-EXPANDING TEXTAREA */
         #chatInput {
             width: 100%;
             background: transparent;
             border: none;
             outline: none;
             color: var(--text-primary);
-            font-size: 15px;
+            font-size: 15.5px;
+            font-family: inherit;
             resize: none;
-            max-height: 120px;
-            min-height: 24px;
-            line-height: 1.45;
+            max-height: 160px;
+            min-height: 26px;
+            line-height: 1.5;
+            padding: 2px 0;
         }
 
         .dock-toolbar {
@@ -535,7 +573,7 @@
             <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">
                 {% if logged_in %}{{ user_email }}{% else %}Guest Mode{% endif %}
             </span>
-            <a href="/logout" id="logoutLink" style="color: #ea4335; text-decoration: none; font-weight: 600; display: {% if logged_in %}block{% else %}none{% endif %};">Sign Out</a>
+            <button id="logoutBtn" onclick="performHardLogout(event)" style="background:none; border:none; color: #ea4335; font-weight: 600; cursor: pointer; display: {% if logged_in %}block{% else %}none{% endif %};">Sign Out</button>
             <button id="signInLink" onclick="openAuth()" style="background:none; border:none; color:var(--accent-blue); font-weight:600; cursor:pointer; display: {% if logged_in %}none{% else %}block{% endif %};">Sign In</button>
         </div>
     </aside>
@@ -609,6 +647,21 @@
             });
         }
 
+        async function performHardLogout(e) {
+            if (e) e.preventDefault();
+            localStorage.clear();
+            sessionStorage.clear();
+            CURRENT_USER_EMAIL = "";
+            CURRENT_ACCESS_TOKEN = "";
+
+            if (supabaseClient) {
+                try {
+                    await supabaseClient.auth.signOut({ scope: 'local' });
+                } catch (err) {}
+            }
+            window.location.replace(`${BACKEND_URL}/logout`);
+        }
+
         let chatHist = [];
         let ctrl = null;
         let isStreaming = false;
@@ -643,7 +696,7 @@
                 document.getElementById("headerAuthLabel").innerText = "Connected";
                 document.getElementById("avatarCircle").innerText = CURRENT_USER_EMAIL[0].toUpperCase();
                 document.getElementById("sidebarUserEmail").innerText = CURRENT_USER_EMAIL;
-                document.getElementById("logoutLink").style.display = "block";
+                document.getElementById("logoutBtn").style.display = "block";
                 document.getElementById("signInLink").style.display = "none";
                 closeAuth();
             } else {
@@ -651,7 +704,7 @@
                 document.getElementById("headerAuthLabel").innerText = "Sign In";
                 document.getElementById("avatarCircle").innerText = "?";
                 document.getElementById("sidebarUserEmail").innerText = "Guest Mode";
-                document.getElementById("logoutLink").style.display = "none";
+                document.getElementById("logoutBtn").style.display = "none";
                 document.getElementById("signInLink").style.display = "block";
             }
         }
@@ -666,7 +719,7 @@
 
         chatInput.addEventListener("input", function() {
             this.style.height = "auto";
-            this.style.height = Math.min(this.scrollHeight, 120) + "px";
+            this.style.height = Math.min(this.scrollHeight, 160) + "px";
         });
 
         toolsPlusBtn.onclick = (e) => {
@@ -742,9 +795,9 @@
                 if (Array.isArray(msgs) && msgs.length > 0) {
                     msgs.forEach(m => {
                         if (m.role === "user") {
-                            appendBubble("user", m.content);
+                            appendUserBubble(m.content);
                         } else {
-                            const box = appendBubble("ai", "");
+                            const box = appendAiBubble();
                             box.innerHTML = renderSafeMarkdown(m.content);
                             attachActionPills(box, m.content);
                         }
@@ -790,13 +843,52 @@
             stopIcon.style.display = streaming ? "block" : "none";
         }
 
-        function appendBubble(role, text="") {
+        function appendUserBubble(text) {
             if (heroWelcome && heroWelcome.parentNode) heroWelcome.remove();
             const row = document.createElement("div");
-            row.className = `msg-line ${role}`;
+            row.className = "msg-line user";
+
+            const container = document.createElement("div");
+            container.className = "user-bubble-container";
+
+            const textSpan = document.createElement("span");
+            textSpan.className = "user-bubble-text";
+            textSpan.innerText = text;
+
+            const isLong = text.length > 70 || text.includes("\n");
+            if (isLong) {
+                textSpan.classList.add("collapsed");
+
+                const arrowBtn = document.createElement("button");
+                arrowBtn.className = "collapse-arrow-btn";
+                arrowBtn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                `;
+
+                arrowBtn.onclick = () => {
+                    const isNowCollapsed = textSpan.classList.toggle("collapsed");
+                    arrowBtn.classList.toggle("expanded", !isNowCollapsed);
+                };
+
+                container.appendChild(textSpan);
+                container.appendChild(arrowBtn);
+            } else {
+                container.appendChild(textSpan);
+            }
+
+            row.appendChild(container);
+            chatArea.appendChild(row);
+            return textSpan;
+        }
+
+        function appendAiBubble() {
+            if (heroWelcome && heroWelcome.parentNode) heroWelcome.remove();
+            const row = document.createElement("div");
+            row.className = "msg-line ai";
             const box = document.createElement("div");
             box.className = "bubble-box";
-            if (text) box.innerText = text;
             row.appendChild(box);
             chatArea.appendChild(row);
             return box;
@@ -831,8 +923,8 @@
             chatInput.value = "";
             chatInput.style.height = "auto";
 
-            appendBubble("user", rawTxt);
-            const aiBox = appendBubble("ai", "");
+            appendUserBubble(rawTxt);
+            const aiBox = appendAiBubble();
             const cursor = document.createElement("span");
             cursor.className = "cursor-dot";
             aiBox.appendChild(cursor);

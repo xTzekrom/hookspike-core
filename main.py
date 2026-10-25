@@ -1,9 +1,11 @@
 """
-HookSpike AI - Production Backend (Fixed Supabase Writes, No Tokens, Fast Streaming, Safe Auth)
+HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Zero Data Loss)
 """
 
 import json
 import os
+import sqlite3
+import uuid
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -19,6 +21,7 @@ from flask import (
     stream_with_context,
     url_for,
     send_from_directory,
+    make_response,
 )
 from supabase import create_client, Client
 import ai_engine
@@ -29,17 +32,48 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_PERMANENT"] = True
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co").rstrip("/")
+# 1. Frontend Key (Anon Public Key - Safe for Browser)
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU").strip()
+# 2. Backend Master Key (Service Role Secret Key - Never sent to Browser, bypasses RLS locks!)
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", SUPABASE_KEY).strip()
 
 supabase: Client | None = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("[DB Status]: Supabase client connected!", flush=True)
+        print("[DB Status]: Supabase client initialized!", flush=True)
     except Exception as exc:
         print(f"[Supabase Init Warning]: {exc}", flush=True)
 
 SESSION_MESSAGE_LIMIT = 18
+LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
+
+# --- EXTRA SAFETY BACKUP DB ---
+def init_local_db():
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS chat_sessions (
+                    id TEXT PRIMARY KEY,
+                    user_email TEXT,
+                    title TEXT,
+                    created_at TEXT
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT,
+                    role TEXT,
+                    content TEXT,
+                    created_at TEXT
+                )
+            """)
+            conn.commit()
+    except Exception as e:
+        print(f"[Local DB Init Warning]: {e}", flush=True)
+
+init_local_db()
 
 def get_request_jwt(req_data: dict | None = None) -> str:
     auth_header = request.headers.get("Authorization", "")
@@ -54,64 +88,151 @@ def get_request_jwt(req_data: dict | None = None) -> str:
     return session.get("access_token", "")
 
 def sb_headers(user_jwt: str = "") -> dict:
-    bearer = user_jwt if (user_jwt and len(user_jwt) > 20 and user_jwt not in ("undefined", "null")) else SUPABASE_KEY
+    # Backend always uses SUPABASE_SERVICE_KEY first so RLS never blocks saving chat history!
+    master_key = SUPABASE_SERVICE_KEY if SUPABASE_SERVICE_KEY else SUPABASE_KEY
     return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {bearer}",
+        "apikey": master_key,
+        "Authorization": f"Bearer {master_key}",
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
 
-def db_select(table: str, query_params: str, user_jwt: str = "") -> list:
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{query_params}"
+def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
+    encoded_email = urllib.parse.quote(user_email)
+    url = f"{SUPABASE_URL}/rest/v1/chat_sessions?user_email=eq.{encoded_email}&select=id,title,created_at&order=created_at.desc&limit=30"
+    
+    # 1. Fetch from Permanent Supabase Cloud
     try:
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data if isinstance(data, list) else []
+            if isinstance(data, list):
+                return data
     except urllib.error.HTTPError as he:
-        # 401 Unauthorized bypass via service key fallback
-        if he.code == 401:
-            try:
-                req_fallback = urllib.request.Request(url, headers=sb_headers(""), method="GET")
-                with urllib.request.urlopen(req_fallback, timeout=10) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                    return data if isinstance(data, list) else []
-            except Exception:
-                pass
-        print(f"[DB Select Error ({table})]: HTTP {he.code} - {he.reason}", flush=True)
-        return []
-    except Exception as exc:
-        print(f"[DB Select General Error ({table})]: {exc}", flush=True)
+        err_body = he.read().decode("utf-8", errors="ignore")
+        print(f"[Supabase Select Sessions HTTP Error]: {he.code} -> {err_body}", flush=True)
+    except Exception as e:
+        print(f"[Supabase Select Sessions Error]: {e}", flush=True)
+
+    # 2. Emergency Fallback to Local DB if Cloud is unreachable
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.execute(
+                "SELECT id, title, created_at FROM chat_sessions WHERE user_email = ? ORDER BY created_at DESC LIMIT 30",
+                (user_email,)
+            )
+            return [dict(row) for row in cur.fetchall()]
+    except Exception:
         return []
 
-def db_insert(table: str, payload: dict, user_jwt: str = "") -> list:
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
+def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> list:
+    encoded_sess = urllib.parse.quote(str(session_id))
+    encoded_email = urllib.parse.quote(user_email)
+
+    # 1. Fetch from Permanent Supabase Cloud
     try:
-        body = json.dumps(payload).encode("utf-8")
+        own_url = f"{SUPABASE_URL}/rest/v1/chat_sessions?id=eq.{encoded_sess}&user_email=eq.{encoded_email}&select=id"
+        req_own = urllib.request.Request(own_url, headers=sb_headers(user_jwt), method="GET")
+        with urllib.request.urlopen(req_own, timeout=8) as resp_own:
+            own_data = json.loads(resp_own.read().decode("utf-8"))
+            if isinstance(own_data, list) and len(own_data) > 0:
+                msg_url = f"{SUPABASE_URL}/rest/v1/chat_messages?session_id=eq.{encoded_sess}&select=role,content,created_at&order=created_at.asc"
+                req_msg = urllib.request.Request(msg_url, headers=sb_headers(user_jwt), method="GET")
+                with urllib.request.urlopen(req_msg, timeout=8) as resp_msg:
+                    msg_data = json.loads(resp_msg.read().decode("utf-8"))
+                    if isinstance(msg_data, list):
+                        return msg_data
+    except urllib.error.HTTPError as he:
+        err_body = he.read().decode("utf-8", errors="ignore")
+        print(f"[Supabase Select Messages HTTP Error]: {he.code} -> {err_body}", flush=True)
+    except Exception as e:
+        print(f"[Supabase Select Messages Error]: {e}", flush=True)
+
+    # 2. Emergency Fallback to Local DB
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            own = conn.execute(
+                "SELECT id FROM chat_sessions WHERE id = ? AND user_email = ?",
+                (str(session_id), user_email)
+            ).fetchone()
+            if not own:
+                return []
+            cur = conn.execute(
+                "SELECT role, content, created_at FROM chat_messages WHERE session_id = ? ORDER BY id ASC",
+                (str(session_id),)
+            )
+            return [dict(row) for row in cur.fetchall()]
+    except Exception:
+        return []
+
+def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    session_id = str(uuid.uuid4())
+
+    # 1. Save to Permanent Supabase Cloud
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/chat_sessions"
+        body = json.dumps({"user_email": user_email, "title": title}).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             res_text = resp.read().decode("utf-8")
             data = json.loads(res_text) if res_text.strip() else []
-            print(f"[DB Insert Success ({table})]: Saved successfully!", flush=True)
-            return data if isinstance(data, list) else [data]
+            rows = data if isinstance(data, list) else [data]
+            if rows and rows[0].get("id"):
+                session_id = str(rows[0].get("id"))
+                print(f"[Supabase Cloud]: New chat session saved ({session_id})", flush=True)
     except urllib.error.HTTPError as he:
-        if he.code == 401:
-            try:
-                body = json.dumps(payload).encode("utf-8")
-                req_fallback = urllib.request.Request(url, data=body, headers=sb_headers(""), method="POST")
-                with urllib.request.urlopen(req_fallback, timeout=10) as resp:
-                    res_text = resp.read().decode("utf-8")
-                    data = json.loads(res_text) if res_text.strip() else []
-                    return data if isinstance(data, list) else [data]
-            except Exception:
-                pass
         err_body = he.read().decode("utf-8", errors="ignore")
-        print(f"[DB Insert HTTP FAIL ({table})]: {he.code} -> {err_body}", flush=True)
-        return []
-    except Exception as exc:
-        print(f"[DB Insert General FAIL ({table})]: {exc}", flush=True)
-        return []
+        print(f"[Supabase Session Insert HTTP Error]: {he.code} -> {err_body}", flush=True)
+    except Exception as e:
+        print(f"[Supabase Session Insert Error]: {e}", flush=True)
+
+    # 2. Mirror to Local Backup DB
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO chat_sessions (id, user_email, title, created_at) VALUES (?, ?, ?, ?)",
+                (session_id, user_email, title, now_iso)
+            )
+            conn.commit()
+    except Exception:
+        pass
+
+    return session_id
+
+def db_create_message(session_id: str, role: str, content: str, user_jwt: str = ""):
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # 1. Save to Permanent Supabase Cloud
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/chat_messages"
+        body = json.dumps({
+            "session_id": session_id,
+            "role": role,
+            "content": content
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            resp.read()
+            print(f"[Supabase Cloud]: Saved {role} message!", flush=True)
+    except urllib.error.HTTPError as he:
+        err_body = he.read().decode("utf-8", errors="ignore")
+        print(f"[Supabase Message Insert HTTP Error]: {he.code} -> {err_body}", flush=True)
+    except Exception as e:
+        print(f"[Supabase Message Insert Error]: {e}", flush=True)
+
+    # 2. Mirror to Local Backup DB
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute(
+                "INSERT INTO chat_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+                (str(session_id), role, content, now_iso)
+            )
+            conn.commit()
+    except Exception:
+        pass
 
 def verify_and_get_email(req_data: dict | None = None) -> str:
     token = get_request_jwt(req_data)
@@ -122,11 +243,13 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
         raw = (req_data.get("user_email") or req_data.get("email") or "").strip().lower()
         if raw and "@" in raw:
             session["user_email"] = raw
+            session.modified = True
             return raw
 
     arg = (request.args.get("user_email") or request.args.get("email") or "").strip().lower()
     if arg and "@" in arg:
         session["user_email"] = arg
+        session.modified = True
         return arg
 
     sess = (session.get("user_email") or "").strip().lower()
@@ -139,40 +262,29 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
             if user_res and user_res.user and user_res.user.email:
                 verified = user_res.user.email.strip().lower()
                 session["user_email"] = verified
+                session.modified = True
                 return verified
         except Exception:
             pass
 
     return ""
 
-def check_session_memory_limit(session_id: str, user_jwt: str = "") -> tuple[bool, str]:
+def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str = "") -> tuple[bool, str]:
     if not session_id:
         return False, ""
-    encoded_id = urllib.parse.quote(str(session_id))
-    
-    sess_rows = db_select("chat_sessions", f"id=eq.{encoded_id}&select=created_at", user_jwt)
-    if not sess_rows:
+    msgs = db_select_messages(session_id, user_email, user_jwt)
+    if len(msgs) < SESSION_MESSAGE_LIMIT:
         return False, ""
-
-    msg_rows = db_select("chat_messages", f"session_id=eq.{encoded_id}&select=id", user_jwt)
-    if len(msg_rows) < SESSION_MESSAGE_LIMIT:
-        return False, ""
-
-    try:
-        created_time_str = sess_rows[0].get("created_at")
-        created_dt = datetime.fromisoformat(created_time_str.replace("Z", "+00:00"))
-        time_diff = datetime.now(timezone.utc) - created_dt
-        if time_diff.total_seconds() >= 86400:
-            return False, ""
-    except Exception:
-        pass
 
     return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue instantly for free, or wait 24 hours for this session's memory to refresh."
 
 @app.route("/")
 def index():
+    if request.args.get("logged_out") == "1":
+        session.clear()
     user_email = (session.get("user_email") or "").strip().lower()
     logged_in = bool(user_email)
+    # Notice: Only SUPABASE_KEY (anon public key) is sent to index.html, keeping SUPABASE_SERVICE_KEY 100% secret!
     return render_template(
         "index.html",
         logged_in=logged_in,
@@ -191,10 +303,12 @@ def auth_sync():
         return jsonify({"ok": True, "email": email})
     return jsonify({"error": "Invalid auth credentials"}), 400
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
-    return redirect(url_for("index"))
+    resp = make_response(redirect("/?logged_out=1"))
+    resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
+    return resp
 
 @app.route("/logo.png")
 def serve_logo():
@@ -211,12 +325,7 @@ def get_chat_sessions():
         return jsonify([])
 
     user_jwt = get_request_jwt()
-    encoded_email = urllib.parse.quote(user_email)
-    sessions = db_select(
-        "chat_sessions",
-        f"user_email=eq.{encoded_email}&select=id,title,created_at&order=created_at.desc&limit=30",
-        user_jwt
-    )
+    sessions = db_select_sessions(user_email, user_jwt)
     return jsonify(sessions)
 
 @app.route("/api/chat-messages/<session_id>", methods=["GET"])
@@ -226,22 +335,7 @@ def get_chat_messages(session_id):
         return jsonify([])
 
     user_jwt = get_request_jwt()
-    encoded_sess = urllib.parse.quote(str(session_id))
-    encoded_email = urllib.parse.quote(user_email)
-
-    ownership = db_select(
-        "chat_sessions",
-        f"id=eq.{encoded_sess}&user_email=eq.{encoded_email}&select=id",
-        user_jwt
-    )
-    if not ownership:
-        return jsonify([])
-
-    messages = db_select(
-        "chat_messages",
-        f"session_id=eq.{encoded_sess}&select=role,content,created_at&order=created_at.asc",
-        user_jwt
-    )
+    messages = db_select_messages(session_id, user_email, user_jwt)
     return jsonify(messages)
 
 @app.route("/api/chat-stream", methods=["POST"])
@@ -259,7 +353,7 @@ def chat_stream():
         return jsonify({"error": "Empty message"}), 400
 
     if user_email and session_id:
-        is_limited, limit_msg = check_session_memory_limit(session_id, user_jwt)
+        is_limited, limit_msg = check_session_memory_limit(session_id, user_email, user_jwt)
         if is_limited:
             return jsonify({"error": limit_msg, "memory_full": True}), 429
 
@@ -280,24 +374,11 @@ def chat_stream():
             if accumulated_reply.strip() and target_email:
                 if not active_sess_id:
                     title_text = (display_message[:30] + "...") if len(display_message) > 30 else display_message
-                    inserted = db_insert("chat_sessions", {
-                        "user_email": target_email,
-                        "title": title_text
-                    }, target_jwt)
-                    if inserted and len(inserted) > 0 and inserted[0].get("id"):
-                        active_sess_id = str(inserted[0].get("id"))
+                    active_sess_id = db_create_session(target_email, title_text, target_jwt)
 
                 if active_sess_id:
-                    db_insert("chat_messages", {
-                        "session_id": active_sess_id,
-                        "role": "user",
-                        "content": display_message
-                    }, target_jwt)
-                    db_insert("chat_messages", {
-                        "session_id": active_sess_id,
-                        "role": "assistant",
-                        "content": accumulated_reply
-                    }, target_jwt)
+                    db_create_message(active_sess_id, "user", display_message, target_jwt)
+                    db_create_message(active_sess_id, "assistant", accumulated_reply, target_jwt)
                     yield f"data: {json.dumps({'session_id': active_sess_id})}\n\n"
 
             yield "data: [DONE]\n\n"

@@ -234,7 +234,6 @@
         .msg-line.user { align-items: flex-end; }
         .msg-line.ai { align-items: flex-start; }
 
-        /* USER BUBBLE WITH COLLAPSE & ARROW */
         .user-bubble-container {
             position: relative;
             max-width: 90%;
@@ -423,7 +422,6 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* AUTO-EXPANDING TEXTAREA */
         #chatInput {
             width: 100%;
             background: transparent;
@@ -629,6 +627,16 @@
 
     <script>
         const BACKEND_URL = window.location.origin;
+        let isLoggingOut = false;
+
+        // Check if user just clicked logout
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("logged_out") === "1") {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.history.replaceState(null, "", window.location.pathname);
+        }
+
         let CURRENT_USER_EMAIL = ("{{ user_email or '' }}" || localStorage.getItem("hs_user_email") || "").trim().toLowerCase();
         let CURRENT_ACCESS_TOKEN = localStorage.getItem("hs_access_token") || "";
 
@@ -636,30 +644,62 @@
         const SUPABASE_KEY = "{{ supabase_key }}";
         let supabaseClient = null;
         if (window.supabase && SUPABASE_URL && SUPABASE_KEY) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } catch (e) {}
         }
 
         async function loginWithSupabaseGoogle() {
             if (!supabaseClient) return;
+            localStorage.removeItem("hs_logged_out");
             await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: { redirectTo: window.location.origin }
             });
         }
 
+        async function syncWithBackend(email, token) {
+            if (!email || isLoggingOut) return;
+            try {
+                await fetch(`${BACKEND_URL}/api/auth/sync`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": token ? `Bearer ${token}` : ""
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({ email: email, access_token: token })
+                });
+                loadHistorySessions();
+            } catch (err) {}
+        }
+
         async function performHardLogout(e) {
             if (e) e.preventDefault();
-            localStorage.clear();
-            sessionStorage.clear();
+            isLoggingOut = true;
+
+            // 1. Clear UI immediately
             CURRENT_USER_EMAIL = "";
             CURRENT_ACCESS_TOKEN = "";
+            updateAuthUI("");
 
+            // 2. Sign out from Supabase completely
             if (supabaseClient) {
                 try {
-                    await supabaseClient.auth.signOut({ scope: 'local' });
+                    await supabaseClient.auth.signOut();
                 } catch (err) {}
             }
-            window.location.replace(`${BACKEND_URL}/logout`);
+
+            // 3. Wipe all local and session storage keys (including sb-... tokens)
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // 4. Hit backend logout and redirect cleanly
+            try {
+                await fetch(`${BACKEND_URL}/logout`, { method: "POST", credentials: "include" });
+            } catch (err) {}
+
+            window.location.replace(`${BACKEND_URL}/?logged_out=1`);
         }
 
         let chatHist = [];
@@ -691,7 +731,7 @@
 
         function updateAuthUI(email) {
             CURRENT_USER_EMAIL = (email || "").trim().toLowerCase();
-            if (CURRENT_USER_EMAIL) {
+            if (CURRENT_USER_EMAIL && !isLoggingOut) {
                 localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
                 document.getElementById("headerAuthLabel").innerText = "Connected";
                 document.getElementById("avatarCircle").innerText = CURRENT_USER_EMAIL[0].toUpperCase();
@@ -754,7 +794,10 @@
 
         async function loadHistorySessions() {
             const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
-            if (!email) return;
+            if (!email || isLoggingOut) {
+                historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">Sign in to save history</div>`;
+                return;
+            }
 
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(email)}`, {
@@ -770,7 +813,7 @@
                 }
                 sessions.forEach(sess => {
                     const row = document.createElement("div");
-                    row.className = `history-row ${sess.id === currentSessionId ? 'active-session' : ''}`;
+                    row.className = `history-row ${String(sess.id) === String(currentSessionId) ? 'active-session' : ''}`;
                     row.innerText = sess.title || "Conversation";
                     row.onclick = () => loadPastSession(sess.id);
                     historyList.appendChild(row);
@@ -787,7 +830,7 @@
 
             const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(email)}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${encodeURIComponent(sessionId)}?email=${encodeURIComponent(email)}`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
@@ -991,9 +1034,8 @@
                                     aiBox.appendChild(cursor);
                                     chatArea.scrollTop = chatArea.scrollHeight;
                                 }
-                                if (parsed.session_id && !currentSessionId) {
+                                if (parsed.session_id) {
                                     currentSessionId = parsed.session_id;
-                                    loadHistorySessions();
                                 }
                             } catch(e) {}
                         }
@@ -1025,35 +1067,47 @@
         };
 
         window.addEventListener('DOMContentLoaded', async () => {
-            if (CURRENT_USER_EMAIL) {
+            if (CURRENT_USER_EMAIL && !isLoggingOut) {
                 updateAuthUI(CURRENT_USER_EMAIL);
+                loadHistorySessions();
             }
 
-            if (supabaseClient) {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.user) {
-                    CURRENT_USER_EMAIL = session.user.email;
-                    CURRENT_ACCESS_TOKEN = session.access_token;
-                    localStorage.setItem("hs_access_token", CURRENT_ACCESS_TOKEN);
-                    updateAuthUI(CURRENT_USER_EMAIL);
-                    
-                    fetch(`${BACKEND_URL}/api/auth/sync`, {
-                        method: "POST",
-                        headers: getAuthHeaders(),
-                        credentials: "include",
-                        body: JSON.stringify({ email: CURRENT_USER_EMAIL, access_token: CURRENT_ACCESS_TOKEN })
-                    }).then(() => loadHistorySessions());
-                }
+            if (supabaseClient && !isLoggingOut) {
+                supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                    if (isLoggingOut) return;
 
-                supabaseClient.auth.onAuthStateChange((event, session) => {
-                    if (session && session.user) {
-                        CURRENT_USER_EMAIL = session.user.email;
+                    if (event === 'SIGNED_OUT') {
+                        CURRENT_USER_EMAIL = "";
+                        CURRENT_ACCESS_TOKEN = "";
+                        localStorage.removeItem("hs_user_email");
+                        localStorage.removeItem("hs_access_token");
+                        updateAuthUI("");
+                        return;
+                    }
+
+                    if (session && session.user && session.user.email) {
+                        CURRENT_USER_EMAIL = session.user.email.trim().toLowerCase();
                         CURRENT_ACCESS_TOKEN = session.access_token;
+                        localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
                         localStorage.setItem("hs_access_token", CURRENT_ACCESS_TOKEN);
                         updateAuthUI(CURRENT_USER_EMAIL);
-                        loadHistorySessions();
+                        await syncWithBackend(CURRENT_USER_EMAIL, CURRENT_ACCESS_TOKEN);
+
+                        if (window.location.hash && window.location.hash.includes("access_token")) {
+                            window.history.replaceState(null, "", window.location.pathname);
+                        }
                     }
                 });
+
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user && session.user.email && !isLoggingOut) {
+                    CURRENT_USER_EMAIL = session.user.email.trim().toLowerCase();
+                    CURRENT_ACCESS_TOKEN = session.access_token;
+                    localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
+                    localStorage.setItem("hs_access_token", CURRENT_ACCESS_TOKEN);
+                    updateAuthUI(CURRENT_USER_EMAIL);
+                    await syncWithBackend(CURRENT_USER_EMAIL, CURRENT_ACCESS_TOKEN);
+                }
             }
         });
     </script>

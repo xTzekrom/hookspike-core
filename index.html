@@ -170,7 +170,7 @@
             text-overflow: ellipsis;
         }
         .history-row:hover { background: var(--surface-elevated); color: var(--text-primary); }
-        .history-row.active-session { background: var(--surface-elevated); color: var(--accent-blue); }
+        .history-row.active-session { background: var(--surface-elevated); color: var(--accent-blue); font-weight: 600; }
 
         .sidebar-footer {
             border-top: 1px solid var(--border-color);
@@ -532,13 +532,11 @@
         <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 6px 4px 10px; text-transform: uppercase;">Workspace History</div>
         <div class="history-list" id="historyList"></div>
         <div class="sidebar-footer" id="sidebarFooter">
-            {% if logged_in %}
-                <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{ user_email }}</span>
-                <a href="/logout" style="color: #ea4335; text-decoration: none; font-weight: 600;">Sign Out</a>
-            {% else %}
-                <span style="color: var(--text-secondary);">Guest Mode</span>
-                <button onclick="openAuth()" style="background:none; border:none; color:var(--accent-blue); font-weight:600; cursor:pointer;">Sign In</button>
-            {% endif %}
+            <span style="color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis;" id="sidebarUserEmail">
+                {% if logged_in %}{{ user_email }}{% else %}Guest Mode{% endif %}
+            </span>
+            <a href="/logout" id="logoutLink" style="color: #ea4335; text-decoration: none; font-weight: 600; display: {% if logged_in %}block{% else %}none{% endif %};">Sign Out</a>
+            <button id="signInLink" onclick="openAuth()" style="background:none; border:none; color:var(--accent-blue); font-weight:600; cursor:pointer; display: {% if logged_in %}none{% else %}block{% endif %};">Sign In</button>
         </div>
     </aside>
 
@@ -593,7 +591,6 @@
 
     <script>
         const BACKEND_URL = window.location.origin;
-        let IS_LOGGED = {{ 'true' if logged_in else 'false' }};
         let CURRENT_USER_EMAIL = ("{{ user_email or '' }}" || localStorage.getItem("hs_user_email") || "").trim().toLowerCase();
         let CURRENT_ACCESS_TOKEN = localStorage.getItem("hs_access_token") || "";
 
@@ -637,6 +634,26 @@
         function renderSafeMarkdown(mdText) {
             const rawHtml = marked.parse(mdText || "");
             return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        }
+
+        function updateAuthUI(email) {
+            CURRENT_USER_EMAIL = (email || "").trim().toLowerCase();
+            if (CURRENT_USER_EMAIL) {
+                localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
+                document.getElementById("headerAuthLabel").innerText = "Connected";
+                document.getElementById("avatarCircle").innerText = CURRENT_USER_EMAIL[0].toUpperCase();
+                document.getElementById("sidebarUserEmail").innerText = CURRENT_USER_EMAIL;
+                document.getElementById("logoutLink").style.display = "block";
+                document.getElementById("signInLink").style.display = "none";
+                closeAuth();
+            } else {
+                localStorage.removeItem("hs_user_email");
+                document.getElementById("headerAuthLabel").innerText = "Sign In";
+                document.getElementById("avatarCircle").innerText = "?";
+                document.getElementById("sidebarUserEmail").innerText = "Guest Mode";
+                document.getElementById("logoutLink").style.display = "none";
+                document.getElementById("signInLink").style.display = "block";
+            }
         }
 
         chatArea.addEventListener("scroll", () => {
@@ -683,9 +700,11 @@
         }
 
         async function loadHistorySessions() {
-            if (!CURRENT_USER_EMAIL) return;
+            const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
+            if (!email) return;
+
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(email)}`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
@@ -713,8 +732,9 @@
             chatArea.innerHTML = "";
             chatHist = [];
 
+            const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
             try {
-                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+                const res = await fetch(`${BACKEND_URL}/api/chat-messages/${sessionId}?email=${encodeURIComponent(email)}`, {
                     headers: getAuthHeaders(),
                     credentials: "include"
                 });
@@ -759,7 +779,9 @@
 
         function openAuth() { authModal.classList.add("active"); }
         function closeAuth() { authModal.classList.remove("active"); }
-        document.getElementById("openPro").onclick = () => { if (!CURRENT_USER_EMAIL) openAuth(); };
+        document.getElementById("openPro").onclick = () => { 
+            if (!CURRENT_USER_EMAIL) openAuth(); 
+        };
 
         function setStreamingUI(streaming) {
             isStreaming = streaming;
@@ -821,6 +843,8 @@
             ctrl = new AbortController();
             setStreamingUI(true);
 
+            const activeEmail = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email") || "";
+
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-stream`, {
                     method: "POST",
@@ -831,7 +855,7 @@
                         display_message: rawTxt,
                         history: chatHist.slice(-6),
                         session_id: currentSessionId,
-                        user_email: CURRENT_USER_EMAIL,
+                        user_email: activeEmail,
                         access_token: CURRENT_ACCESS_TOKEN
                     }),
                     signal: ctrl.signal
@@ -909,17 +933,35 @@
         };
 
         window.addEventListener('DOMContentLoaded', async () => {
+            if (CURRENT_USER_EMAIL) {
+                updateAuthUI(CURRENT_USER_EMAIL);
+            }
+
             if (supabaseClient) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session && session.user) {
                     CURRENT_USER_EMAIL = session.user.email;
                     CURRENT_ACCESS_TOKEN = session.access_token;
-                    localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
                     localStorage.setItem("hs_access_token", CURRENT_ACCESS_TOKEN);
-                    document.getElementById("headerAuthLabel").innerText = "Connected";
-                    document.getElementById("avatarCircle").innerText = CURRENT_USER_EMAIL[0].toUpperCase();
-                    loadHistorySessions();
+                    updateAuthUI(CURRENT_USER_EMAIL);
+                    
+                    fetch(`${BACKEND_URL}/api/auth/sync`, {
+                        method: "POST",
+                        headers: getAuthHeaders(),
+                        credentials: "include",
+                        body: JSON.stringify({ email: CURRENT_USER_EMAIL, access_token: CURRENT_ACCESS_TOKEN })
+                    }).then(() => loadHistorySessions());
                 }
+
+                supabaseClient.auth.onAuthStateChange((event, session) => {
+                    if (session && session.user) {
+                        CURRENT_USER_EMAIL = session.user.email;
+                        CURRENT_ACCESS_TOKEN = session.access_token;
+                        localStorage.setItem("hs_access_token", CURRENT_ACCESS_TOKEN);
+                        updateAuthUI(CURRENT_USER_EMAIL);
+                        loadHistorySessions();
+                    }
+                });
             }
         });
     </script>

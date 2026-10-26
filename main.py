@@ -174,14 +174,20 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
 
 def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     encoded_email = urllib.parse.quote(user_email)
-    url = f"{SUPABASE_URL}/rest/v1/chat_sessions?user_email=eq.{encoded_email}&select=id,title,created_at&order=created_at.desc&limit=30"
+    encoded_del = urllib.parse.quote("[Deleted]")
+    # Filters out '[Deleted]' sessions for the user while keeping them intact in Supabase for admin!
+    url = (
+        f"{SUPABASE_URL}/rest/v1/chat_sessions"
+        f"?user_email=eq.{encoded_email}&title=neq.{encoded_del}"
+        f"&select=id,title,created_at&order=created_at.desc&limit=50"
+    )
     
     try:
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
-                return data
+                return [row for row in data if row.get("title") != "[Deleted]"]
     except urllib.error.HTTPError as he:
         err_body = he.read().decode("utf-8", errors="ignore")
         print(f"[Supabase Select Sessions HTTP Error]: {he.code} -> {err_body}", flush=True)
@@ -192,12 +198,50 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.execute(
-                "SELECT id, title, created_at FROM chat_sessions WHERE user_email = ? ORDER BY created_at DESC LIMIT 30",
+                "SELECT id, title, created_at FROM chat_sessions WHERE user_email = ? AND title != '[Deleted]' ORDER BY created_at DESC LIMIT 50",
                 (user_email,)
             )
             return [dict(row) for row in cur.fetchall()]
     except Exception:
         return []
+
+def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "") -> bool:
+    """
+    Soft-deletes a session by setting title = '[Deleted]' in both Supabase Cloud and Local SQLite.
+    All messages and session data remain 100% preserved in the database for the Founder,
+    while disappearing immediately and permanently from the user's workspace history.
+    """
+    encoded_sess = urllib.parse.quote(str(session_id))
+    encoded_email = urllib.parse.quote(user_email)
+
+    # 1. Update in Supabase Cloud (REST API PATCH + Supabase Client fallback)
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/chat_sessions?id=eq.{encoded_sess}&user_email=eq.{encoded_email}"
+        body = json.dumps({"title": "[Deleted]"}).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="PATCH")
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            resp.read()
+            print(f"[Supabase Cloud]: Soft-deleted session ({session_id}) for user {user_email}", flush=True)
+    except Exception as e:
+        print(f"[Supabase Soft-Delete PATCH Warning]: {e}", flush=True)
+        if supabase:
+            try:
+                supabase.table("chat_sessions").update({"title": "[Deleted]"}).eq("id", str(session_id)).eq("user_email", user_email).execute()
+            except Exception:
+                pass
+
+    # 2. Update in Local SQLite Backup DB
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute(
+                "UPDATE chat_sessions SET title = '[Deleted]' WHERE id = ? AND user_email = ?",
+                (str(session_id), user_email)
+            )
+            conn.commit()
+    except Exception as e:
+        print(f"[Local SQLite Soft-Delete Warning]: {e}", flush=True)
+
+    return True
 
 def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> list:
     encoded_sess = urllib.parse.quote(str(session_id))
@@ -400,6 +444,9 @@ def report_bug_route():
     if not desc:
         return jsonify({"error": "Empty description"}), 400
     now_iso = datetime.now(timezone.utc).isoformat()
+    user_jwt = get_request_jwt(data)
+
+    # 1. Save in Local SQLite Backup
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
@@ -409,22 +456,29 @@ def report_bug_route():
             conn.commit()
     except Exception:
         pass
+
+    # 2. Save in Supabase Cloud (if bug_reports table exists)
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/bug_reports"
+        body = json.dumps({"user_email": email, "description": desc}).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            resp.read()
+    except Exception:
+        pass
+
     return jsonify({"ok": True})
     
-@app.route("/api/chat-session/<session_id>", methods=["DELETE"])
+@app.route("/api/chat-session/<session_id>", methods=["DELETE", "POST", "PATCH"])
 def delete_chat_session(session_id):
-    user_email = verify_and_get_email()
+    data = request.get_json(silent=True) or {}
+    user_email = verify_and_get_email(data)
     if not user_email or not session_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    user_jwt = get_request_jwt()
-    try:
-        with sqlite3.connect(LOCAL_DB_PATH) as conn:
-            conn.execute("UPDATE chat_sessions SET title = '[Deleted]' WHERE id = ? AND user_email = ?", (str(session_id), user_email))
-            conn.commit()
-    except Exception:
-        pass
-    return jsonify({"ok": True})
+    user_jwt = get_request_jwt(data)
+    db_soft_delete_session(session_id, user_email, user_jwt)
+    return jsonify({"ok": True, "status": "soft_deleted", "session_id": session_id})
 
 @app.route("/api/chat-sessions", methods=["GET"])
 def get_chat_sessions():
@@ -463,7 +517,7 @@ def chat_stream():
 
     if not message and image_data:
         message = "Please analyze this image and help me with it."
-        display_message = "📷 [Photo Attached]"
+        display_message = "[Photo Attached]"
 
     if user_email and session_id:
         is_limited, limit_msg = check_session_memory_limit(session_id, user_email, user_jwt)
@@ -515,7 +569,7 @@ def chat_stream():
             pass
         except Exception as exc:
             print(f"[Stream Error]: {exc}", flush=True)
-            yield f"data: {json.dumps({'token': f'⚠️ Connection issue: {exc}', 'session_id': active_sess_id})}\n\n"
+            yield f"data: {json.dumps({'token': f'Connection issue: {exc}', 'session_id': active_sess_id})}\n\n"
             yield "data: [DONE]\n\n"
 
     headers = {

@@ -1,8 +1,8 @@
 """
 HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 Ultimate)
 =====================================================================================
-- Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)[span_1](start_span)[span_1](end_span)
-- Fallback Model: gemini-3.8-flash (High intelligence software reasoning)[span_2](start_span)[span_2](end_span)
+- Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)
+- Fallback Model: gemini-3.8-flash (High intelligence software reasoning)
 - Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed)
 - Free Image Generation via Pollinations AI (High-Res Cinematic)
 - Multimodal Vision Support (Reads Screenshots & Camera Images)

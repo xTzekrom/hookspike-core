@@ -33,9 +33,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_PERMANENT"] = True
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co").rstrip("/")
-# 1. Frontend Key (Anon Public Key - Safe for Browser)
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU").strip()
-# 2. Backend Master Key (Service Role Secret Key - Never sent to Browser, bypasses RLS locks!)
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", SUPABASE_KEY).strip()
 
 supabase: Client | None = None
@@ -49,7 +47,6 @@ if SUPABASE_URL and SUPABASE_KEY:
 SESSION_MESSAGE_LIMIT = 9
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
 
-# --- EXTRA SAFETY BACKUP DB + SELF-LEARNING SKILLS TABLE ---
 def init_local_db():
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
@@ -114,7 +111,6 @@ def sb_headers(user_jwt: str = "") -> dict:
         "Prefer": "return=representation"
     }
 
-# --- SELF-LEARNING SKILLS DB FUNCTIONS ---
 def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
     if not user_email:
         return []
@@ -175,7 +171,6 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
 def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     encoded_email = urllib.parse.quote(user_email)
     encoded_del = urllib.parse.quote("[Deleted]")
-    # Filters out '[Deleted]' sessions for the user while keeping them intact in Supabase for admin!
     url = (
         f"{SUPABASE_URL}/rest/v1/chat_sessions"
         f"?user_email=eq.{encoded_email}&title=neq.{encoded_del}"
@@ -206,15 +201,9 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
         return []
 
 def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "") -> bool:
-    """
-    Soft-deletes a session by setting title = '[Deleted]' in both Supabase Cloud and Local SQLite.
-    All messages and session data remain 100% preserved in the database for the Founder,
-    while disappearing immediately and permanently from the user's workspace history.
-    """
     encoded_sess = urllib.parse.quote(str(session_id))
     encoded_email = urllib.parse.quote(user_email)
 
-    # 1. Update in Supabase Cloud (REST API PATCH + Supabase Client fallback)
     try:
         url = f"{SUPABASE_URL}/rest/v1/chat_sessions?id=eq.{encoded_sess}&user_email=eq.{encoded_email}"
         body = json.dumps({"title": "[Deleted]"}).encode("utf-8")
@@ -230,7 +219,6 @@ def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "")
             except Exception:
                 pass
 
-    # 2. Update in Local SQLite Backup DB
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
@@ -446,7 +434,6 @@ def report_bug_route():
     now_iso = datetime.now(timezone.utc).isoformat()
     user_jwt = get_request_jwt(data)
 
-    # 1. Save in Local SQLite Backup
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
@@ -457,7 +444,6 @@ def report_bug_route():
     except Exception:
         pass
 
-    # 2. Save in Supabase Cloud (if bug_reports table exists)
     try:
         url = f"{SUPABASE_URL}/rest/v1/bug_reports"
         body = json.dumps({"user_email": email, "description": desc}).encode("utf-8")
@@ -538,18 +524,18 @@ def chat_stream():
             for chunk in ai_engine.stream_creator_chat(message, history, learned_skills, image_data):
                 if chunk:
                     pending_buffer += chunk
-                    if "[SKILL" not in pending_buffer and not pending_buffer.endswith("["):
+                    if not re.search(r"\[(?:SKILL|MISTAKE)", pending_buffer) and not pending_buffer.endswith("["):
                         accumulated_reply += pending_buffer
                         yield f"data: {json.dumps({'token': pending_buffer, 'session_id': active_sess_id})}\n\n"
                         pending_buffer = ""
 
             if pending_buffer:
-                skill_matches = re.findall(r"\[SKILL_LEARNED:\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
+                skill_matches = re.findall(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
                 for skill_text in skill_matches:
                     if target_email and skill_text.strip():
                         db_save_user_skill(target_email, skill_text.strip(), target_jwt)
 
-                clean_tail = re.sub(r"\[SKILL_LEARNED:\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
+                clean_tail = re.sub(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
                 if clean_tail:
                     accumulated_reply += clean_tail
                     yield f"data: {json.dumps({'token': clean_tail, 'session_id': active_sess_id})}\n\n"

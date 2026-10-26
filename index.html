@@ -971,65 +971,11 @@
         }
 
         async function loadHistorySessions() {
-    const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
-    if (!email || isLoggingOut) {
-        historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">Sign in to save history</div>`;
-        return;
-    }
-    try {
-        const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(email)}`, {
-            headers: getAuthHeaders(), credentials: "include"
-        });
-        if (!res.ok) return;
-        const sessions = await res.json();
-        historyList.innerHTML = "";
-        
-        if (!Array.isArray(sessions) || sessions.length === 0) {
-            historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">No sessions yet</div>`;
-            return;
-        }
-
-        sessions.forEach(sess => {
-            if (sess.title === '[Deleted]') return;
-
-            const row = document.createElement("div");
-            row.className = `history-row ${String(sess.id) === String(currentSessionId) ? 'active-session' : ''}`;
-            row.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 8px;";
-
-            const titleSpan = document.createElement("span");
-            titleSpan.innerText = sess.title || "Conversation";
-            titleSpan.style.cssText = "flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;";
-            titleSpan.onclick = () => loadPastSession(sess.id);
-
-            const delBtn = document.createElement("button");
-            delBtn.innerHTML = "🗑️";
-            delBtn.title = "Delete chat";
-            delBtn.style.cssText = "background: transparent; border: none; cursor: pointer; font-size: 13px; opacity: 0.6; padding: 2px 4px; transition: opacity 0.2s;";
-            delBtn.onmouseover = () => delBtn.style.opacity = "1";
-            delBtn.onmouseout = () => delBtn.style.opacity = "0.6";
-
-            delBtn.onclick = async (e) => {
-                e.stopPropagation();
-                if (confirm("Kya aap yeh chat history delete karna chahte hain?")) {
-                    await fetch(`${BACKEND_URL}/api/chat-session/${sess.id}`, {
-                        method: "DELETE",
-                        headers: getAuthHeaders(),
-                        credentials: "include"
-                    });
-                    loadHistorySessions();
-                    if (String(sess.id) === String(currentSessionId)) {
-                        resetChat();
-                    }
-                }
-            };
-
-            row.appendChild(titleSpan);
-            row.appendChild(delBtn);
-            historyList.appendChild(row);
-        });
-    } catch(e) {}
-}
-
+            const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
+            if (!email || isLoggingOut) {
+                historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">Sign in to save history</div>`;
+                return;
+            }
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(email)}`, {
                     headers: getAuthHeaders(), credentials: "include"
@@ -1037,15 +983,48 @@
                 if (!res.ok) return;
                 const sessions = await res.json();
                 historyList.innerHTML = "";
-                if (!Array.isArray(sessions) || sessions.length === 0) {
+                
+                const visibleSessions = Array.isArray(sessions) ? sessions.filter(s => s.title !== '[Deleted]') : [];
+
+                if (visibleSessions.length === 0) {
                     historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">No sessions yet</div>`;
                     return;
                 }
-                sessions.forEach(sess => {
+
+                visibleSessions.forEach(sess => {
                     const row = document.createElement("div");
                     row.className = `history-row ${String(sess.id) === String(currentSessionId) ? 'active-session' : ''}`;
-                    row.innerText = sess.title || "Conversation";
-                    row.onclick = () => loadPastSession(sess.id);
+                    row.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 8px;";
+
+                    const titleSpan = document.createElement("span");
+                    titleSpan.innerText = sess.title || "Conversation";
+                    titleSpan.style.cssText = "flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;";
+                    titleSpan.onclick = () => loadPastSession(sess.id);
+
+                    const delBtn = document.createElement("button");
+                    delBtn.innerHTML = "🗑️";
+                    delBtn.title = "Delete chat";
+                    delBtn.style.cssText = "background: transparent; border: none; cursor: pointer; font-size: 13px; opacity: 0.6; padding: 2px 4px; transition: opacity 0.2s;";
+                    delBtn.onmouseover = () => delBtn.style.opacity = "1";
+                    delBtn.onmouseout = () => delBtn.style.opacity = "0.6";
+
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (confirm("Kya aap yeh chat history delete karna chahte hain?")) {
+                            await fetch(`${BACKEND_URL}/api/chat-session/${sess.id}`, {
+                                method: "DELETE",
+                                headers: getAuthHeaders(),
+                                credentials: "include"
+                            });
+                            loadHistorySessions();
+                            if (String(sess.id) === String(currentSessionId)) {
+                                resetChat();
+                            }
+                        }
+                    };
+
+                    row.appendChild(titleSpan);
+                    row.appendChild(delBtn);
                     historyList.appendChild(row);
                 });
             } catch(e) {}
@@ -1108,48 +1087,47 @@
         }
 
         function appendUserBubble(text, imageUrl = null) {
-    const row = document.createElement("div");
-    row.className = "msg-line user";
-    const container = document.createElement("div");
-    container.className = "user-bubble-container";
+            const row = document.createElement("div");
+            row.className = "msg-line user";
+            const container = document.createElement("div");
+            container.className = "user-bubble-container";
 
-    if (imageUrl) {
-        const imgEl = document.createElement("img");
-        imgEl.src = imageUrl;
-        imgEl.className = "user-attached-img";
-        container.appendChild(imgEl);
-    }
+            if (imageUrl) {
+                const imgEl = document.createElement("img");
+                imgEl.src = imageUrl;
+                imgEl.className = "user-attached-img";
+                container.appendChild(imgEl);
+            }
 
-    if (text) {
-        const innerRow = document.createElement("div");
-        innerRow.className = "user-bubble-row-inner";
-        const textSpan = document.createElement("span");
-        textSpan.className = "user-bubble-text";
-        textSpan.innerText = text;
+            if (text) {
+                const innerRow = document.createElement("div");
+                innerRow.className = "user-bubble-row-inner";
+                const textSpan = document.createElement("span");
+                textSpan.className = "user-bubble-text";
+                textSpan.innerText = text;
 
-        const isLong = text.length > 70 || text.includes("\n");
-        if (isLong) {
-            textSpan.classList.add("collapsed");
-            const arrowBtn = document.createElement("button");
-            arrowBtn.className = "collapse-arrow-btn";
-            arrowBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-            arrowBtn.onclick = () => {
-                const isNowCollapsed = textSpan.classList.toggle("collapsed");
-                arrowBtn.classList.toggle("expanded", !isNowCollapsed);
-            };
-            innerRow.appendChild(textSpan);
-            innerRow.appendChild(arrowBtn);
-        } else {
-            innerRow.appendChild(textSpan);
+                const isLong = text.length > 70 || text.includes("\n");
+                if (isLong) {
+                    textSpan.classList.add("collapsed");
+                    const arrowBtn = document.createElement("button");
+                    arrowBtn.className = "collapse-arrow-btn";
+                    arrowBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                    arrowBtn.onclick = () => {
+                        const isNowCollapsed = textSpan.classList.toggle("collapsed");
+                        arrowBtn.classList.toggle("expanded", !isNowCollapsed);
+                    };
+                    innerRow.appendChild(textSpan);
+                    innerRow.appendChild(arrowBtn);
+                } else {
+                    innerRow.appendChild(textSpan);
+                }
+                container.appendChild(innerRow);
+            }
+
+            row.appendChild(container);
+            chatArea.appendChild(row);
+            return row;
         }
-        container.appendChild(innerRow);
-    }
-
-    row.appendChild(container);
-    chatArea.appendChild(row);
-    return row;
-}
-
 
         function appendAiBubble() {
             const row = document.createElement("div");
@@ -1340,17 +1318,6 @@
                 }
             }
         });
-        document.getElementById("openDrawer").onclick = () => {
-    sidebar.classList.add("active");
-    overlay.classList.add("active");
-    loadHistorySessions();
-};
-
-document.getElementById("drawerOverlay").onclick = () => {
-    sidebar.classList.remove("active");
-    overlay.classList.remove("active");
-};
-                
     </script>
 </body>
 </html>

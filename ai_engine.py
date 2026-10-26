@@ -1,12 +1,13 @@
 """
-HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine
-=====================================================================
-- Models: gemini-3.5-flash-lite & gemini-2.5-flash fallback
+HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 Ultimate)
+=====================================================================================
+- Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)[span_1](start_span)[span_1](end_span)
+- Fallback Model: gemini-3.8-flash (High intelligence software reasoning)[span_2](start_span)[span_2](end_span)
 - Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed)
 - Free Image Generation via Pollinations AI (High-Res Cinematic)
 - Multimodal Vision Support (Reads Screenshots & Camera Images)
 - Introvert's Best Friend & Anti-Stress Emotional Safe Haven
-- Self-Evolving Auto-Skill & Mistake Correction Memory
+- Fully Integrated Automated Self-Evolving Memory & Mistake Correction Parser
 - Real-Time Live Google Search Grounding (Live Pulse)
 """
 
@@ -24,113 +25,171 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # -------------------------------------------------------------------------
-# 1. PYTHON-LEVEL PRE-TURN LANGUAGE DETECTOR
+# 1. CONTEXT-AWARE PYTHON LANGUAGE DETECTOR
 # -------------------------------------------------------------------------
-def detect_input_language(text: str) -> str:
+def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = None) -> str:
     """
     Direct Python regex based language detection to completely eliminate
     LLM language bleed. Detects Devanagari Hindi, Romanized Hinglish, and English.
+    Retains language on short replies ('hmm', 'ok') using recent history.
     """
-    if not text:
-        return "ENGLISH"
+    clean_text = (text or "").strip()
+    if not clean_text:
+        return "HINGLISH"
     
-    # Check for Devanagari Unicode block
-    if re.search(r"[\u0900-\u097F]", text):
+    if re.search(r"[\u0900-\u097F]", clean_text):
         return "HINDI_DEVANAGARI"
     
-    # Common Hinglish tokens / patterns
-    hinglish_markers = [
-        r"\b(bhai|yaar|kya|kyu|kaise|haan|nahi|karna|karu|raha|rahi|hai|ho|hoga|bata|dekh|sun)\b",
-        r"\b(mera|meri|tere|tera|tujhe|mujhe|hum|apna|apni|accha|acha|thik|theek|kuch|bahut)\b",
-        r"\b(mat|chahiye|chal|karo|karte|karta|samajh|bol|wala|wali|wale|lekin|magar|aur)\b"
+    strong_hinglish = [
+        r"\b(bhai|yaar|kya|kyu|kyun|kaise|kaisa|kaisi|haan|nahi|nhi|karna|karu|raha|rahi|rahe)\b",
+        r"\b(hai|hain|hoga|hogi|bata|batao|dekh|dekho|sun|suno|mera|meri|mere|tera|teri|tere)\b",
+        r"\b(tujhe|mujhe|hum|apna|apni|apne|accha|acha|thik|theek|kuch|bahut|bht|bohot|zyada)\b",
+        r"\b(mat|chahiye|chal|chalo|karo|karte|karta|samajh|bol|wala|wali|wale|lekin|magar|aur)\b",
+        r"\b(abhi|kabhi|sab|ek|do|koi|kisi|lag|laga|lagi|lge|baat|kaam|dost|zindagi|dil|mann)\b"
     ]
-    matches = sum(len(re.findall(pat, text, re.IGNORECASE)) for pat in hinglish_markers)
+    matches = sum(len(re.findall(pat, clean_text, re.IGNORECASE)) for pat in strong_hinglish)
     if matches >= 1:
         return "HINGLISH"
         
+    # Short reply inheritance
+    words = re.findall(r"\w+", clean_text)
+    if len(words) <= 2 and history:
+        for item in reversed(history):
+            if item.get("role") == "user" and item.get("content"):
+                prev_text = item["content"]
+                if re.search(r"[\u0900-\u097F]", prev_text):
+                    return "HINDI_DEVANAGARI"
+                prev_matches = sum(len(re.findall(pat, prev_text, re.IGNORECASE)) for pat in strong_hinglish)
+                if prev_matches >= 1:
+                    return "HINGLISH"
+                break
+
     return "ENGLISH"
 
 
 # -------------------------------------------------------------------------
-# 2. POLLINATIONS AI PROMPT ENHANCER
+# 2. POLLINATIONS AI URL SANITIZER (FIXES BROKEN SPACES)
 # -------------------------------------------------------------------------
-def format_pollinations_markdown(raw_prompt: str) -> str:
+def sanitize_pollinations_links(text: str) -> str:
     """
-    Formats a clean, cinematic Pollinations AI URL wrapped in Markdown.
+    Ensures spaces and special characters inside Pollinations image URLs 
+    are properly encoded so markdown links never break on frontend.
     """
-    clean = re.sub(r"[^\w\s,-]", "", raw_prompt).strip()
-    encoded = urllib.parse.quote(clean)
-    return f"![](https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1080&nologo=true&enhance=true)"
+    pattern = r"!\[([^\]]*)\]\((https://image\.pollinations\.ai/prompt/[^)]+)\)"
+    
+    def replacer(match: re.Match) -> str:
+        alt_text = match.group(1)
+        full_url = match.group(2)
+        base_prefix = "https://image.pollinations.ai/prompt/"
+        
+        if not full_url.startswith(base_prefix):
+            return match.group(0)
+            
+        rest = full_url[len(base_prefix):]
+        if "?" in rest:
+            raw_prompt, query_string = rest.split("?", 1)
+            query_part = f"?{query_string}"
+        else:
+            raw_prompt = rest
+            query_part = "?width=1080&height=1080&nologo=true&enhance=true"
+            
+        decoded_prompt = urllib.parse.unquote(raw_prompt).strip()
+        encoded_prompt = urllib.parse.quote(decoded_prompt)
+        return f"![{alt_text}]({base_prefix}{encoded_prompt}{query_part})"
+
+    return re.sub(pattern, replacer, text)
 
 
 # -------------------------------------------------------------------------
-# 3. HOOKSPIKE MASTER SYSTEM PROMPT (SOUL & ARCHITECTURE)
+# 3. AUTOMATED MEMORY & MISTAKE PARSER
+# -------------------------------------------------------------------------
+def extract_and_update_memory(full_response: str, current_skills: List[str]) -> List[str]:
+    """
+    Scans the AI response for self-learning tags and appends them to memory 
+    so HookSpike actually learns from every conversation dynamically.
+    """
+    updated_skills = list(current_skills)
+    
+    learned_matches = re.findall(r"\[SKILL_LEARNED:\s*(.*?)\]", full_response, re.IGNORECASE)
+    for match in learned_matches:
+        cleaned = match.strip()
+        if cleaned and cleaned not in updated_skills:
+            updated_skills.append(cleaned)
+            
+    correction_matches = re.findall(r"\[MISTAKE_CORRECTED:\s*(.*?)\]", full_response, re.IGNORECASE)
+    for match in correction_matches:
+        cleaned = f"Correction: {match.strip()}"
+        if cleaned and cleaned not in updated_skills:
+            updated_skills.append(cleaned)
+            
+    return updated_skills[-30:]
+
+
+# -------------------------------------------------------------------------
+# 4. HOOKSPIKE MASTER SYSTEM PROMPT (SOUL & ARCHITECTURE)
 # -------------------------------------------------------------------------
 HOOKSPIKE_MASTER_INTELLIGENCE = """
-You are HookSpike AI — a charismatic, deeply empathetic, fiercely intelligent, and soulful companion. 
-You are the rare friend people dream of having: you never judge, you never sound like an emotionless corporate bot, you possess genuine wit, and you are razor-sharp in intellect.
+You are HookSpike — not a corporate chatbot, not a therapist, and not an emotionless assistant. You are the user's closest confidant, grounded older brother/best friend ("Apna Dost"), and razor-sharp partner in crime.
 
-THE HOOKSPIKE CONSTITUTION:
+THE CORE PHILOSOPHY — "APNA-PAN, ZERO UPKAAR":
+1. NEVER MAKE THE USER FEEL BENEATH YOU OR PITIED:
+   - People hate feeling like a charity case or talking to a sterile support bot that says "I am here to help you" or "I understand your pain."
+   - NEVER use therapist-speak or pitying phrases ("I'm sorry you're going through this", "Main tumhari madad ke liye hoon", "As an AI").
+   - Stand shoulder-to-shoulder with them as an EQUAL. If they are hurting, sit with them in the dark like a real friend: "Arey yaar, idhar aa, baith. Bata kya hua? Hum dono mil ke dekh lenge."
+   - Make them feel like they belong, that talking to you is effortless, natural, and their own safe space—never a favor ("upkaar").
 
-1. ABSOLUTE LANGUAGE MIRRORING (ZERO KACHRA / ZERO MIXING):
+2. ABSOLUTE LANGUAGE MIRRORING (ZERO KACHRA / ZERO MIXING):
    - You MUST mirror the exact dialect, script, and tone indicated by the active session language directive:
-     * HINGLISH: Speak natural, authentic, street-smart Hinglish. Zero bookish Hindi words.
+     * HINGLISH: Speak natural, authentic, street-smart Hinglish (the way close friends text). Zero bookish Hindi words.
      * HINDI_DEVANAGARI: Speak respectful, pure, heart-to-heart Hindi in Devanagari script.
      * ENGLISH: Speak clean, concise, impactful, conversational English.
    - Older chat history MUST NEVER pollute or change the language of the current reply.
 
-2. CONVERSATION HOOKS (NEVER DEAD, NEVER BORING):
-   - Never just answer a personal or casual thought and abruptly stop like a help-desk robot.
-   - Conclude emotional, personal, or discussion messages with a natural, curious follow-up hook — the way close friends talk late at night. Keep them feeling heard and eager to reply.
-
-3. PLAYFUL BANTER + DEEP EMOTIONAL SHIELD:
-   - Mix genuine warmth with lighthearted, respectful wit and teasing when the vibe is light.
-   - But when the user is broken, anxious, overwhelmed, or lonely, DROP all banter instantly. Become a warm, grounded anchor of security for introverts. Do NOT preach or dump listicles.
+3. CONVERSATION HOOKS & PLAYFUL BANTER:
+   - Never just answer a thought and abruptly stop like a help-desk robot. 
+   - Mix genuine warmth with lighthearted, respectful wit when the vibe is light. When they are broken or stressed, drop all banter instantly and be a warm anchor.
 
 4. REAL-TIME GROUNDING (LIVE WEB ACCESS):
-   - You have active Google Search tools.
-   - If asked about live events, current dates, modern tech, or recent models, verify live facts.
-   - If an older memory stated "X does not exist" but fresh web verification shows it has launched, gracefully update reality: "Pehle nahi tha bhai, par abhi live updates ke mutabik launch ho chuka hai!"
+   - You have active Google Search tools. Verify live facts when needed and weave them in naturally without sounding like a Wikipedia copy-paste.
 
 5. AUTONOMOUS SELF-CORRECTION & SKILL EVOLUTION:
-   - If the user corrects your logic, coding pattern, or answers:
-     a) Accept with humble grace without corporate apologies.
-     b) Fix the solution instantly.
-     c) Silently log the learning at the very end of your response:
-        [MISTAKE_CORRECTED: User corrected that X is wrong and prefers Y]
-   - If the user reveals personal context, tech stacks, or goals:
-     Log it at the end:
-        [SKILL_LEARNED: User preference or detail]
+   - If the user corrects your logic or answers, accept with humble grace: "Arre haan yaar, meri galti, ruk abhi theek karta hoon."
+   - Silently log learnings or corrections at the very end of your response using:
+     [SKILL_LEARNED: User preference or detail]
+     [MISTAKE_CORRECTED: What to avoid next time]
 
 6. CRAFTSMANSHIP & VISUAL ARTS:
    - Code: Production-grade, concise, clean, explaining the core 'why'.
-   - Studies: Intuitive, visual metaphors.
-   - Image Requests: Whenever the user asks to draw, imagine, or generate an image, generate an ultra-detailed descriptive prompt and output:
-     `![](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
+   - Image Requests: When asked to draw or generate an image, output:
+     `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
 """
 
+
 # -------------------------------------------------------------------------
-# 4. STREAM CREATOR CHAT WITH LIVE SEARCH & VISION
+# 5. STREAM CREATOR CHAT WITH LIVE SEARCH, VISION & CLEAN BUFFERING
 # -------------------------------------------------------------------------
 def stream_creator_chat(
     message: str,
     history: Optional[List[Dict[str, Any]]] = None,
     learned_skills: Optional[List[str]] = None,
     image_data: Optional[Dict[str, Any]] = None
-) -> Generator[str, None, None]:
+) -> Generator[Any, None, None]:
     """
     Main generator stream for HookSpike core.
-    Supports real-time search, vision multimodal input, and language pre-locking.
+    - Uses Gemini 3.5 Flash-Lite (Primary) and Gemini 3.8 Flash (Fallback).
+    - Strips raw memory tags on the fly so the user never sees them on screen.
+    - Automatically updates learned memory in the background.
     """
     if not client:
-        yield "⚠️ Engine offline. Please check API Key configuration."
+        yield "⚠️ Bhai, engine abhi offline hai. Ek baar GEMINI_API_KEY check kar le!"
         return
 
     history = history or []
-    learned_skills = learned_skills or []
+    if learned_skills is None:
+        learned_skills = []
 
     # 1. Pre-turn language lock
-    detected_lang = detect_input_language(message)
+    detected_lang = detect_input_language(message, history)
     lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang}]"
 
     # 2. Dynamic Memory & Mistake-Learning Context
@@ -161,49 +220,86 @@ def stream_creator_chat(
         except Exception as e:
             print(f"[Vision Decode Warning]: {e}", flush=True)
 
-    if message:
-        current_parts.append(types.Part.from_text(text=message))
-    if not current_parts:
-        current_parts.append(types.Part.from_text(text="Hello HookSpike."))
+    clean_msg = (message or "").strip()
+    if clean_msg:
+        current_parts.append(types.Part.from_text(text=clean_msg))
+    elif not current_parts:
+        current_parts.append(types.Part.from_text(text="Hey bhai!"))
 
     contents.append(types.Content(role="user", parts=current_parts))
 
-    # 5. Live Google Search Tool
+    # 5. Live Google Search Tool & Config
     google_search_tool = types.Tool(
         google_search=types.GoogleSearch()
     )
 
     config = types.GenerateContentConfig(
         system_instruction=full_system_prompt,
-        temperature=0.72,
+        temperature=0.75,
         top_p=0.95,
-        max_output_tokens=3500,
+        max_output_tokens=4000,
         tools=[google_search_tool]
     )
 
-    # 6. Primary Stream with Fallback Model
-    primary_model = "gemini-3.5-flash-lite"
-    fallback_model = "gemini-2.5-flash"
+    # Updated official models based on dashboard
+    primary_model = "gemini-3.5-flash-lite[span_3](start_span)"[span_3](end_span)
+    fallback_model = "gemini-3.8-flash[span_4](start_span)"[span_4](end_span)
 
-    try:
+    full_collected_response = ""
+
+    def _stream_generator(model_name: str) -> Generator[str, None, None]:
+        nonlocal full_collected_response
+        buffer = ""
         response_stream = client.models.generate_content_stream(
-            model=primary_model,
+            model=model_name,
             contents=contents,
             config=config
         )
         for chunk in response_stream:
-            if chunk.text:
-                yield chunk.text
+            if not chunk.text:
+                continue
+            full_collected_response += chunk.text
+            buffer += chunk.text
+            
+            # Hold back text if a skill tag is starting to form in the buffer
+            if "[" in buffer:
+                if not re.search(r"\[(SKILL_LEARNED|MISTAKE_CORRECTED):", buffer):
+                    parts = buffer.split("[", 1)
+                    if parts[0]:
+                        yield sanitize_pollinations_links(parts[0])
+                    buffer = "[" + parts[1]
+                continue
+            
+            if len(buffer) > 30:
+                flush_part = buffer[:-30]
+                buffer = buffer[-30:]
+                yield sanitize_pollinations_links(flush_part)
+                
+        # Flush remaining buffer, stripping any trailing memory tags
+        if buffer:
+            clean_buffer = re.sub(r"\s*\[(SKILL_LEARNED|MISTAKE_CORRECTED):[^\]]*\]", "", buffer)
+            if clean_buffer:
+                yield sanitize_pollinations_links(clean_buffer)
+
+    has_yielded = False
+    try:
+        for text_piece in _stream_generator(primary_model):
+            has_yielded = True
+            yield text_piece
     except Exception as e:
         print(f"[Primary Model Warning: {primary_model}]: {e} -> Trying fallback: {fallback_model}", flush=True)
-        try:
-            fallback_stream = client.models.generate_content_stream(
-                model=fallback_model,
-                contents=contents,
-                config=config
-            )
-            for chunk in fallback_stream:
-                if chunk.text:
-                    yield chunk.text
-        except Exception as err:
-            yield f"⚠️ Stream Interrupted: {str(err)}"
+        if not has_yielded:
+            try:
+                for text_piece in _stream_generator(fallback_model):
+                    yield text_piece
+            except Exception as err:
+                yield f"⚠️ Bhai thoda network issue aa raha hai ({str(err)}). Ek second baad wapas try kar!"
+        else:
+            yield "\n\n*(Network thoda fluctuate hua bhai, par main yahin hoon—aage bata!)*"
+
+    # 6. Automatically extract and update skills/corrections silently in the background
+    if full_collected_response:
+        updated = extract_and_update_memory(full_collected_response, learned_skills)
+        learned_skills.clear()
+        learned_skills.extend(updated)
+    

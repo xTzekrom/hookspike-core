@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Self-Learning Skills)
+HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Self-Learning Skills + Vision)
 """
 
 import json
@@ -32,7 +32,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_2026_secure
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_PERMANENT"] = True
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "[https://jhiqvsuigdfjwjbtlnwh.supabase.co](https://jhiqvsuigdfjwjbtlnwh.supabase.co)").rstrip("/")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co").rstrip("/")
 # 1. Frontend Key (Anon Public Key - Safe for Browser)
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU").strip()
 # 2. Backend Master Key (Service Role Secret Key - Never sent to Browser, bypasses RLS locks!)
@@ -79,6 +79,14 @@ def init_local_db():
                     UNIQUE(user_email, skill_rule)
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS bug_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email TEXT,
+                    description TEXT,
+                    created_at TEXT
+                )
+            """)
             conn.commit()
     except Exception as e:
         print(f"[Local DB Init Warning]: {e}", flush=True)
@@ -111,7 +119,6 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
     if not user_email:
         return []
     skills = []
-    # 1. Try Supabase Cloud (if user_skills table exists)
     try:
         encoded_email = urllib.parse.quote(user_email)
         url = f"{SUPABASE_URL}/rest/v1/user_skills?user_email=eq.{encoded_email}&select=skill_rule&order=created_at.desc&limit=25"
@@ -123,7 +130,6 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
     except Exception:
         pass
 
-    # 2. Merge with Local SQLite DB (Always works out-of-the-box!)
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             cur = conn.execute(
@@ -144,7 +150,6 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
     skill_rule = skill_rule.strip()
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # 1. Save to Local SQLite DB (Guaranteed instant persistence)
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
@@ -155,7 +160,6 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
     except Exception:
         pass
 
-    # 2. Try saving to Supabase Cloud (if user_skills table exists)
     try:
         url = f"{SUPABASE_URL}/rest/v1/user_skills"
         body = json.dumps({
@@ -380,6 +384,33 @@ def serve_logo():
 def serve_favicon():
     return send_from_directory(".", "logo.png", mimetype="image/png")
 
+@app.route("/api/user-skills", methods=["GET"])
+def get_user_skills_route():
+    user_email = verify_and_get_email()
+    if not user_email:
+        return jsonify([])
+    user_jwt = get_request_jwt()
+    return jsonify(db_get_user_skills(user_email, user_jwt))
+
+@app.route("/api/report-bug", methods=["POST"])
+def report_bug_route():
+    data = request.get_json(silent=True) or {}
+    email = verify_and_get_email(data) or data.get("email", "guest")
+    desc = (data.get("description") or "").strip()
+    if not desc:
+        return jsonify({"error": "Empty description"}), 400
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute(
+                "INSERT INTO bug_reports (user_email, description, created_at) VALUES (?, ?, ?)",
+                (email, desc, now_iso)
+            )
+            conn.commit()
+    except Exception:
+        pass
+    return jsonify({"ok": True})
+
 @app.route("/api/chat-sessions", methods=["GET"])
 def get_chat_sessions():
     user_email = verify_and_get_email()
@@ -408,11 +439,16 @@ def chat_stream():
 
     message = payload.get("message", "").strip()
     display_message = payload.get("display_message", message).strip()
+    image_data = payload.get("image_data")
     history = payload.get("history", [])
     session_id = payload.get("session_id")
 
-    if not message:
+    if not message and not image_data:
         return jsonify({"error": "Empty message"}), 400
+
+    if not message and image_data:
+        message = "Please analyze this image and help me with it."
+        display_message = "📷 [Photo Attached]"
 
     if user_email and session_id:
         is_limited, limit_msg = check_session_memory_limit(session_id, user_email, user_jwt)
@@ -430,16 +466,14 @@ def chat_stream():
         pending_buffer = ""
 
         try:
-            for chunk in ai_engine.stream_creator_chat(message, history, learned_skills):
+            for chunk in ai_engine.stream_creator_chat(message, history, learned_skills, image_data):
                 if chunk:
                     pending_buffer += chunk
-                    # Hold back buffer if '[' is detected so [SKILL_LEARNED: ...] is never shown on user's screen
-                    if "[" not in pending_buffer:
+                    if "[SKILL" not in pending_buffer and not pending_buffer.endswith("["):
                         accumulated_reply += pending_buffer
                         yield f"data: {json.dumps({'token': pending_buffer, 'session_id': active_sess_id})}\n\n"
                         pending_buffer = ""
 
-            # Process any remaining buffer at the end of stream
             if pending_buffer:
                 skill_matches = re.findall(r"\[SKILL_LEARNED:\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
                 for skill_text in skill_matches:

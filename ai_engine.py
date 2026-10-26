@@ -1,9 +1,8 @@
 """
 HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 Ultimate)
 =====================================================================================
-primary_model = "gemini-3.5-flash-lite"
-fallback_model = "gemini-3.8-flash"
-
+- Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)
+- Fallback Model: gemini-3.8-flash (High intelligence software reasoning)
 - Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed)
 - Free Image Generation via Pollinations AI (High-Res Cinematic)
 - Multimodal Vision Support (Reads Screenshots & Camera Images)
@@ -52,7 +51,6 @@ def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = N
     if matches >= 1:
         return "HINGLISH"
         
-    # Short reply inheritance
     words = re.findall(r"\w+", clean_text)
     if len(words) <= 2 and history:
         for item in reversed(history):
@@ -189,18 +187,15 @@ def stream_creator_chat(
     if learned_skills is None:
         learned_skills = []
 
-    # 1. Pre-turn language lock
     detected_lang = detect_input_language(message, history)
     lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang}]"
 
-    # 2. Dynamic Memory & Mistake-Learning Context
     memory_context = ""
     if learned_skills:
         memory_context = "\n\nUser Context, Learned Insights & Corrections:\n" + "\n".join([f"• {s}" for s in learned_skills])
 
     full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + memory_context
 
-    # 3. Build contents history
     contents = []
     for item in history:
         role = "user" if item.get("role") == "user" else "model"
@@ -208,7 +203,6 @@ def stream_creator_chat(
         if text_content:
             contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text_content)]))
 
-    # 4. Build current turn parts (Multimodal Image + Prompt)
     current_parts = []
     if image_data and isinstance(image_data, dict):
         base64_data = image_data.get("base64", "")
@@ -229,7 +223,6 @@ def stream_creator_chat(
 
     contents.append(types.Content(role="user", parts=current_parts))
 
-    # 5. Live Google Search Tool & Config
     google_search_tool = types.Tool(
         google_search=types.GoogleSearch()
     )
@@ -242,9 +235,8 @@ def stream_creator_chat(
         tools=[google_search_tool]
     )
 
-    # Updated official models based on dashboard
-    primary_model = "gemini-3.5-flash-lite[span_3](start_span)"[span_3](end_span)
-    fallback_model = "gemini-3.8-flash[span_4](start_span)"[span_4](end_span)
+    primary_model = "gemini-3.5-flash-lite"
+    fallback_model = "gemini-3.8-flash"
 
     full_collected_response = ""
 
@@ -262,7 +254,6 @@ def stream_creator_chat(
             full_collected_response += chunk.text
             buffer += chunk.text
             
-            # Hold back text if a skill tag is starting to form in the buffer
             if "[" in buffer:
                 if not re.search(r"\[(SKILL_LEARNED|MISTAKE_CORRECTED):", buffer):
                     parts = buffer.split("[", 1)
@@ -276,7 +267,6 @@ def stream_creator_chat(
                 buffer = buffer[-30:]
                 yield sanitize_pollinations_links(flush_part)
                 
-        # Flush remaining buffer, stripping any trailing memory tags
         if buffer:
             clean_buffer = re.sub(r"\s*\[(SKILL_LEARNED|MISTAKE_CORRECTED):[^\]]*\]", "", buffer)
             if clean_buffer:
@@ -298,9 +288,7 @@ def stream_creator_chat(
         else:
             yield "\n\n*(Network thoda fluctuate hua bhai, par main yahin hoon—aage bata!)*"
 
-    # 6. Automatically extract and update skills/corrections silently in the background
     if full_collected_response:
         updated = extract_and_update_memory(full_collected_response, learned_skills)
         learned_skills.clear()
         learned_skills.extend(updated)
-    

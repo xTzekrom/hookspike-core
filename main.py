@@ -1,9 +1,10 @@
 """
-HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Zero Data Loss)
+HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Self-Learning Skills)
 """
 
 import json
 import os
+import re
 import sqlite3
 import uuid
 import urllib.request
@@ -31,7 +32,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_2026_secure
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_PERMANENT"] = True
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co").rstrip("/")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "[https://jhiqvsuigdfjwjbtlnwh.supabase.co](https://jhiqvsuigdfjwjbtlnwh.supabase.co)").rstrip("/")
 # 1. Frontend Key (Anon Public Key - Safe for Browser)
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU").strip()
 # 2. Backend Master Key (Service Role Secret Key - Never sent to Browser, bypasses RLS locks!)
@@ -48,7 +49,7 @@ if SUPABASE_URL and SUPABASE_KEY:
 SESSION_MESSAGE_LIMIT = 18
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
 
-# --- EXTRA SAFETY BACKUP DB ---
+# --- EXTRA SAFETY BACKUP DB + SELF-LEARNING SKILLS TABLE ---
 def init_local_db():
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
@@ -67,6 +68,15 @@ def init_local_db():
                     role TEXT,
                     content TEXT,
                     created_at TEXT
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_skills (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email TEXT,
+                    skill_rule TEXT,
+                    created_at TEXT,
+                    UNIQUE(user_email, skill_rule)
                 )
             """)
             conn.commit()
@@ -88,7 +98,6 @@ def get_request_jwt(req_data: dict | None = None) -> str:
     return session.get("access_token", "")
 
 def sb_headers(user_jwt: str = "") -> dict:
-    # Backend always uses SUPABASE_SERVICE_KEY first so RLS never blocks saving chat history!
     master_key = SUPABASE_SERVICE_KEY if SUPABASE_SERVICE_KEY else SUPABASE_KEY
     return {
         "apikey": master_key,
@@ -97,11 +106,72 @@ def sb_headers(user_jwt: str = "") -> dict:
         "Prefer": "return=representation"
     }
 
+# --- SELF-LEARNING SKILLS DB FUNCTIONS ---
+def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
+    if not user_email:
+        return []
+    skills = []
+    # 1. Try Supabase Cloud (if user_skills table exists)
+    try:
+        encoded_email = urllib.parse.quote(user_email)
+        url = f"{SUPABASE_URL}/rest/v1/user_skills?user_email=eq.{encoded_email}&select=skill_rule&order=created_at.desc&limit=25"
+        req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if isinstance(data, list):
+                skills = [row["skill_rule"] for row in data if row.get("skill_rule")]
+    except Exception:
+        pass
+
+    # 2. Merge with Local SQLite DB (Always works out-of-the-box!)
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            cur = conn.execute(
+                "SELECT skill_rule FROM user_skills WHERE user_email = ? ORDER BY id DESC LIMIT 25",
+                (user_email,)
+            )
+            for row in cur.fetchall():
+                if row[0] and row[0] not in skills:
+                    skills.append(row[0])
+    except Exception:
+        pass
+
+    return skills[:25]
+
+def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
+    if not user_email or not skill_rule:
+        return
+    skill_rule = skill_rule.strip()
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # 1. Save to Local SQLite DB (Guaranteed instant persistence)
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO user_skills (user_email, skill_rule, created_at) VALUES (?, ?, ?)",
+                (user_email, skill_rule, now_iso)
+            )
+            conn.commit()
+    except Exception:
+        pass
+
+    # 2. Try saving to Supabase Cloud (if user_skills table exists)
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/user_skills"
+        body = json.dumps({
+            "user_email": user_email,
+            "skill_rule": skill_rule
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            resp.read()
+    except Exception:
+        pass
+
 def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     encoded_email = urllib.parse.quote(user_email)
     url = f"{SUPABASE_URL}/rest/v1/chat_sessions?user_email=eq.{encoded_email}&select=id,title,created_at&order=created_at.desc&limit=30"
     
-    # 1. Fetch from Permanent Supabase Cloud
     try:
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
         with urllib.request.urlopen(req, timeout=8) as resp:
@@ -114,7 +184,6 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     except Exception as e:
         print(f"[Supabase Select Sessions Error]: {e}", flush=True)
 
-    # 2. Emergency Fallback to Local DB if Cloud is unreachable
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
@@ -130,7 +199,6 @@ def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> 
     encoded_sess = urllib.parse.quote(str(session_id))
     encoded_email = urllib.parse.quote(user_email)
 
-    # 1. Fetch from Permanent Supabase Cloud
     try:
         own_url = f"{SUPABASE_URL}/rest/v1/chat_sessions?id=eq.{encoded_sess}&user_email=eq.{encoded_email}&select=id"
         req_own = urllib.request.Request(own_url, headers=sb_headers(user_jwt), method="GET")
@@ -149,7 +217,6 @@ def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> 
     except Exception as e:
         print(f"[Supabase Select Messages Error]: {e}", flush=True)
 
-    # 2. Emergency Fallback to Local DB
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
@@ -171,7 +238,6 @@ def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
     now_iso = datetime.now(timezone.utc).isoformat()
     session_id = str(uuid.uuid4())
 
-    # 1. Save to Permanent Supabase Cloud
     try:
         url = f"{SUPABASE_URL}/rest/v1/chat_sessions"
         body = json.dumps({"user_email": user_email, "title": title}).encode("utf-8")
@@ -189,7 +255,6 @@ def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
     except Exception as e:
         print(f"[Supabase Session Insert Error]: {e}", flush=True)
 
-    # 2. Mirror to Local Backup DB
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
@@ -205,7 +270,6 @@ def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
 def db_create_message(session_id: str, role: str, content: str, user_jwt: str = ""):
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # 1. Save to Permanent Supabase Cloud
     try:
         url = f"{SUPABASE_URL}/rest/v1/chat_messages"
         body = json.dumps({
@@ -223,7 +287,6 @@ def db_create_message(session_id: str, role: str, content: str, user_jwt: str = 
     except Exception as e:
         print(f"[Supabase Message Insert Error]: {e}", flush=True)
 
-    # 2. Mirror to Local Backup DB
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
@@ -284,7 +347,6 @@ def index():
         session.clear()
     user_email = (session.get("user_email") or "").strip().lower()
     logged_in = bool(user_email)
-    # Notice: Only SUPABASE_KEY (anon public key) is sent to index.html, keeping SUPABASE_SERVICE_KEY 100% secret!
     return render_template(
         "index.html",
         logged_in=logged_in,
@@ -360,16 +422,34 @@ def chat_stream():
     target_email = str(user_email)
     target_jwt = str(user_jwt)
     initial_sess_id = session_id
+    learned_skills = db_get_user_skills(target_email, target_jwt) if target_email else []
 
     def generate_sse():
         accumulated_reply = ""
         active_sess_id = initial_sess_id
+        pending_buffer = ""
 
         try:
-            for chunk in ai_engine.stream_creator_chat(message, history):
+            for chunk in ai_engine.stream_creator_chat(message, history, learned_skills):
                 if chunk:
-                    accumulated_reply += chunk
-                    yield f"data: {json.dumps({'token': chunk, 'session_id': active_sess_id})}\n\n"
+                    pending_buffer += chunk
+                    # Hold back buffer if '[' is detected so [SKILL_LEARNED: ...] is never shown on user's screen
+                    if "[" not in pending_buffer:
+                        accumulated_reply += pending_buffer
+                        yield f"data: {json.dumps({'token': pending_buffer, 'session_id': active_sess_id})}\n\n"
+                        pending_buffer = ""
+
+            # Process any remaining buffer at the end of stream
+            if pending_buffer:
+                skill_matches = re.findall(r"\[SKILL_LEARNED:\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
+                for skill_text in skill_matches:
+                    if target_email and skill_text.strip():
+                        db_save_user_skill(target_email, skill_text.strip(), target_jwt)
+
+                clean_tail = re.sub(r"\[SKILL_LEARNED:\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
+                if clean_tail:
+                    accumulated_reply += clean_tail
+                    yield f"data: {json.dumps({'token': clean_tail, 'session_id': active_sess_id})}\n\n"
 
             if accumulated_reply.strip() and target_email:
                 if not active_sess_id:
@@ -378,7 +458,7 @@ def chat_stream():
 
                 if active_sess_id:
                     db_create_message(active_sess_id, "user", display_message, target_jwt)
-                    db_create_message(active_sess_id, "assistant", accumulated_reply, target_jwt)
+                    db_create_message(active_sess_id, "assistant", accumulated_reply.strip(), target_jwt)
                     yield f"data: {json.dumps({'session_id': active_sess_id})}\n\n"
 
             yield "data: [DONE]\n\n"
@@ -400,4 +480,3 @@ def chat_stream():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-        

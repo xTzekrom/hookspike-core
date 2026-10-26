@@ -46,7 +46,7 @@ if SUPABASE_URL and SUPABASE_KEY:
     except Exception as exc:
         print(f"[Supabase Init Warning]: {exc}", flush=True)
 
-SESSION_MESSAGE_LIMIT = 18
+SESSION_MESSAGE_LIMIT = 9
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
 
 # --- EXTRA SAFETY BACKUP DB + SELF-LEARNING SKILLS TABLE ---
@@ -406,6 +406,21 @@ def report_bug_route():
                 "INSERT INTO bug_reports (user_email, description, created_at) VALUES (?, ?, ?)",
                 (email, desc, now_iso)
             )
+            conn.commit()
+    except Exception:
+        pass
+    return jsonify({"ok": True})
+    
+@app.route("/api/chat-session/<session_id>", methods=["DELETE"])
+def delete_chat_session(session_id):
+    user_email = verify_and_get_email()
+    if not user_email or not session_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    user_jwt = get_request_jwt()
+    try:
+        with sqlite3.connect(LOCAL_DB_PATH) as conn:
+            conn.execute("UPDATE chat_sessions SET title = '[Deleted]' WHERE id = ? AND user_email = ?", (str(session_id), user_email))
             conn.commit()
     except Exception:
         pass

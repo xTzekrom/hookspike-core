@@ -971,11 +971,65 @@
         }
 
         async function loadHistorySessions() {
-            const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
-            if (!email || isLoggingOut) {
-                historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">Sign in to save history</div>`;
-                return;
-            }
+    const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
+    if (!email || isLoggingOut) {
+        historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">Sign in to save history</div>`;
+        return;
+    }
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(email)}`, {
+            headers: getAuthHeaders(), credentials: "include"
+        });
+        if (!res.ok) return;
+        const sessions = await res.json();
+        historyList.innerHTML = "";
+        
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+            historyList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">No sessions yet</div>`;
+            return;
+        }
+
+        sessions.forEach(sess => {
+            if (sess.title === '[Deleted]') return;
+
+            const row = document.createElement("div");
+            row.className = `history-row ${String(sess.id) === String(currentSessionId) ? 'active-session' : ''}`;
+            row.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 8px;";
+
+            const titleSpan = document.createElement("span");
+            titleSpan.innerText = sess.title || "Conversation";
+            titleSpan.style.cssText = "flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;";
+            titleSpan.onclick = () => loadPastSession(sess.id);
+
+            const delBtn = document.createElement("button");
+            delBtn.innerHTML = "🗑️";
+            delBtn.title = "Delete chat";
+            delBtn.style.cssText = "background: transparent; border: none; cursor: pointer; font-size: 13px; opacity: 0.6; padding: 2px 4px; transition: opacity 0.2s;";
+            delBtn.onmouseover = () => delBtn.style.opacity = "1";
+            delBtn.onmouseout = () => delBtn.style.opacity = "0.6";
+
+            delBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (confirm("Kya aap yeh chat history delete karna chahte hain?")) {
+                    await fetch(`${BACKEND_URL}/api/chat-session/${sess.id}`, {
+                        method: "DELETE",
+                        headers: getAuthHeaders(),
+                        credentials: "include"
+                    });
+                    loadHistorySessions();
+                    if (String(sess.id) === String(currentSessionId)) {
+                        resetChat();
+                    }
+                }
+            };
+
+            row.appendChild(titleSpan);
+            row.appendChild(delBtn);
+            historyList.appendChild(row);
+        });
+    } catch(e) {}
+}
+
             try {
                 const res = await fetch(`${BACKEND_URL}/api/chat-sessions?email=${encodeURIComponent(email)}`, {
                     headers: getAuthHeaders(), credentials: "include"

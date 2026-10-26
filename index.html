@@ -69,12 +69,6 @@
         .header-title-gradient { background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header-right-actions { display: flex; align-items: center; gap: 8px; }
 
-        .header-action-btn {
-            width: 34px; height: 34px; border-radius: 50%;
-            background: var(--surface-color); border: 1px solid var(--border-color);
-            color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-
         .user-avatar-pill {
             display: flex; align-items: center; gap: 8px;
             background: var(--surface-color); border: 1px solid var(--border-color);
@@ -169,7 +163,16 @@
             position: relative; max-width: 90%; background: var(--surface-color);
             border: 1px solid var(--border-color); border-radius: var(--bubble-radius);
             border-bottom-right-radius: 6px; padding: 12px 16px;
-            display: flex; align-items: flex-start; gap: 10px;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+        }
+
+        .user-bubble-row-inner {
+            display: flex; align-items: flex-start; gap: 10px; width: 100%;
+        }
+
+        .user-attached-img {
+            max-width: 180px; max-height: 180px; border-radius: 12px;
+            object-fit: cover; border: 1px solid var(--border-hover); display: block;
         }
 
         .user-bubble-text {
@@ -211,6 +214,19 @@
         .bubble-box ul, .bubble-box ol { margin: 10px 0 16px 22px; }
         .bubble-box li { margin-bottom: 8px; padding-left: 4px; }
         .bubble-box li::marker { color: var(--accent-blue); font-weight: 700; }
+
+        /* Pollinations AI & Markdown Generated Images */
+        .bubble-box img {
+            max-width: 100%;
+            width: 380px;
+            height: auto;
+            border-radius: 16px;
+            margin: 12px 0;
+            border: 1px solid var(--border-hover);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+            display: block;
+            background: var(--surface-color);
+        }
 
         .bubble-box blockquote {
             margin: 14px 0; padding: 12px 16px;
@@ -299,17 +315,53 @@
             z-index: 25; display: flex; flex-direction: column; align-items: center;
         }
 
+        /* Image Preview Bar above Dock */
+        .image-preview-bar {
+            display: none; align-items: center; justify-content: space-between;
+            max-width: 760px; width: 100%; background: var(--surface-elevated);
+            border: 1px solid var(--border-hover); border-bottom: none;
+            border-radius: 18px 18px 0 0; padding: 8px 14px; margin-bottom: -10px;
+            padding-bottom: 16px; z-index: 24;
+        }
+        .image-preview-bar.active { display: flex; }
+        .preview-left-wrap { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+        .preview-thumb-img {
+            width: 42px; height: 42px; border-radius: 8px; object-fit: cover;
+            border: 1px solid var(--accent-blue); flex-shrink: 0;
+        }
+        .preview-file-label {
+            font-size: 12.5px; color: var(--text-primary); font-weight: 600;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .preview-remove-btn {
+            background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5; width: 26px; height: 26px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 12px; font-weight: 700; flex-shrink: 0;
+        }
+
         .gemini-card-dock {
             position: relative; max-width: 760px; width: 100%;
             background: var(--surface-dock); border: 1px solid var(--border-color);
-            border-radius: var(--dock-radius); padding: 10px 12px 10px 16px;
-            display: flex; align-items: flex-end; gap: 10px; box-shadow: var(--dock-glow);
+            border-radius: var(--dock-radius); padding: 10px 12px;
+            display: flex; align-items: flex-end; gap: 8px; box-shadow: var(--dock-glow);
+            z-index: 25;
+        }
+
+        .attach-plus-btn {
+            background: var(--surface-elevated); border: 1px solid var(--border-color);
+            color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0; transition: all 0.2s ease;
+        }
+        .attach-plus-btn:hover {
+            border-color: var(--accent-blue); color: var(--accent-blue);
         }
 
         #chatInput {
             flex: 1; width: 100%; background: transparent; border: none; outline: none;
             color: var(--text-primary); font-size: 15.5px; font-family: inherit;
-            resize: none; max-height: 160px; min-height: 26px; line-height: 1.5; padding: 4px 0;
+            resize: none; max-height: 160px; min-height: 26px; line-height: 1.5; padding: 4px 2px;
         }
 
         .send-round-btn {
@@ -398,7 +450,6 @@
         </div>
 
         <div class="header-right-actions">
-            <button class="header-action-btn" onclick="openSettings()" title="Settings">⚙️</button>
             <div class="user-avatar-pill" id="openPro">
                 <div class="user-avatar-circle" id="avatarCircle">
                     {% if logged_in and user_email %}{{ user_email[0]|upper }}{% else %}?{% endif %}
@@ -439,8 +490,20 @@
     </button>
 
     <div class="bottom-dock">
+        <div class="image-preview-bar" id="imagePreviewBar">
+            <div class="preview-left-wrap">
+                <img src="" alt="Preview" class="preview-thumb-img" id="previewThumbImg">
+                <span class="preview-file-label" id="previewFileName">Photo attached</span>
+            </div>
+            <button type="button" class="preview-remove-btn" onclick="clearAttachedImage()" title="Remove image">✕</button>
+        </div>
+
         <div class="gemini-card-dock">
-            <textarea id="chatInput" rows="1" placeholder="Ask anything, study, plan, code, or talk from the heart..."></textarea>
+            <input type="file" id="photoInput" accept="image/*" style="display: none;">
+            <button type="button" class="attach-plus-btn" id="attachBtn" title="Attach photo or screenshot">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <textarea id="chatInput" rows="1" placeholder="Ask HookSpike..."></textarea>
             <button class="send-round-btn" id="sendBtn">
                 <svg id="sendIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                 <svg id="stopIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect width="18" height="18" x="3" y="3" rx="3"/></svg>
@@ -623,7 +686,10 @@
 
         function renderSafeMarkdown(mdText) {
             const rawHtml = marked.parse(mdText || "");
-            const sanitized = window.DOMPurify ? DOMPurify.sanitize(rawHtml, { ADD_ATTR: ["onclick", "class", "type"] }) : rawHtml;
+            const sanitized = window.DOMPurify ? DOMPurify.sanitize(rawHtml, {
+                ADD_ATTR: ["onclick", "class", "type", "target", "loading"],
+                ADD_TAGS: ["img"]
+            }) : rawHtml;
             const tempDiv = document.createElement("div");
             tempDiv.innerHTML = sanitized;
             if (window.renderMathInElement) {
@@ -705,6 +771,7 @@
         let ctrl = null;
         let isStreaming = false;
         let currentSessionId = null;
+        let pendingImageAttachment = null;
 
         const chatArea = document.getElementById("chatArea");
         const chatInput = document.getElementById("chatInput");
@@ -717,6 +784,65 @@
         const historyList = document.getElementById("historyList");
         const jumpBottomBtn = document.getElementById("jumpBottomBtn");
         const settingsScreen = document.getElementById("settingsScreen");
+
+        // --- CAMERA & GALLERY PHOTO ATTACHMENT LOGIC (WITH AUTO-COMPRESSION) ---
+        const attachBtn = document.getElementById("attachBtn");
+        const photoInput = document.getElementById("photoInput");
+        const imagePreviewBar = document.getElementById("imagePreviewBar");
+        const previewThumbImg = document.getElementById("previewThumbImg");
+        const previewFileName = document.getElementById("previewFileName");
+
+        attachBtn.onclick = () => photoInput.click();
+
+        photoInput.addEventListener("change", function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith("image/")) {
+                alert("Please select an image or screenshot.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    const MAX_DIM = 1024;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > h && w > MAX_DIM) {
+                        h = Math.round((h * MAX_DIM) / w);
+                        w = MAX_DIM;
+                    } else if (h > MAX_DIM) {
+                        w = Math.round((w * MAX_DIM) / h);
+                        h = MAX_DIM;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.84);
+
+                    pendingImageAttachment = {
+                        base64: compressedDataUrl,
+                        mime_type: "image/jpeg",
+                        name: file.name
+                    };
+                    previewThumbImg.src = compressedDataUrl;
+                    previewFileName.innerText = file.name || "Photo attached";
+                    imagePreviewBar.classList.add("active");
+                    chatInput.focus();
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function clearAttachedImage() {
+            pendingImageAttachment = null;
+            photoInput.value = "";
+            imagePreviewBar.classList.remove("active");
+        }
 
         function openSettings() {
             sidebar.classList.remove("active");
@@ -913,6 +1039,7 @@
             currentSessionId = null;
             chatHist = [];
             chatArea.innerHTML = "";
+            clearAttachedImage();
             sidebar.classList.remove("active");
             overlay.classList.remove("active");
             loadHistorySessions();
@@ -926,30 +1053,44 @@
             stopIcon.style.display = streaming ? "block" : "none";
         }
 
-        function appendUserBubble(text) {
+        function appendUserBubble(text, imageUrl = null) {
             const row = document.createElement("div");
             row.className = "msg-line user";
             const container = document.createElement("div");
             container.className = "user-bubble-container";
-            const textSpan = document.createElement("span");
-            textSpan.className = "user-bubble-text";
-            textSpan.innerText = text;
 
-            const isLong = text.length > 70 || text.includes("\n");
-            if (isLong) {
-                textSpan.classList.add("collapsed");
-                const arrowBtn = document.createElement("button");
-                arrowBtn.className = "collapse-arrow-btn";
-                arrowBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-                arrowBtn.onclick = () => {
-                    const isNowCollapsed = textSpan.classList.toggle("collapsed");
-                    arrowBtn.classList.toggle("expanded", !isNowCollapsed);
-                };
-                container.appendChild(textSpan);
-                container.appendChild(arrowBtn);
-            } else {
-                container.appendChild(textSpan);
+            if (imageUrl) {
+                const imgEl = document.createElement("img");
+                imgEl.src = imageUrl;
+                imgEl.className = "user-attached-img";
+                container.appendChild(imgEl);
             }
+
+            if (text) {
+                const innerRow = document.createElement("div");
+                innerRow.className = "user-bubble-row-inner";
+                const textSpan = document.createElement("span");
+                textSpan.className = "user-bubble-text";
+                textSpan.innerText = text;
+
+                const isLong = text.length > 70 || text.includes("\n");
+                if (isLong) {
+                    textSpan.classList.add("collapsed");
+                    const arrowBtn = document.createElement("button");
+                    arrowBtn.className = "collapse-arrow-btn";
+                    arrowBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                    arrowBtn.onclick = () => {
+                        const isNowCollapsed = textSpan.classList.toggle("collapsed");
+                        arrowBtn.classList.toggle("expanded", !isNowCollapsed);
+                    };
+                    innerRow.appendChild(textSpan);
+                    innerRow.appendChild(arrowBtn);
+                } else {
+                    innerRow.appendChild(textSpan);
+                }
+                container.appendChild(innerRow);
+            }
+
             row.appendChild(container);
             chatArea.appendChild(row);
             return row;
@@ -993,12 +1134,18 @@
                 return;
             }
             let rawTxt = chatInput.value.trim();
-            if (!rawTxt) return;
+            if (!rawTxt && !pendingImageAttachment) return;
 
             chatInput.value = "";
             chatInput.style.height = "auto";
 
-            const userRow = appendUserBubble(rawTxt);
+            const attachedImgPayload = pendingImageAttachment ? { ...pendingImageAttachment } : null;
+            const displayTxt = rawTxt || "📷 [Photo Attached]";
+            const promptForAi = rawTxt || "Please look at this image carefully and help me with it.";
+
+            const userRow = appendUserBubble(rawTxt, attachedImgPayload ? attachedImgPayload.base64 : null);
+            clearAttachedImage();
+
             const aiBox = appendAiBubble();
             const cursor = document.createElement("span");
             cursor.className = "cursor-dot";
@@ -1018,8 +1165,9 @@
                     headers: getAuthHeaders(),
                     credentials: "include",
                     body: JSON.stringify({
-                        message: rawTxt,
-                        display_message: rawTxt,
+                        message: promptForAi,
+                        display_message: displayTxt,
+                        image_data: attachedImgPayload,
                         history: chatHist.slice(-6),
                         session_id: currentSessionId,
                         user_email: activeEmail,
@@ -1074,7 +1222,7 @@
                 cursor.remove();
                 if (fullReply.trim()) {
                     aiBox.innerHTML = renderSafeMarkdown(fullReply);
-                    chatHist.push({ role: "user", content: rawTxt });
+                    chatHist.push({ role: "user", content: displayTxt });
                     chatHist.push({ role: "assistant", content: fullReply });
                     attachActionPills(aiBox, fullReply);
                     checkScrollButton();

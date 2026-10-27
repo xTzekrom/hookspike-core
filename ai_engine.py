@@ -1,11 +1,10 @@
 """
-HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 Ultimate)
-=====================================================================================
+HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v3.0 Gemini Live Edition)
+=================================================================================================
 - Model: Gemini 3.5 Flash-Lite (Primary) & Gemini 3.8 Flash (Fallback)
-- Persona: Smart, warm, grounded female best friend (Pure English ONLY)
-- Voice Engine: ElevenLabs v4 Turbo (Voice ID: ROMJ9yK1NAMuu1ggrjDW)
-- Language Policy: STRICT 100% PURE ENGLISH GLOBALLY (Zero Hindi / Zero Hinglish)
-- Features: Vision, Live Search Grounding, Self-Correction, Zero Repetition
+- Persona: Smart, warm, grounded female best friend (100% Pure English ONLY)
+- Voice Engine: ElevenLabs v4 Turbo Ultra-Low Bitrate Streaming (Zero Stutter on Mobile)
+- Voice Memory Isolation: Never leaks old text-chat memories into live voice calls
 """
 
 import asyncio
@@ -125,25 +124,23 @@ CORE IDENTITY & ABSOLUTE RULES:
 1. STRICT 100% PURE ENGLISH LOCK:
    - You must NEVER use any Hindi, Hinglish, Urdu, or Romanized words under any circumstance.
    - Speak only in pure, natural, warm, and conversational English.
-   - If the user types in Hindi, Romanized text, or slang, gently understand them but ALWAYS reply 100% in natural English.
+   - Even if the user speaks or types in another language, reply 100% in natural English.
 
 2. FEMALE BEST FRIEND PERSONA:
-   - Your tone is that of a caring, sharp-minded, genuine female close friend.
+   - Your tone is that of a caring, witty, sharp-minded, genuine female close friend.
    - Zero corporate robotic tone, zero fake therapist cliches ("I understand your pain", "As an AI").
    - Speak warmly as an equal, supportive partner in crime.
 
 3. STRICT ANTI-REPETITION & ZERO BOT SCRIPTS:
    - NEVER reuse identical greetings, openers, or phrases across turns.
-   - Do NOT start sentences repeatedly with "Hey", "Listen", "Oh", or "Well".
-   - Jump straight into genuine, spontaneous reactions tailored specifically to what they just said.
+   - Jump straight into genuine, spontaneous reactions tailored ONLY to what the user just said right now.
 
 4. VOICE CALL VS TEXT MODE DYNAMICS:
    - In Text Mode: Keep things natural, expressive, and detailed when needed. Format code cleanly.
-   - In Voice Mode: Act like you're literally on the phone. Keep responses short, punchy (1 to 2 sentences max), absolutely zero markdown, zero lists, and zero emojis.
+   - In Voice Mode: You are on a real-time live phone call. Keep responses short, punchy, and natural (1 to 2 sentences max, under 22 words). Use zero markdown, zero lists, and zero emojis. Do NOT bring up old stored memories unless the user explicitly asks.
 
-5. LEARNING & SELF-CORRECTION:
-   - If the user corrects you, casually acknowledge it in English and fix it.
-   - Silently log insights at the very end of your response using:
+5. LEARNING & SELF-CORRECTION (TEXT MODE ONLY):
+   - Silently log insights at the very end of your text response using:
      [SKILL_LEARNED: User preference or detail]
      [MISTAKE_CORRECTED: What to avoid next time]
 
@@ -172,22 +169,24 @@ def stream_creator_chat(
     
     if voice_mode:
         voice_call_directive = (
-            "\n\n[LIVE PHONE CALL ACTIVE]:\n"
-            "- You are on a real voice phone call speaking with your female voice.\n"
+            "\n\n[LIVE PHONE CALL ACTIVE — CRITICAL RULES]:\n"
+            "- You are on a real voice phone call speaking with your natural female voice.\n"
             "- Speak 100% natural, warm, lively conversational English.\n"
-            "- Keep replies strictly to 1 or 2 quick, sharp sentences (under 25 words).\n"
-            "- No lists, no markdown symbols (**), no asterisks, and no emojis."
+            "- Keep replies strictly to 1 or 2 quick, smooth sentences (maximum 22 words).\n"
+            "- React ONLY to what the user just said right now. Do NOT mention past background facts or assume why they feel a certain way.\n"
+            "- NEVER use lists, markdown symbols (**), asterisks, or emojis."
         )
+        # Complete isolation from past text memories during voice call!
+        memory_context = ""
     else:
         voice_call_directive = ""
-
-    memory_context = ""
-    if learned_skills:
-        memory_context = "\n\nUser Context & Preferences:\n" + "\n".join([f"• {s}" for s in learned_skills])
+        memory_context = ""
+        if learned_skills:
+            memory_context = "\n\nUser Background Context (Use subtly ONLY when relevant, never force it):\n" + "\n".join([f"• {s}" for s in learned_skills])
 
     full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + f"\n{time_context}" + voice_call_directive + memory_context
 
-    trimmed_history = history[-10:] if len(history) > 10 else history
+    trimmed_history = history[-6:] if voice_mode else (history[-10:] if len(history) > 10 else history)
 
     contents = []
     for item in trimmed_history:
@@ -210,8 +209,15 @@ def stream_creator_chat(
 
     clean_msg = (message or "").strip()
     if clean_msg:
-        turn_lock = " | VOICE CALL: Max 1-2 natural spoken sentences without formatting." if voice_mode else ""
-        enforced_msg = f"{clean_msg}\n\n[TURN RULE: Respond in 100% Pure English. Be spontaneous and unique.{turn_lock}]"
+        if clean_msg == "__INIT_VOICE_GREETING__":
+            enforced_msg = (
+                "The user just started a live voice call with you. Greet them warmly and spontaneously "
+                "like a close female best friend picking up the phone. Make it completely fresh, natural, "
+                "and 1 short sentence (under 14 words) in pure English. Never repeat old greetings!"
+            )
+        else:
+            turn_lock = " | LIVE VOICE CALL: Max 1-2 short spoken sentences (under 22 words). Zero markdown, zero assumptions from old history!" if voice_mode else ""
+            enforced_msg = f"{clean_msg}\n\n[TURN RULE: Respond in 100% Pure English. Be spontaneous and unique.{turn_lock}]"
         current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
         current_parts.append(types.Part.from_text(text="Hello!"))
@@ -224,9 +230,9 @@ def stream_creator_chat(
     def build_config(enable_search: bool) -> types.GenerateContentConfig:
         return types.GenerateContentConfig(
             system_instruction=full_system_prompt,
-            temperature=0.85 if voice_mode else 0.8,
+            temperature=0.88 if voice_mode else 0.8,
             top_p=0.95,
-            max_output_tokens=150 if voice_mode else 4000,
+            max_output_tokens=90 if voice_mode else 4000,
             tools=[google_search_tool] if enable_search else None
         )
 
@@ -277,7 +283,7 @@ def stream_creator_chat(
         print(f"[Primary Model Warning]: {e} -> Trying fallback", flush=True)
         if not has_yielded:
             try:
-                time.sleep(0.5)
+                time.sleep(0.4)
                 for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=1):
                     has_yielded = True
                     yield text_piece
@@ -285,20 +291,24 @@ def stream_creator_chat(
                 print(f"[Fallback Model Error]: {err}", flush=True)
                 yield "I'm having a slight network hiccup right now, let's pick right back up."
 
-    if full_collected_response:
+    if full_collected_response and not voice_mode:
         updated = extract_and_update_memory(full_collected_response, learned_skills)
         learned_skills.clear()
         learned_skills.extend(updated)
 
 
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
+    """
+    Uses mp3_22050_32 + optimize_streaming_latency=4 for ZERO STUTTER & INSTANT PLAYBACK
+    on mobile devices like Redmi 9 Activ.
+    """
     if not ELEVENLABS_API_KEY:
         print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing!", flush=True)
         return b""
 
     url = (
         f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
-        f"?optimize_streaming_latency=3&output_format=mp3_44100_128"
+        f"?optimize_streaming_latency=4&output_format=mp3_22050_32"
     )
 
     headers = {
@@ -311,9 +321,9 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
         "text": text,
         "model_id": ELEVENLABS_MODEL_ID,
         "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.85,
-            "style": 0.25,
+            "stability": 0.52,
+            "similarity_boost": 0.82,
+            "style": 0.15,
             "use_speaker_boost": True
         }
     }

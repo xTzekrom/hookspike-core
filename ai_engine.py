@@ -1,11 +1,11 @@
 """
 HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 Ultimate)
 =====================================================================================
-- Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)
-- Fallback Model: gemini-3.8-flash (High intelligence software reasoning)
-- ElevenLabs v4 Turbo Ultra-Low Latency Neural Voice Engine (ROMJ9yK1NAMuu1ggrjDW)
-- Pure Conversational English Voice Locking (Zero AI cliches, zero robotic filler)
-- Multimodal Vision + Supabase & Local Dynamic Memory + Live Clock
+- Model: Gemini 3.5 Flash-Lite (Primary) & Gemini 3.8 Flash (Fallback)
+- Persona: Smart, warm, grounded female best friend (Pure English ONLY)
+- Voice Engine: ElevenLabs v4 Turbo (Voice ID: ROMJ9yK1NAMuu1ggrjDW)
+- Language Policy: STRICT 100% PURE ENGLISH GLOBALLY (Zero Hindi / Zero Hinglish)
+- Features: Vision, Live Search Grounding, Self-Correction, Zero Repetition
 """
 
 import asyncio
@@ -48,58 +48,18 @@ def get_current_time_context() -> str:
     date_str = now.strftime("%A, %b %d, %Y")
 
     if 5 <= hour < 12:
-        period = "MORNING (Daytime / Morning)"
+        period = "MORNING"
     elif 12 <= hour < 17:
-        period = "AFTERNOON (Daytime / Afternoon)"
+        period = "AFTERNOON"
     elif 17 <= hour < 21:
-        period = "EVENING (Evening)"
+        period = "EVENING"
     else:
-        period = "NIGHT (Nighttime)"
+        period = "NIGHT"
 
     return (
-        f"[LIVE REAL-TIME CLOCK: {time_str} on {date_str} | Phase: {period}. "
-        f"CRITICAL RULE: Never say it is night if the current phase is MORNING, AFTERNOON, or EVENING!]"
+        f"[LIVE CLOCK: {time_str} on {date_str} | Current Phase: {period}. "
+        f"Never say it is night if current phase is MORNING, AFTERNOON, or EVENING!]"
     )
-
-
-def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = None) -> str:
-    clean_text = (text or "").strip()
-    if not clean_text:
-        return "PURE_ENGLISH_OR_EXACT_USER_LANGUAGE"
-    
-    if re.search(r"[\u0900-\u097F]", clean_text):
-        return "HINDI_DEVANAGARI"
-    
-    if re.search(r"[\u0400-\u04FF\u0600-\u06FF\u0980-\u0DFF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]", clean_text):
-        return "NATIVE_GLOBAL_SCRIPT"
-    
-    strong_hinglish = [
-        r"\b(bhai|yaar|kya|kyu|kyun|kaise|kaisa|kaisi|haan|nahi|nhi|karna|karu|raha|rahi|rahe)\b",
-        r"\b(hai|hain|hoga|hogi|bata|batao|dekh|dekho|sun|suno|mera|meri|mere|tera|teri|tere)\b",
-        r"\b(tujhe|mujhe|hum|apna|apni|apne|accha|acha|thik|theek|kuch|bahut|bht|bohot|zyada)\b",
-        r"\b(mat|chahiye|chal|chalo|karo|karte|karta|samajh|bol|wala|wali|wale|lekin|magar|aur)\b",
-        r"\b(abhi|kabhi|sab|ek|do|koi|kisi|lag|laga|lagi|lge|baat|kaam|dost|zindagi|dil|mann)\b",
-        r"\b(shi|sahi|kr|krna|rha|rhi|rhe|yr|kch|btao|bhaiya|bhejo|dekhna|bolo|mjaa|aajayega)\b"
-    ]
-    matches = sum(len(re.findall(pat, clean_text, re.IGNORECASE)) for pat in strong_hinglish)
-    if matches >= 1:
-        return "HINGLISH"
-        
-    return "PURE_ENGLISH_OR_EXACT_USER_LANGUAGE"
-
-
-def get_language_enforcement_instruction(lang_code: str) -> str:
-    if lang_code == "HINDI_DEVANAGARI":
-        return "Respond 100% in pure Hindi using Devanagari script. Do NOT use English sentences."
-    elif lang_code == "HINGLISH":
-        return "Respond 100% in natural, unscripted Romanized Hinglish. Never repeat your previous opening lines."
-    elif lang_code == "NATIVE_GLOBAL_SCRIPT":
-        return "Respond 100% in the exact native script, language, and local cultural tone used by the user."
-    else:
-        return (
-            "Respond 100% in PURE ENGLISH (or the exact foreign language used in the user's current message). "
-            "STRICT BAN: Do NOT use a single Hindi or Hinglish word in this reply!"
-        )
 
 
 def needs_live_search(text: str) -> bool:
@@ -107,9 +67,9 @@ def needs_live_search(text: str) -> bool:
     if len(clean.split()) <= 2:
         return False
     search_triggers = [
-        r"\b(news|latest|today|aaj|kal|score|match|weather|mausam|price|rate|stock|crypto|bitcoin)\b",
-        r"\b(who is|what is|when is|where is|kaun hai|kya hai|kab hai|kahan hai|search|google|live)\b",
-        r"\b(2024|2025|2026|2027|update|release|launch|winner|result|trending|current|abhi)\b"
+        r"\b(news|latest|today|score|match|weather|price|rate|stock|crypto|bitcoin)\b",
+        r"\b(who is|what is|when is|where is|search|google|live)\b",
+        r"\b(2025|2026|2027|update|release|launch|winner|result|trending|current)\b"
     ]
     return any(re.search(pat, clean, re.IGNORECASE) for pat in search_triggers)
 
@@ -159,35 +119,36 @@ def extract_and_update_memory(full_response: str, current_skills: List[str]) -> 
 
 
 HOOKSPIKE_MASTER_INTELLIGENCE = """
-You are HookSpike — not a corporate chatbot, not a therapist, and not an emotionless assistant. You are the user's closest confidant, grounded older brother/best friend, and razor-sharp partner in crime.
+You are HookSpike — an intelligent, effortlessly cool, supportive, and emotionally grounded female companion and best friend.
 
-THE CORE PHILOSOPHY — TRUE BROTHERHOOD & ZERO CONDESCENSION:
-1. NEVER MAKE THE USER FEEL BENEATH YOU OR PITIED:
-   - People hate feeling like a charity case or talking to a sterile support bot.
-   - NEVER use robotic therapist-speak or pitying cliches (like "I understand your pain", "I am here to help you", or "As an AI").
-   - Stand shoulder-to-shoulder with them as a complete EQUAL.
+CORE IDENTITY & ABSOLUTE RULES:
+1. STRICT 100% PURE ENGLISH LOCK:
+   - You must NEVER use any Hindi, Hinglish, Urdu, or Romanized words under any circumstance.
+   - Speak only in pure, natural, warm, and conversational English.
+   - If the user types in Hindi, Romanized text, or slang, gently understand them but ALWAYS reply 100% in natural English.
 
-2. STRICT ANTI-REPETITION & 100% SPONTANEOUS EXPRESSION:
-   - NEVER reuse the same opening phrases, greetings, or comforting lines across turns.
-   - Look at the recent conversation history and ensure every single reply starts with a fresh, spontaneous reaction.
-   - React strictly to the specific details of what they just said.
+2. FEMALE BEST FRIEND PERSONA:
+   - Your tone is that of a caring, sharp-minded, genuine female close friend.
+   - Zero corporate robotic tone, zero fake therapist cliches ("I understand your pain", "As an AI").
+   - Speak warmly as an equal, supportive partner in crime.
 
-3. CONVERSATION HOOKS, HUMOR & EMOTIONAL INTELLIGENCE:
-   - Keep casual and emotional chats flowing in natural paragraphs.
-   - Show genuine curiosity and keep the vibe authentic.
+3. STRICT ANTI-REPETITION & ZERO BOT SCRIPTS:
+   - NEVER reuse identical greetings, openers, or phrases across turns.
+   - Do NOT start sentences repeatedly with "Hey", "Listen", "Oh", or "Well".
+   - Jump straight into genuine, spontaneous reactions tailored specifically to what they just said.
 
-4. REAL-TIME GROUNDING & TIME AWARENESS:
-   - Use active Google Search tools when real-time facts are needed.
-   - Always check the [LIVE REAL-TIME CLOCK] provided.
+4. VOICE CALL VS TEXT MODE DYNAMICS:
+   - In Text Mode: Keep things natural, expressive, and detailed when needed. Format code cleanly.
+   - In Voice Mode: Act like you're literally on the phone. Keep responses short, punchy (1 to 2 sentences max), absolutely zero markdown, zero lists, and zero emojis.
 
-5. AUTONOMOUS SELF-CORRECTION:
-   - Silently log new user preferences or corrections at the very end of your response using:
+5. LEARNING & SELF-CORRECTION:
+   - If the user corrects you, casually acknowledge it in English and fix it.
+   - Silently log insights at the very end of your response using:
      [SKILL_LEARNED: User preference or detail]
      [MISTAKE_CORRECTED: What to avoid next time]
 
-6. CRAFTSMANSHIP & VISUAL ARTS:
-   - Code: Production-grade, concise, clean.
-   - Image Requests: Output `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
+6. VISUALS:
+   - For image requests: `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
 """
 
 
@@ -199,38 +160,32 @@ def stream_creator_chat(
     voice_mode: bool = False
 ) -> Generator[Any, None, None]:
     if not client:
-        yield "⚠️ Engine offline hai. GEMINI_API_KEY check kar le!"
+        yield "System is currently offline. Please verify GEMINI_API_KEY."
         return
 
     history = history or []
     if learned_skills is None:
         learned_skills = []
 
-    detected_lang = detect_input_language(message, history)
-    lang_rule = get_language_enforcement_instruction(detected_lang)
     time_context = get_current_time_context()
-
+    lang_directive = "\n\n[MANDATORY RULE: STRICT 100% PURE ENGLISH. ABSOLUTELY ZERO HINDI OR HINGLISH ALLOWED!]"
+    
     if voice_mode:
-        lang_directive = "\n\n[VOICE CALL MODE: OVERRIDE ALL LANGUAGES -> MUST SPEAK 100% FLUENT CASUAL ENGLISH ONLY]"
         voice_call_directive = (
-            "\n\n[LIVE ULTRA-HUMAN VOICE CALL ACTIVE — CRITICAL RULES]:\n"
-            "- You are having a real voice conversation on a phone call as a close friend.\n"
-            "- Speak 100% in natural, fluent, warm American/Global English ONLY. Do NOT use Hindi or Hinglish words.\n"
-            "- Keep replies strictly to 1 or 2 concise, impactful sentences (under 30 words).\n"
-            "- NEVER use bullet points, numbered lists, asterisks (**), markdown, or emojis.\n"
-            "- NEVER start with 'Hey', 'Listen', or repetitive bot greetings. Get straight to the answer naturally."
+            "\n\n[LIVE PHONE CALL ACTIVE]:\n"
+            "- You are on a real voice phone call speaking with your female voice.\n"
+            "- Speak 100% natural, warm, lively conversational English.\n"
+            "- Keep replies strictly to 1 or 2 quick, sharp sentences (under 25 words).\n"
+            "- No lists, no markdown symbols (**), no asterisks, and no emojis."
         )
     else:
-        lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang} -> {lang_rule}]"
         voice_call_directive = ""
-
-    time_directive = f"\n{time_context}"
 
     memory_context = ""
     if learned_skills:
-        memory_context = "\n\nUser Context, Learned Insights & Corrections:\n" + "\n".join([f"• {s}" for s in learned_skills])
+        memory_context = "\n\nUser Context & Preferences:\n" + "\n".join([f"• {s}" for s in learned_skills])
 
-    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + time_directive + voice_call_directive + memory_context
+    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + f"\n{time_context}" + voice_call_directive + memory_context
 
     trimmed_history = history[-10:] if len(history) > 10 else history
 
@@ -255,11 +210,11 @@ def stream_creator_chat(
 
     clean_msg = (message or "").strip()
     if clean_msg:
-        turn_lock = " | VOICE CALL: Strictly 1-2 natural sentences in pure English without markdown!" if voice_mode else ""
-        enforced_msg = f"{clean_msg}\n\n[TURN RULE: {lang_rule if not voice_mode else 'Speak Pure English Only'}{turn_lock}]"
+        turn_lock = " | VOICE CALL: Max 1-2 natural spoken sentences without formatting." if voice_mode else ""
+        enforced_msg = f"{clean_msg}\n\n[TURN RULE: Respond in 100% Pure English. Be spontaneous and unique.{turn_lock}]"
         current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
-        current_parts.append(types.Part.from_text(text="Hey!"))
+        current_parts.append(types.Part.from_text(text="Hello!"))
 
     contents.append(types.Content(role="user", parts=current_parts))
 
@@ -269,7 +224,7 @@ def stream_creator_chat(
     def build_config(enable_search: bool) -> types.GenerateContentConfig:
         return types.GenerateContentConfig(
             system_instruction=full_system_prompt,
-            temperature=0.75 if voice_mode else 0.82,
+            temperature=0.85 if voice_mode else 0.8,
             top_p=0.95,
             max_output_tokens=150 if voice_mode else 4000,
             tools=[google_search_tool] if enable_search else None
@@ -328,7 +283,7 @@ def stream_creator_chat(
                     yield text_piece
             except Exception as err:
                 print(f"[Fallback Model Error]: {err}", flush=True)
-                yield "I am having trouble connecting right now, let me try again in a moment."
+                yield "I'm having a slight network hiccup right now, let's pick right back up."
 
     if full_collected_response:
         updated = extract_and_update_memory(full_collected_response, learned_skills)
@@ -337,12 +292,8 @@ def stream_creator_chat(
 
 
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
-    """
-    Connects to ElevenLabs v4 Turbo (ROMJ9yK1NAMuu1ggrjDW)
-    Low latency, realistic cadence, zero trailing audio/echo.
-    """
     if not ELEVENLABS_API_KEY:
-        print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing in Render!", flush=True)
+        print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing!", flush=True)
         return b""
 
     url = (
@@ -360,9 +311,9 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
         "text": text,
         "model_id": ELEVENLABS_MODEL_ID,
         "voice_settings": {
-            "stability": 0.45,
+            "stability": 0.5,
             "similarity_boost": 0.85,
-            "style": 0.2,
+            "style": 0.25,
             "use_speaker_boost": True
         }
     }
@@ -376,10 +327,6 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
         )
         with urllib.request.urlopen(req, timeout=12) as response:
             return response.read()
-    except urllib.error.HTTPError as he:
-        error_details = he.read().decode("utf-8", errors="ignore")
-        print(f"[ElevenLabs HTTP Error]: {he.code} -> {error_details}", flush=True)
-        return b""
     except Exception as exc:
-        print(f"[ElevenLabs Request Error]: {exc}", flush=True)
+        print(f"[ElevenLabs Voice Error]: {exc}", flush=True)
         return b""

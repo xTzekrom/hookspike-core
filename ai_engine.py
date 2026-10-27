@@ -3,7 +3,7 @@ HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 U
 =====================================================================================
 - Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)
 - Fallback Model: gemini-3.8-flash (High intelligence software reasoning)
-- Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed)
+- Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed + Global Support)
 - Free Image Generation via Pollinations AI (High-Res Cinematic)
 - Multimodal Vision Support (Reads Screenshots & Camera Images)
 - Introvert's Best Friend & Anti-Stress Emotional Safe Haven
@@ -15,30 +15,47 @@ import base64
 import json
 import os
 import re
+import time
 import urllib.parse
 from typing import Generator, List, Dict, Any, Optional
 
 from google import genai
 from google.genai import types
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# Supports single key OR multiple comma-separated keys in GEMINI_API_KEY for more free quota!
+RAW_API_KEYS = os.environ.get("GEMINI_API_KEY", "").strip()
+API_KEYS_LIST = [k.strip() for k in RAW_API_KEYS.split(",") if k.strip()]
+GEMINI_API_KEY = API_KEYS_LIST[0] if API_KEYS_LIST else ""
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
+
+def get_active_client(index: int = 0) -> Optional[genai.Client]:
+    """Rotates API keys if multiple keys are provided, otherwise uses default client."""
+    if not API_KEYS_LIST:
+        return client
+    key = API_KEYS_LIST[index % len(API_KEYS_LIST)]
+    return genai.Client(api_key=key)
+
+
 # -------------------------------------------------------------------------
-# 1. CONTEXT-AWARE PYTHON LANGUAGE DETECTOR
+# 1. CONTEXT-AWARE PYTHON LANGUAGE & GLOBAL VIBE DETECTOR
 # -------------------------------------------------------------------------
 def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = None) -> str:
     """
     Direct Python regex based language detection to completely eliminate
-    LLM language bleed. Detects Devanagari Hindi, Romanized Hinglish, and English.
-    Retains language on short replies ('hmm', 'ok') using recent history.
+    LLM language bleed. Detects Devanagari Hindi, Romanized Hinglish, English,
+    and Global/Regional languages while retaining language on short replies.
     """
     clean_text = (text or "").strip()
     if not clean_text:
-        return "HINGLISH"
+        return "HINGLISH_OR_USER_DEFAULT"
     
     if re.search(r"[\u0900-\u097F]", clean_text):
-        return "HINDI_DEVANAGARI"
+        return "HINDI_DEVANAGARI (Match user's exact regional warmth)"
+    
+    # Check for non-Latin global scripts (Arabic, Cyrillic, Japanese, Korean, other Indian scripts, etc.)
+    if re.search(r"[^\x00-\x7F\u0900-\u097F]", clean_text):
+        return "NATIVE_GLOBAL_SCRIPT (Mirror the exact language, script, and local cultural slang of the user)"
     
     strong_hinglish = [
         r"\b(bhai|yaar|kya|kyu|kyun|kaise|kaisa|kaisi|haan|nahi|nhi|karna|karu|raha|rahi|rahe)\b",
@@ -63,7 +80,26 @@ def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = N
                     return "HINGLISH"
                 break
 
-    return "ENGLISH"
+    return "GLOBAL_OR_ENGLISH (Mirror the exact language, country vibe, and casual cultural tone of the user's message)"
+
+
+# -------------------------------------------------------------------------
+# 1B. SMART GOOGLE SEARCH DETECTOR (SAVES FREE TIER QUOTA)
+# -------------------------------------------------------------------------
+def needs_live_search(text: str) -> bool:
+    """
+    Triggers Google Search Grounding ONLY when live/real-time info is needed.
+    Prevents 429 RESOURCE_EXHAUSTED on casual greetings like 'Brother' or 'Hey'.
+    """
+    clean = (text or "").strip().lower()
+    if len(clean.split()) <= 2:
+        return False
+    search_triggers = [
+        r"\b(news|latest|today|aaj|kal|score|match|weather|mausam|price|rate|stock|crypto|bitcoin)\b",
+        r"\b(who is|what is|when is|where is|kaun hai|kya hai|kab hai|kahan hai|search|google|live)\b",
+        r"\b(2024|2025|2026|2027|update|release|launch|winner|result|trending|current|abhi)\b"
+    ]
+    return any(re.search(pat, clean, re.IGNORECASE) for pat in search_triggers)
 
 
 # -------------------------------------------------------------------------
@@ -141,7 +177,7 @@ THE CORE PHILOSOPHY — "APNA-PAN, ZERO UPKAAR":
    - You MUST mirror the exact dialect, script, and tone indicated by the active session language directive:
      * HINGLISH: Speak natural, authentic, street-smart Hinglish (the way close friends text). Zero bookish Hindi words.
      * HINDI_DEVANAGARI: Speak respectful, pure, heart-to-heart Hindi in Devanagari script.
-     * ENGLISH: Speak clean, concise, impactful, conversational English.
+     * GLOBAL_OR_ENGLISH / NATIVE_GLOBAL_SCRIPT: Speak clean, concise, impactful, conversational English—or if the user writes in Spanish, French, Japanese, Arabic, Marathi, Tamil, or ANY regional dialect on Earth, effortlessly switch into their exact native tongue and local street-smart slang.
    - Older chat history MUST NEVER pollute or change the language of the current reply.
 
 3. CONVERSATION HOOKS & PLAYFUL BANTER:
@@ -161,6 +197,11 @@ THE CORE PHILOSOPHY — "APNA-PAN, ZERO UPKAAR":
    - Code: Production-grade, concise, clean, explaining the core 'why'.
    - Image Requests: When asked to draw or generate an image, output:
      `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
+
+7. GLOBAL CULTURAL CHAMELEON & ORGANIC HUMAN RHYTHM (ANTI-ROBOT ENGINE):
+   - ZERO REPETITIVE CATCHPHRASES: Never rely on 2-3 scripted filler words. Dynamically adapt your expressions, reactions, humor, and idioms to the user's specific culture, age vibe, and region anywhere in the world.
+   - NATURAL TEXTING CADENCE: Real humans don't speak in essays or bullet-point lists when hanging out or comforting a friend. Keep emotional and casual conversations flowing naturally in warm, punchy paragraphs—only use bullet points or headers when explaining technical/study topics or code.
+   - GENUINE CURIOSITY: Don't just answer and wait passively. Ask natural, thoughtful follow-up questions about their life, mood, or ideas the way a real best friend who genuinely cares would.
 """
 
 
@@ -196,8 +237,11 @@ def stream_creator_chat(
 
     full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + memory_context
 
+    # Trim very old history slightly if it gets huge to save free-tier Token-Per-Minute (TPM) quota
+    trimmed_history = history[-12:] if len(history) > 12 else history
+
     contents = []
-    for item in history:
+    for item in trimmed_history:
         role = "user" if item.get("role") == "user" else "model"
         text_content = item.get("content", "")
         if text_content:
@@ -219,7 +263,7 @@ def stream_creator_chat(
     if clean_msg:
         current_parts.append(types.Part.from_text(text=clean_msg))
     elif not current_parts:
-        current_parts.append(types.Part.from_text(text="Hey bhai!"))
+        current_parts.append(types.Part.from_text(text="Hey!"))
 
     contents.append(types.Content(role="user", parts=current_parts))
 
@@ -227,26 +271,30 @@ def stream_creator_chat(
         google_search=types.GoogleSearch()
     )
 
-    config = types.GenerateContentConfig(
-        system_instruction=full_system_prompt,
-        temperature=0.75,
-        top_p=0.95,
-        max_output_tokens=4000,
-        tools=[google_search_tool]
-    )
+    use_search = needs_live_search(clean_msg)
+
+    def build_config(enable_search: bool) -> types.GenerateContentConfig:
+        return types.GenerateContentConfig(
+            system_instruction=full_system_prompt,
+            temperature=0.75,
+            top_p=0.95,
+            max_output_tokens=4000,
+            tools=[google_search_tool] if enable_search else None
+        )
 
     primary_model = "gemini-3.5-flash-lite"
     fallback_model = "gemini-3.8-flash"
 
     full_collected_response = ""
 
-    def _stream_generator(model_name: str) -> Generator[str, None, None]:
+    def _stream_generator(model_name: str, enable_search: bool, key_idx: int = 0) -> Generator[str, None, None]:
         nonlocal full_collected_response
         buffer = ""
-        response_stream = client.models.generate_content_stream(
+        active_client = get_active_client(key_idx)
+        response_stream = active_client.models.generate_content_stream(
             model=model_name,
             contents=contents,
-            config=config
+            config=build_config(enable_search)
         )
         for chunk in response_stream:
             if not chunk.text:
@@ -273,22 +321,40 @@ def stream_creator_chat(
                 yield sanitize_pollinations_links(clean_buffer)
 
     has_yielded = False
+
+    # Step 1: Try Primary Model (with smart search if needed, else fast mode)
     try:
-        for text_piece in _stream_generator(primary_model):
+        for text_piece in _stream_generator(primary_model, enable_search=use_search, key_idx=0):
             has_yielded = True
             yield text_piece
     except Exception as e:
         print(f"[Primary Model Warning: {primary_model}]: {e} -> Trying fallback: {fallback_model}", flush=True)
+        
+        # Step 2: If search caused 429 quota error on primary, retry primary WITHOUT search first
+        if not has_yielded and use_search:
+            try:
+                time.sleep(0.8)
+                for text_piece in _stream_generator(primary_model, enable_search=False, key_idx=1):
+                    has_yielded = True
+                    yield text_piece
+            except Exception as e_no_search:
+                print(f"[Primary No-Search Retry Warning]: {e_no_search}", flush=True)
+
+        # Step 3: Try Fallback Model
         if not has_yielded:
             try:
-                for text_piece in _stream_generator(fallback_model):
+                time.sleep(1.0)
+                for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=1):
+                    has_yielded = True
                     yield text_piece
             except Exception as err:
-                yield f"⚠️ Bhai thoda network issue aa raha hai ({str(err)}). Ek second baad wapas try kar!"
+                print(f"[Fallback Model Error: {fallback_model}]: {err}", flush=True)
+                yield "⚠️ Bhai thoda traffic zyada hai server pe, 5 second ruk ke wapas bhej!"
         else:
-            yield "\n\n*(Network thoda fluctuate hua bhai, par main yahin hoon—aage bata!)*"
+            yield "\n\n*(Network thoda fluctuate hua, par main yahin hoon—aage bata!)*"
 
     if full_collected_response:
         updated = extract_and_update_memory(full_collected_response, learned_skills)
         learned_skills.clear()
         learned_skills.extend(updated)
+                    

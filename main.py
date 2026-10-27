@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Self-Learning Skills + Vision + Voice)
+HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + ElevenLabs Voice Integration)
 """
 
 import json
@@ -183,9 +183,6 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
             data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
                 return [row for row in data if row.get("title") != "[Deleted]"]
-    except urllib.error.HTTPError as he:
-        err_body = he.read().decode("utf-8", errors="ignore")
-        print(f"[Supabase Select Sessions HTTP Error]: {he.code} -> {err_body}", flush=True)
     except Exception as e:
         print(f"[Supabase Select Sessions Error]: {e}", flush=True)
 
@@ -210,14 +207,8 @@ def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "")
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="PATCH")
         with urllib.request.urlopen(req, timeout=8) as resp:
             resp.read()
-            print(f"[Supabase Cloud]: Soft-deleted session ({session_id}) for user {user_email}", flush=True)
     except Exception as e:
-        print(f"[Supabase Soft-Delete PATCH Warning]: {e}", flush=True)
-        if supabase:
-            try:
-                supabase.table("chat_sessions").update({"title": "[Deleted]"}).eq("id", str(session_id)).eq("user_email", user_email).execute()
-            except Exception:
-                pass
+        print(f"[Supabase Soft-Delete Warning]: {e}", flush=True)
 
     try:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
@@ -247,9 +238,6 @@ def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> 
                     msg_data = json.loads(resp_msg.read().decode("utf-8"))
                     if isinstance(msg_data, list):
                         return msg_data
-    except urllib.error.HTTPError as he:
-        err_body = he.read().decode("utf-8", errors="ignore")
-        print(f"[Supabase Select Messages HTTP Error]: {he.code} -> {err_body}", flush=True)
     except Exception as e:
         print(f"[Supabase Select Messages Error]: {e}", flush=True)
 
@@ -284,10 +272,6 @@ def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
             rows = data if isinstance(data, list) else [data]
             if rows and rows[0].get("id"):
                 session_id = str(rows[0].get("id"))
-                print(f"[Supabase Cloud]: New chat session saved ({session_id})", flush=True)
-    except urllib.error.HTTPError as he:
-        err_body = he.read().decode("utf-8", errors="ignore")
-        print(f"[Supabase Session Insert HTTP Error]: {he.code} -> {err_body}", flush=True)
     except Exception as e:
         print(f"[Supabase Session Insert Error]: {e}", flush=True)
 
@@ -316,10 +300,6 @@ def db_create_message(session_id: str, role: str, content: str, user_jwt: str = 
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
         with urllib.request.urlopen(req, timeout=8) as resp:
             resp.read()
-            print(f"[Supabase Cloud]: Saved {role} message!", flush=True)
-    except urllib.error.HTTPError as he:
-        err_body = he.read().decode("utf-8", errors="ignore")
-        print(f"[Supabase Message Insert HTTP Error]: {he.code} -> {err_body}", flush=True)
     except Exception as e:
         print(f"[Supabase Message Insert Error]: {e}", flush=True)
 
@@ -375,7 +355,7 @@ def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str =
     if len(msgs) < SESSION_MESSAGE_LIMIT:
         return False, ""
 
-    return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue instantly for free, or wait 24 hours for this session's memory to refresh."
+    return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue instantly for free."
 
 @app.route("/")
 def index():
@@ -531,12 +511,12 @@ def chat_stream():
                         pending_buffer = ""
 
             if pending_buffer:
-                skill_matches = re.findall(r"\[(?:SKILL_LEARNED\vert{}MISTAKE_CORRECTED):\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
+                skill_matches = re.findall(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
                 for skill_text in skill_matches:
                     if target_email and skill_text.strip():
                         db_save_user_skill(target_email, skill_text.strip(), target_jwt)
 
-                clean_tail = re.sub(r"\[(?:SKILL_LEARNED\vert{}MISTAKE_CORRECTED):\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
+                clean_tail = re.sub(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
                 if clean_tail:
                     accumulated_reply += clean_tail
                     yield f"data: {json.dumps({'token': clean_tail, 'session_id': active_sess_id})}\n\n"
@@ -569,18 +549,16 @@ def chat_stream():
 
 
 # -------------------------------------------------------------------------
-# FREE NEURAL VOICE CALL ENDPOINT (HINDI + HINGLISH + ENGLISH)
+# ELEVENLABS ULTRA-LOW LATENCY VOICE ROUTE (ROMJ9yK1NAMuu1ggrjDW)
 # -------------------------------------------------------------------------
 @app.route("/api/voice-tts", methods=["POST"])
 def voice_tts_endpoint():
     data = request.get_json(silent=True) or {}
     raw_text = (data.get("text") or "").strip()
-    voice_gender = (data.get("voice") or "male").strip().lower()
 
     if not raw_text:
         return jsonify({"error": "Empty text"}), 400
 
-    # Strip Markdown links, code blocks, and symbols so the voice speaks naturally
     clean_speech = re.sub(r"```[\s\S]*?```", " ", raw_text)
     clean_speech = re.sub(r"!\[.*?\]\(.*?\)", " ", clean_speech)
     clean_speech = re.sub(r"\[([^\]]+)\]\(.*?\)", r"\1", clean_speech)
@@ -588,10 +566,13 @@ def voice_tts_endpoint():
     clean_speech = re.sub(r"\s+", " ", clean_speech).strip()
 
     if not clean_speech:
-        clean_speech = "Haan bhai, bol!"
+        clean_speech = "I am right here with you, tell me what is on your mind."
 
     try:
-        audio_bytes = ai_engine.generate_free_voice_audio(clean_speech, voice_gender)
+        audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_speech)
+        if not audio_bytes:
+            return jsonify({"error": "Failed to fetch ElevenLabs audio. Check ELEVENLABS_API_KEY."}), 502
+
         return Response(
             audio_bytes,
             mimetype="audio/mpeg",
@@ -601,7 +582,7 @@ def voice_tts_endpoint():
             }
         )
     except Exception as e:
-        print(f"[Voice TTS Error]: {e}", flush=True)
+        print(f"[Voice Route Error]: {e}", flush=True)
         return jsonify({"error": str(e)}), 500
 
 

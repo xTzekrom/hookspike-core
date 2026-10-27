@@ -12,6 +12,7 @@ HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 U
 - Real-Time Live Google Search Grounding (Live Pulse)
 """
 
+import asyncio
 import base64
 import json
 import os
@@ -21,6 +22,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 from typing import Generator, List, Dict, Any, Optional
 
+import edge_tts
 from google import genai
 from google.genai import types
 
@@ -258,13 +260,15 @@ def stream_creator_chat(
     message: str,
     history: Optional[List[Dict[str, Any]]] = None,
     learned_skills: Optional[List[str]] = None,
-    image_data: Optional[Dict[str, Any]] = None
+    image_data: Optional[Dict[str, Any]] = None,
+    voice_mode: bool = False
 ) -> Generator[Any, None, None]:
     """
     Main generator stream for HookSpike core.
     - Uses Gemini 3.5 Flash-Lite (Primary) and Gemini 3.8 Flash (Fallback).
     - Strips raw memory tags on the fly so the user never sees them on screen.
     - Automatically updates learned memory in the background.
+    - Adapts into ultra-natural short phone-call friend mode when voice_mode=True.
     """
     if not client:
         yield "⚠️ Bhai, engine abhi offline hai. Ek baar GEMINI_API_KEY check kar le!"
@@ -281,11 +285,21 @@ def stream_creator_chat(
     lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang} -> {lang_rule}]"
     time_directive = f"\n{time_context}"
 
+    voice_call_directive = ""
+    if voice_mode:
+        voice_call_directive = (
+            "\n\n[LIVE VOICE CALL MODE ACTIVE — CRITICAL RULES]:\n"
+            "- You are currently on a live voice phone call with your best friend!\n"
+            "- Keep your reply SHORT, PUNCHY, and CONVERSATIONAL (strictly 1 to 3 sentences max).\n"
+            "- NEVER use bullet points, numbered lists, markdown formatting, bold symbols (**), or emojis because your text goes directly into a neural voice synthesizer.\n"
+            "- Speak naturally with real human emotion, warmth, and brotherhood—just like two close friends talking on a call!"
+        )
+
     memory_context = ""
     if learned_skills:
         memory_context = "\n\nUser Context, Learned Insights & Corrections (Background Info Only - NEVER let this change the current reply language or current time of day):\n" + "\n".join([f"• {s}" for s in learned_skills])
 
-    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + time_directive + memory_context
+    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + time_directive + voice_call_directive + memory_context
 
     # Trim very old history slightly if it gets huge to save free-tier Token-Per-Minute (TPM) quota
     trimmed_history = history[-10:] if len(history) > 10 else history
@@ -311,10 +325,10 @@ def stream_creator_chat(
 
     clean_msg = (message or "").strip()
     if clean_msg:
-        # Inject hard language + anti-repetition lock right at the end of the user turn
+        voice_turn_lock = " | VOICE CALL: Keep it 1-2 short natural spoken sentences without any markdown or emojis!" if voice_mode else ""
         enforced_msg = (
             f"{clean_msg}\n\n"
-            f"[TURN RULE: {lang_rule} | Be 100% spontaneous—do NOT repeat any opening phrase from earlier messages | {time_context}]"
+            f"[TURN RULE: {lang_rule} | Be 100% spontaneous—do NOT repeat any opening phrase from earlier messages{voice_turn_lock} | {time_context}]"
         )
         current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
@@ -333,7 +347,7 @@ def stream_creator_chat(
             system_instruction=full_system_prompt,
             temperature=0.82,
             top_p=0.95,
-            max_output_tokens=4000,
+            max_output_tokens=350 if voice_mode else 4000,
             tools=[google_search_tool] if enable_search else None
         )
 
@@ -412,3 +426,31 @@ def stream_creator_chat(
         updated = extract_and_update_memory(full_collected_response, learned_skills)
         learned_skills.clear()
         learned_skills.extend(updated)
+
+
+# -------------------------------------------------------------------------
+# 6. 100% FREE BILINGUAL NEURAL VOICE ENGINE (HINDI + HINGLISH + ENGLISH)
+# -------------------------------------------------------------------------
+async def _generate_edge_tts_bytes(text: str, voice_name: str = "hi-IN-MadhurNeural") -> bytes:
+    """
+    Uses Microsoft Edge's free neural TTS engine.
+    'hi-IN-MadhurNeural' (Male) & 'hi-IN-SwaraNeural' (Female) speak 
+    Hindi, Hinglish, and English seamlessly in ONE natural Indian voice!
+    """
+    communicate = edge_tts.Communicate(text, voice_name, rate="+6%", pitch="+0Hz")
+    audio_bytes = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_bytes += chunk["data"]
+    return audio_bytes
+
+
+def generate_free_voice_audio(text: str, voice_gender: str = "male") -> bytes:
+    """Synchronous wrapper for Flask route to generate MP3 audio bytes."""
+    voice_name = "hi-IN-SwaraNeural" if voice_gender == "female" else "hi-IN-MadhurNeural"
+    loop = asyncio.new_event_loop()
+    try:
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(_generate_edge_tts_bytes(text, voice_name))
+    finally:
+        loop.close()

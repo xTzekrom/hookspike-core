@@ -547,6 +547,92 @@
             font-size: 14px; transition: transform 0.2s ease;
         }
         .sub-btn-primary:active { transform: scale(0.98); }
+
+        /* --- PREMIER 60FPS VOICE MODE OVERLAY STYLES --- */
+        #voice-mode-overlay {
+            position: fixed; inset: 0; background: rgba(5, 6, 8, 0.95);
+            backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
+            z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 30px 20px calc(35px + env(safe-area-inset-bottom, 0px));
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: opacity;
+        }
+        #voice-mode-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .voice-top-bar { display: flex; justify-content: center; width: 100%; z-index: 3; }
+        .voice-switcher-pill {
+            display: flex; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 5px; border-radius: 9999px; backdrop-filter: blur(16px);
+        }
+        .voice-switch-btn {
+            background: transparent; border: none; color: var(--text-secondary);
+            padding: 8px 18px; border-radius: 9999px; font-size: 13px; font-weight: 700; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .voice-switch-btn.active {
+            background: var(--accent-gradient); color: #ffffff;
+            box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-blue) 45%, transparent);
+        }
+
+        .voice-orb-stage {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 36px; position: relative; width: 100%; flex: 1;
+        }
+
+        .voice-orb-core {
+            width: 140px; height: 140px; border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 60px color-mix(in srgb, var(--accent-blue) 45%, transparent),
+                        inset 0 0 35px rgba(255, 255, 255, 0.45);
+            animation: orbIdlePulse 3.5s infinite ease-in-out;
+            will-change: transform, box-shadow;
+            transform: translate3d(0,0,0);
+        }
+
+        .voice-orb-core.listening {
+            animation: orbListeningPulse 2s infinite ease-in-out alternate;
+        }
+
+        .voice-orb-core.speaking {
+            animation: orbSpeakingPulse 0.75s infinite ease-in-out alternate;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, var(--accent-blue) 100%);
+            box-shadow: 0 0 100px rgba(168, 85, 247, 0.65), inset 0 0 45px rgba(255, 255, 255, 0.65);
+        }
+
+        @keyframes orbIdlePulse {
+            0% { transform: scale(1); box-shadow: 0 0 50px color-mix(in srgb, var(--accent-blue) 35%, transparent); }
+            50% { transform: scale(1.07); box-shadow: 0 0 80px color-mix(in srgb, var(--accent-secondary) 55%, transparent); }
+            100% { transform: scale(1); box-shadow: 0 0 50px color-mix(in srgb, var(--accent-blue) 35%, transparent); }
+        }
+
+        @keyframes orbListeningPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 40px color-mix(in srgb, var(--accent-blue) 40%, transparent); }
+            100% { transform: scale(1.15); box-shadow: 0 0 90px color-mix(in srgb, var(--accent-blue) 80%, transparent); }
+        }
+
+        @keyframes orbSpeakingPulse {
+            0% { transform: scale(0.90); box-shadow: 0 0 45px rgba(236, 72, 153, 0.5); }
+            100% { transform: scale(1.25); box-shadow: 0 0 120px rgba(168, 85, 247, 0.9); }
+        }
+
+        .voice-status-display {
+            color: var(--text-primary); font-size: 15.5px; font-weight: 600; text-align: center;
+            max-width: 340px; line-height: 1.6; opacity: 0.95; padding: 0 10px;
+        }
+
+        .voice-bottom-controls { display: flex; align-items: center; justify-content: center; z-index: 3; }
+        .voice-control-btn {
+            width: 64px; height: 64px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .voice-control-btn:active { transform: scale(0.9); }
+        .voice-control-btn.hangup {
+            background: #ef4444; color: #ffffff;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -562,6 +648,11 @@
         </div>
 
         <div class="header-right-actions">
+            <!-- Voice Mode Call Trigger Button -->
+            <button class="header-btn" id="openVoiceModeBtn" onclick="toggleVoiceMode(true)" title="Start Voice Call">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+
             <div class="user-avatar-pill" id="openPro">
                 <div class="user-avatar-circle" id="avatarCircle">
                     {% if logged_in and user_email %}{{ user_email[0]|upper }}{% else %}?{% endif %}
@@ -743,6 +834,30 @@
         </div>
     </div>
 
+    <!-- --- PREMIER 60FPS VOICE CALL OVERLAY SCREEN --- -->
+    <div id="voice-mode-overlay">
+        <!-- Top Voice Switcher (Male / Female) -->
+        <div class="voice-top-bar">
+            <div class="voice-switcher-pill">
+                <button class="voice-switch-btn active" id="btnVoiceMale" onclick="setVoiceGender('male')">Madhur (Male)</button>
+                <button class="voice-switch-btn" id="btnVoiceFemale" onclick="setVoiceGender('female')">Swara (Female)</button>
+            </div>
+        </div>
+
+        <!-- Center Glowing Interactive Orb & Live Voice Status -->
+        <div class="voice-orb-stage">
+            <div class="voice-orb-core" id="hookspikeOrb"></div>
+            <div class="voice-status-display" id="voiceStatusLabel">Voice call connected. Speak now, bhai!</div>
+        </div>
+
+        <!-- Bottom Controls (End Call) -->
+        <div class="voice-bottom-controls">
+            <button class="voice-control-btn hangup" onclick="toggleVoiceMode(false)" title="End Voice Call">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+    </div>
+
     <div class="sub-modal" id="bugModal" onclick="if(event.target === this) closeBugModal()">
         <div class="sub-card">
             <h3 style="font-size:18px; display:flex; align-items:center; gap:8px;">
@@ -878,7 +993,6 @@
         const BACKEND_URL = window.location.origin;
         let isLoggingOut = false;
 
-        // Keep user's soft-deleted session IDs persisted locally so they NEVER reappear for the user
         function getHiddenSessionIds() {
             try {
                 return JSON.parse(localStorage.getItem("hs_deleted_sessions") || "[]").map(String);
@@ -975,7 +1089,6 @@
         const jumpBottomBtn = document.getElementById("jumpBottomBtn");
         const settingsScreen = document.getElementById("settingsScreen");
 
-        // --- CAMERA & GALLERY PHOTO ATTACHMENT LOGIC (WITH AUTO-COMPRESSION) ---
         const attachBtn = document.getElementById("attachBtn");
         const photoInput = document.getElementById("photoInput");
         const imagePreviewBar = document.getElementById("imagePreviewBar");
@@ -1160,7 +1273,6 @@
             return headers;
         }
 
-        // --- FIXED: LOAD & SOFT-DELETE CHAT HISTORY (SAVED IN DB FOR YOU, DELETED FOR USER) ---
         async function loadHistorySessions() {
             const email = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email");
             if (!email || isLoggingOut) {
@@ -1205,9 +1317,8 @@
 
                     delBtn.addEventListener("click", async (e) => {
                         e.preventDefault();
-                        e.stopPropagation(); // Prevents opening the chat!
+                        e.stopPropagation();
 
-                        // 1. Immediately hide for user with smooth animation & save in local hidden list
                         addHiddenSessionId(sess.id);
                         row.style.opacity = "0";
                         row.style.transform = "translateX(-12px)";
@@ -1218,7 +1329,6 @@
                             }
                         }, 220);
 
-                        // 2. If user was viewing this exact chat, clear screen WITHOUT closing drawer
                         if (String(sess.id) === String(currentSessionId)) {
                             currentSessionId = null;
                             chatHist = [];
@@ -1226,7 +1336,6 @@
                             clearAttachedImage();
                         }
 
-                        // 3. Soft-delete on backend (marks title as '[Deleted]' so DB keeps messages for Kundan)
                         try {
                             await fetch(`${BACKEND_URL}/api/chat-session/${encodeURIComponent(sess.id)}?email=${encodeURIComponent(email)}`, {
                                 method: "DELETE",
@@ -1499,6 +1608,157 @@
                 sendMsg();
             }
         };
+
+        // --- PREMIER VOICE MODE & SPEECH SYNTHESIS/RECOGNITION LOGIC ---
+        let currentVoiceGender = 'male';
+        let isVoiceModeActive = false;
+        let speechRecognitionInstance = null;
+        let voiceAudioPlayer = new Audio();
+
+        function setVoiceGender(gender) {
+            currentVoiceGender = gender;
+            document.getElementById('btnVoiceMale').classList.toggle('active', gender === 'male');
+            document.getElementById('btnVoiceFemale').classList.toggle('active', gender === 'female');
+        }
+
+        function toggleVoiceMode(activate) {
+            isVoiceModeActive = activate;
+            const overlayEl = document.getElementById('voice-mode-overlay');
+            const orbEl = document.getElementById('hookspikeOrb');
+            
+            if (activate) {
+                overlayEl.classList.add('active');
+                orbEl.className = 'voice-orb-core listening';
+                document.getElementById('voiceStatusLabel').innerText = "Voice call connected. Speak now, bhai!";
+                startSpeechListening();
+                playVoiceTTSResponse("Haan bhai, bol! Sun raha hoon.");
+            } else {
+                overlayEl.classList.remove('active');
+                orbEl.className = 'voice-orb-core';
+                if (speechRecognitionInstance) {
+                    try { speechRecognitionInstance.stop(); } catch(e) {}
+                }
+                voiceAudioPlayer.pause();
+            }
+        }
+
+        function startSpeechListening() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                document.getElementById('voiceStatusLabel').innerText = "Speech recognition not supported in this browser. Use Chrome!";
+                return;
+            }
+
+            speechRecognitionInstance = new SpeechRec();
+            speechRecognitionInstance.lang = 'hi-IN'; // Seamlessly handles Hindi, Hinglish, & English
+            speechRecognitionInstance.interimResults = false;
+            speechRecognitionInstance.maxAlternatives = 1;
+
+            speechRecognitionInstance.onresult = async function(event) {
+                const spokenText = event.results[0][0].transcript;
+                document.getElementById('voiceStatusLabel').innerText = `You: "${spokenText}"`;
+                await sendVoiceQueryToAI(spokenText);
+            };
+
+            speechRecognitionInstance.onerror = function(event) {
+                console.log("Speech recognition error:", event.error);
+            };
+
+            speechRecognitionInstance.onend = function() {
+                if (isVoiceModeActive) {
+                    try { speechRecognitionInstance.start(); } catch(e) {}
+                }
+            };
+
+            try {
+                speechRecognitionInstance.start();
+            } catch(e) {}
+        }
+
+        async function sendVoiceQueryToAI(userText) {
+            const statusLabel = document.getElementById('voiceStatusLabel');
+            const orbEl = document.getElementById('hookspikeOrb');
+            statusLabel.innerText = "HookSpike is thinking...";
+            orbEl.className = 'voice-orb-core listening';
+
+            const activeEmail = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email") || "";
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/chat-stream`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        message: userText,
+                        display_message: userText,
+                        voice_mode: true,
+                        session_id: currentSessionId,
+                        user_email: activeEmail,
+                        access_token: CURRENT_ACCESS_TOKEN
+                    })
+                });
+
+                if (!response.ok) throw new Error("Network response error");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullAiReply = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6).trim();
+                            if (dataStr === '[DONE]') continue;
+                            try {
+                                const parsed = JSON.parse(dataStr);
+                                if (parsed.token) fullAiReply += parsed.token;
+                                if (parsed.session_id) currentSessionId = parsed.session_id;
+                            } catch(e) {}
+                        }
+                    }
+                }
+
+                if (fullAiReply) {
+                    statusLabel.innerText = fullAiReply;
+                    await playVoiceTTSResponse(fullAiReply);
+                }
+            } catch (err) {
+                statusLabel.innerText = "Connection glitch bhai, wapas bol!";
+                orbEl.className = 'voice-orb-core listening';
+            }
+        }
+
+        async function playVoiceTTSResponse(textToSpeak) {
+            const orbEl = document.getElementById('hookspikeOrb');
+            orbEl.className = 'voice-orb-core speaking';
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/voice-tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: textToSpeak, voice: currentVoiceGender })
+                });
+
+                if (!res.ok) throw new Error("TTS generation failed");
+                const audioBlob = await res.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                voiceAudioPlayer.src = audioUrl;
+                voiceAudioPlayer.onended = () => {
+                    if (isVoiceModeActive) {
+                        orbEl.className = 'voice-orb-core listening';
+                    }
+                };
+                voiceAudioPlayer.play();
+            } catch(e) {
+                console.error("TTS playback error:", e);
+                orbEl.className = 'voice-orb-core listening';
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', async () => {
             if (CURRENT_USER_EMAIL && !isLoggingOut) {

@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + ElevenLabs Voice Integration)
+HookSpike AI - Production Backend (100% Pure English + ElevenLabs Female Voice Mode)
 """
 
 import json
@@ -355,7 +355,7 @@ def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str =
     if len(msgs) < SESSION_MESSAGE_LIMIT:
         return False, ""
 
-    return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue instantly for free."
+    return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue."
 
 @app.route("/")
 def index():
@@ -483,10 +483,11 @@ def chat_stream():
         return jsonify({"error": "Empty message"}), 400
 
     if not message and image_data:
-        message = "Please analyze this image and help me with it."
+        message = "Please analyze this image and explain what you see."
         display_message = "[Photo Attached]"
 
-    if user_email and session_id:
+    # VOICE MODE BYPASS: Never block voice calls with session memory limit
+    if user_email and session_id and not voice_mode:
         is_limited, limit_msg = check_session_memory_limit(session_id, user_email, user_jwt)
         if is_limited:
             return jsonify({"error": limit_msg, "memory_full": True}), 429
@@ -521,7 +522,8 @@ def chat_stream():
                     accumulated_reply += clean_tail
                     yield f"data: {json.dumps({'token': clean_tail, 'session_id': active_sess_id})}\n\n"
 
-            if accumulated_reply.strip() and target_email:
+            # VOICE MODE BYPASS: Only save to database during standard text chat
+            if accumulated_reply.strip() and target_email and not voice_mode:
                 if not active_sess_id:
                     title_text = (display_message[:30] + "...") if len(display_message) > 30 else display_message
                     active_sess_id = db_create_session(target_email, title_text, target_jwt)
@@ -548,9 +550,6 @@ def chat_stream():
     return Response(stream_with_context(generate_sse()), headers=headers)
 
 
-# -------------------------------------------------------------------------
-# ELEVENLABS ULTRA-LOW LATENCY VOICE ROUTE (ROMJ9yK1NAMuu1ggrjDW)
-# -------------------------------------------------------------------------
 @app.route("/api/voice-tts", methods=["POST"])
 def voice_tts_endpoint():
     data = request.get_json(silent=True) or {}
@@ -565,13 +564,14 @@ def voice_tts_endpoint():
     clean_speech = re.sub(r"[*#_~`>|]", " ", clean_speech)
     clean_speech = re.sub(r"\s+", " ", clean_speech).strip()
 
+    # PURE ENGLISH FEMALE FALLBACK (Never Hindi)
     if not clean_speech:
-        clean_speech = "I am right here with you, tell me what is on your mind."
+        clean_speech = "I'm right here with you, tell me what's on your mind!"
 
     try:
         audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_speech)
         if not audio_bytes:
-            return jsonify({"error": "Failed to fetch ElevenLabs audio. Check ELEVENLABS_API_KEY."}), 502
+            return jsonify({"error": "Failed to fetch ElevenLabs audio."}), 502
 
         return Response(
             audio_bytes,

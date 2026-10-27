@@ -539,119 +539,219 @@
         }
         .sub-btn-primary:active { transform: scale(0.98); }
 
-        /* ========================================================
-           NEXT-GEN GEMINI LIVE FLUID AURA VOICE OVERLAY (60 FPS)
-           ======================================================== */
+        /* =========================================================================
+           TRUE GEMINI LIVE ULTRA-PREMIUM LIQUID AURORA VOICE STUDIO (ZERO BORING ORB)
+           ========================================================================= */
         #voice-mode-overlay {
             position: fixed; inset: 0;
-            background: radial-gradient(circle at center, #090b10 0%, #030406 100%);
-            backdrop-filter: blur(45px); -webkit-backdrop-filter: blur(45px);
+            background: #030408;
             z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            padding: calc(20px + env(safe-area-inset-top, 0px)) 24px calc(38px + env(safe-area-inset-bottom, 0px));
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: calc(22px + env(safe-area-inset-top, 0px)) 24px calc(34px + env(safe-area-inset-bottom, 0px));
+            opacity: 0; pointer-events: none; overflow: hidden;
+            transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
             will-change: opacity;
         }
         #voice-mode-overlay.active { opacity: 1; pointer-events: auto; }
 
-        .voice-brand-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            width: 100%; max-width: 500px; z-index: 5;
-        }
-        .voice-live-indicator {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #f1f3f7;
-            letter-spacing: 0.5px; text-transform: uppercase;
-        }
-        .live-dot-beacon {
-            width: 7px; height: 7px; border-radius: 50%; background: #10b981;
-            box-shadow: 0 0 10px #10b981; animation: liveBeacon 1.4s infinite ease-in-out;
-        }
-        @keyframes liveBeacon { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
-
-        .voice-orb-stage {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; width: 100%; flex: 1; gap: 40px;
-        }
-
-        /* Ambient Aura Rings like Gemini */
-        .aura-halo-outer {
-            position: absolute; width: 280px; height: 280px; border-radius: 50%;
-            background: radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 25%, transparent) 0%, transparent 70%);
-            animation: haloPulse 4s infinite ease-in-out;
+        /* Fullscreen Ambient Gemini Aurora Backlight */
+        .gemini-ambient-backdrop {
+            position: absolute; inset: -30%;
+            background: 
+                radial-gradient(circle at 30% 35%, rgba(56, 189, 248, 0.16) 0%, transparent 50%),
+                radial-gradient(circle at 70% 65%, rgba(168, 85, 247, 0.18) 0%, transparent 55%),
+                radial-gradient(circle at 50% 85%, rgba(236, 72, 153, 0.14) 0%, transparent 45%);
+            filter: blur(50px);
+            animation: ambientDrift 12s infinite alternate ease-in-out;
             pointer-events: none; z-index: 1;
         }
-        .aura-halo-middle {
-            position: absolute; width: 210px; height: 210px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 68%);
-            animation: haloPulse 3s infinite ease-in-out reverse;
-            pointer-events: none; z-index: 2;
+        @keyframes ambientDrift {
+            0% { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.18) rotate(12deg); }
         }
 
-        @keyframes haloPulse {
-            0%, 100% { transform: scale(0.9); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 0.9; }
+        .voice-brand-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; max-width: 500px; z-index: 10;
+        }
+        .voice-live-indicator {
+            display: inline-flex; align-items: center; gap: 9px;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #ffffff;
+            letter-spacing: 0.6px; text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .live-dot-beacon {
+            width: 8px; height: 8px; border-radius: 50%; background: #38bdf8;
+            box-shadow: 0 0 12px #38bdf8; animation: liveBeacon 1.4s infinite ease-in-out;
+        }
+        .live-dot-beacon.muted {
+            background: #f59e0b; box-shadow: 0 0 12px #f59e0b; animation: none;
+        }
+        @keyframes liveBeacon { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.25); } }
+
+        .voice-timer-badge {
+            font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600;
+            color: rgba(255, 255, 255, 0.7); background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08); padding: 6px 13px; border-radius: 999px;
         }
 
-        /* 3D Fluid Floating Core */
-        .voice-orb-core {
-            position: relative; width: 145px; height: 145px; border-radius: 50%;
-            background: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #6366f1 100%);
-            box-shadow: 0 0 65px rgba(16, 185, 129, 0.45), inset 0 0 40px rgba(255, 255, 255, 0.5);
-            z-index: 4; transform: translate3d(0, 0, 0);
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            animation: fluidIdle 5s infinite ease-in-out;
+        /* Center Liquid Morphing Stage */
+        .voice-orb-stage {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; width: 100%; flex: 1; z-index: 5; gap: 38px;
         }
 
-        @keyframes fluidIdle {
-            0%, 100% { transform: scale(1) translateY(0); filter: hue-rotate(0deg); }
-            50% { transform: scale(1.06) translateY(-6px); filter: hue-rotate(25deg); }
-        }
-
-        .voice-orb-core.listening {
-            animation: listeningAura 1.8s infinite ease-in-out alternate;
-            background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #38bdf8 100%);
-            box-shadow: 0 0 95px rgba(16, 185, 129, 0.75), inset 0 0 50px rgba(255, 255, 255, 0.6);
-        }
-
-        @keyframes listeningAura {
-            0% { transform: scale(0.96); box-shadow: 0 0 60px rgba(16, 185, 129, 0.5); }
-            100% { transform: scale(1.18); box-shadow: 0 0 110px rgba(56, 189, 248, 0.85); }
-        }
-
-        .voice-orb-core.speaking {
-            animation: speakingRipple 0.65s infinite ease-in-out alternate;
-            background: linear-gradient(135deg, #ec4899 0%, #a855f7 40%, #06b6d4 100%);
-            box-shadow: 0 0 120px rgba(236, 72, 153, 0.8), inset 0 0 60px rgba(255, 255, 255, 0.8);
-        }
-
-        @keyframes speakingRipple {
-            0% { transform: scale(0.92); filter: hue-rotate(0deg); }
-            100% { transform: scale(1.28); filter: hue-rotate(45deg); }
-        }
-
-        .voice-status-display {
-            color: #ffffff; font-size: 16px; font-weight: 600; text-align: center;
-            max-width: 380px; line-height: 1.6; z-index: 5;
-            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
-            padding: 0 16px; min-height: 48px; display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Bottom End Call Controls */
-        .voice-bottom-controls {
+        .gemini-aurora-vessel {
+            position: relative; width: 220px; height: 220px;
             display: flex; align-items: center; justify-content: center;
-            width: 100%; z-index: 5;
+            cursor: pointer;
         }
-        .voice-control-btn {
-            width: 68px; height: 68px; border-radius: 50%; border: none;
+
+        /* Multi-Layered Organic Liquid Blobs (No boring circle!) */
+        .aurora-layer {
+            position: absolute; inset: 0;
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            mix-blend-mode: screen;
+            transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, border-radius, filter;
+        }
+
+        .aurora-layer.layer-1 {
+            background: linear-gradient(135deg, #38bdf8 0%, #6366f1 55%, #a855f7 100%);
+            filter: blur(18px); opacity: 0.78;
+            animation: liquidMorph1 7s infinite ease-in-out;
+        }
+        .aurora-layer.layer-2 {
+            inset: 14px;
+            background: linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
+            filter: blur(12px); opacity: 0.85;
+            animation: liquidMorph2 5.5s infinite ease-in-out reverse;
+        }
+        .aurora-layer.layer-3 {
+            inset: 28px;
+            background: radial-gradient(circle at 35% 30%, #ffffff 0%, #7dd3fc 35%, #6366f1 75%, transparent 100%);
+            box-shadow: 0 0 70px rgba(56, 189, 248, 0.6), inset 0 0 35px rgba(255, 255, 255, 0.8);
+            animation: liquidMorph1 4.5s infinite ease-in-out;
+        }
+
+        @keyframes liquidMorph1 {
+            0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(0deg) scale(1); }
+            33% { border-radius: 45% 55% 65% 35% / 40% 60% 40% 60%; transform: rotate(60deg) scale(1.06); }
+            66% { border-radius: 35% 65% 45% 55% / 65% 35% 65% 35%; transform: rotate(120deg) scale(0.96); }
+        }
+        @keyframes liquidMorph2 {
+            0%, 100% { border-radius: 40% 60% 60% 40% / 50% 60% 40% 50%; transform: rotate(0deg) scale(1); }
+            50% { border-radius: 65% 35% 40% 60% / 40% 50% 50% 60%; transform: rotate(-90deg) scale(1.1); }
+        }
+
+        /* State: Listening */
+        .gemini-aurora-vessel.listening .aurora-layer.layer-1 {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #10b981 100%);
+            transform: scale(1.08);
+        }
+
+        /* State: Thinking */
+        .gemini-aurora-vessel.thinking .aurora-layer {
+            animation-duration: 1.6s !important;
+            filter: blur(14px) hue-rotate(45deg);
+        }
+
+        /* State: Speaking (Vibrant Gemini Pink/Violet/Cyan Energy Wave) */
+        .gemini-aurora-vessel.speaking .aurora-layer.layer-1 {
+            background: linear-gradient(135deg, #ff007f 0%, #a855f7 50%, #00f2fe 100%);
+            animation: speakingWave 0.68s infinite ease-in-out alternate;
+            filter: blur(22px); opacity: 0.95;
+        }
+        .gemini-aurora-vessel.speaking .aurora-layer.layer-2 {
+            animation: speakingWave 0.52s infinite ease-in-out alternate-reverse;
+        }
+        .gemini-aurora-vessel.speaking .aurora-layer.layer-3 {
+            background: radial-gradient(circle at 40% 40%, #ffffff 0%, #f472b6 45%, #8b5cf6 85%);
+            box-shadow: 0 0 110px rgba(236, 72, 153, 0.9), inset 0 0 45px #ffffff;
+            animation: speakingWave 0.6s infinite ease-in-out alternate;
+        }
+
+        /* State: Muted */
+        .gemini-aurora-vessel.muted .aurora-layer {
+            filter: grayscale(0.6) brightness(0.6) blur(16px);
+            transform: scale(0.85);
+        }
+
+        @keyframes speakingWave {
+            0% { transform: scale(0.92) rotate(-8deg); border-radius: 55% 45% 40% 60% / 50% 40% 60% 50%; }
+            100% { transform: scale(1.26) rotate(12deg); border-radius: 40% 60% 65% 35% / 60% 55% 45% 40%; }
+        }
+
+        /* Center Live Soundbar Equalizer inside the Aurora */
+        .aurora-soundbars {
+            position: relative; z-index: 8; display: flex; align-items: center; gap: 6px; height: 36px;
+        }
+        .aurora-bar {
+            width: 5px; height: 12px; border-radius: 999px; background: #ffffff;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+            transition: height 0.2s ease;
+        }
+        .gemini-aurora-vessel.listening .aurora-bar {
+            animation: barListen 1.2s infinite ease-in-out alternate;
+        }
+        .gemini-aurora-vessel.speaking .aurora-bar {
+            animation: barSpeak 0.42s infinite ease-in-out alternate;
+        }
+        .aurora-bar:nth-child(1) { animation-delay: 0.0s; }
+        .aurora-bar:nth-child(2) { animation-delay: 0.15s; }
+        .aurora-bar:nth-child(3) { animation-delay: 0.3s; }
+        .aurora-bar:nth-child(4) { animation-delay: 0.15s; }
+        .aurora-bar:nth-child(5) { animation-delay: 0.0s; }
+
+        @keyframes barListen { 0% { height: 8px; opacity: 0.6; } 100% { height: 20px; opacity: 1; } }
+        @keyframes barSpeak { 0% { height: 10px; } 100% { height: 38px; } }
+
+        .voice-caption-box {
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            max-width: 420px; width: 100%; padding: 0 14px; z-index: 10;
+        }
+        .voice-state-pill {
+            font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.4px;
+            color: #7dd3fc; opacity: 0.9;
+        }
+        .voice-status-display {
+            color: #ffffff; font-size: 17px; font-weight: 600; text-align: center;
+            line-height: 1.55; letter-spacing: -0.2px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            min-height: 54px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Bottom Glass Control Dock (Mic Mute + Interrupt + End Call) */
+        .voice-bottom-controls {
+            display: flex; align-items: center; justify-content: center; gap: 22px;
+            background: rgba(15, 17, 23, 0.72); border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+            padding: 12px 26px; border-radius: 999px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75); z-index: 10;
+        }
+
+        .voice-dock-btn {
+            width: 58px; height: 58px; border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.06); color: #ffffff;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-            background: rgba(239, 68, 68, 0.95); color: #ffffff;
-            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.45);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .voice-control-btn:hover { transform: scale(1.06); }
-        .voice-control-btn:active { transform: scale(0.92); }
+        .voice-dock-btn:active { transform: scale(0.9); }
+
+        .voice-dock-btn.mic-btn.muted {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b; color: #fbbf24;
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+        }
+
+        .voice-dock-btn.end-btn {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: none; color: #ffffff;
+            box-shadow: 0 8px 28px rgba(239, 68, 68, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -668,7 +768,7 @@
 
         <div class="header-right-actions">
             <!-- Voice Call Trigger -->
-            <button class="header-btn" id="openVoiceModeBtn" onclick="toggleVoiceMode(true)" title="Start Live Call">
+            <button class="header-btn" id="openVoiceModeBtn" onclick="toggleVoiceMode(true)" title="Start Gemini Live Call">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
             </button>
 
@@ -852,27 +952,50 @@
         </div>
     </div>
 
-    <!-- ========================================================
-         NEXT-GEN LIVE VOICE INTERACTION SCREEN (ZERO HEADER BUTTONS)
-         ======================================================== -->
+    <!-- =========================================================================
+         TRUE GEMINI LIVE ULTRA-PREMIUM VOICE STUDIO (WITH MUTE & INTERRUPT)
+         ========================================================================= -->
     <div id="voice-mode-overlay">
+        <div class="gemini-ambient-backdrop"></div>
+
         <div class="voice-brand-bar">
             <div class="voice-live-indicator">
-                <span class="live-dot-beacon"></span>
-                <span>Live Audio Link</span>
+                <span class="live-dot-beacon" id="liveBeaconDot"></span>
+                <span id="liveHeaderBadgeText">HookSpike Live</span>
             </div>
-            <span style="font-size:13px; font-weight:700; color:var(--text-secondary);">Pure English</span>
+            <div class="voice-timer-badge" id="voiceCallTimer">00:00</div>
         </div>
 
         <div class="voice-orb-stage">
-            <div class="aura-halo-outer"></div>
-            <div class="aura-halo-middle"></div>
-            <div class="voice-orb-core" id="hookspikeOrb"></div>
-            <div class="voice-status-display" id="voiceStatusLabel">Connecting to your companion...</div>
+            <div class="gemini-aurora-vessel listening" id="hookspikeOrb" onclick="interruptAiSpeech()" title="Tap to interrupt AI">
+                <div class="aurora-layer layer-1"></div>
+                <div class="aurora-layer layer-2"></div>
+                <div class="aurora-layer layer-3"></div>
+                <div class="aurora-soundbars">
+                    <div class="aurora-bar"></div>
+                    <div class="aurora-bar"></div>
+                    <div class="aurora-bar"></div>
+                    <div class="aurora-bar"></div>
+                    <div class="aurora-bar"></div>
+                </div>
+            </div>
+
+            <div class="voice-caption-box">
+                <div class="voice-state-pill" id="voiceStatePill">CONNECTING</div>
+                <div class="voice-status-display" id="voiceStatusLabel">Starting live session...</div>
+            </div>
         </div>
 
+        <!-- Bottom Controls: Mic Mute/Unmute + Interrupt + Hangup -->
         <div class="voice-bottom-controls">
-            <button class="voice-control-btn" onclick="toggleVoiceMode(false)" title="End Voice Call">
+            <button class="voice-dock-btn mic-btn" id="voiceMicToggleBtn" onclick="toggleUserMicMute()" title="Mute / Unmute Mic">
+                <!-- Mic ON Icon -->
+                <svg id="micOnSvg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                <!-- Mic OFF Icon -->
+                <svg id="micOffSvg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+
+            <button class="voice-dock-btn end-btn" onclick="toggleVoiceMode(false)" title="End Voice Call">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
@@ -1629,14 +1752,33 @@
             }
         };
 
-        // ========================================================
-        // ULTRA-SMOOTH PURE ENGLISH VOICE ENGINE & LIVE RECOGNITION
-        // ========================================================
+        // =========================================================================
+        // GEMINI LIVE ENGINE: ANTI-ECHO MIC LOCK + MUTE CONTROL + DYNAMIC GREETING
+        // =========================================================================
         let isVoiceModeActive = false;
+        let isUserMicMuted = false;
+        let isAiSpeaking = false;
         let speechRecognitionInstance = null;
         let voiceAudioPlayer = new Audio();
+        let voiceCallHistory = [];
+        let voiceTimerInterval = null;
+        let voiceSecondsElapsed = 0;
+
+        function startVoiceCallTimer() {
+            voiceSecondsElapsed = 0;
+            const timerEl = document.getElementById("voiceCallTimer");
+            timerEl.innerText = "00:00";
+            clearInterval(voiceTimerInterval);
+            voiceTimerInterval = setInterval(() => {
+                voiceSecondsElapsed++;
+                const mins = String(Math.floor(voiceSecondsElapsed / 60)).padStart(2, '0');
+                const secs = String(voiceSecondsElapsed % 60).padStart(2, '0');
+                timerEl.innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
 
         function stopActiveAudio() {
+            isAiSpeaking = false;
             if (voiceAudioPlayer) {
                 voiceAudioPlayer.pause();
                 voiceAudioPlayer.currentTime = 0;
@@ -1644,68 +1786,146 @@
             }
         }
 
-        function toggleVoiceMode(activate) {
-            isVoiceModeActive = activate;
-            const overlayEl = document.getElementById('voice-mode-overlay');
+        function pauseRecognitionSafely() {
+            if (speechRecognitionInstance) {
+                try { speechRecognitionInstance.abort(); } catch(e) {}
+            }
+        }
+
+        function resumeRecognitionSafely() {
+            if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
+                try { speechRecognitionInstance.start(); } catch(e) {}
+            }
+        }
+
+        function setVoiceVisualState(stateName, pillText, captionText) {
             const orbEl = document.getElementById('hookspikeOrb');
-            const statusLabel = document.getElementById('voiceStatusLabel');
-            
-            if (activate) {
-                overlayEl.classList.add('active');
-                orbEl.className = 'voice-orb-core listening';
-                statusLabel.innerText = "Listening... Tell me what's on your mind.";
-                startSpeechListening();
-                playVoiceTTSResponse("Hey! I am right here with you, tell me what is going on.");
+            const pillEl = document.getElementById('voiceStatePill');
+            const statusEl = document.getElementById('voiceStatusLabel');
+            if (orbEl) orbEl.className = `gemini-aurora-vessel ${stateName}`;
+            if (pillEl && pillText) pillEl.innerText = pillText;
+            if (statusEl && captionText) statusEl.innerText = captionText;
+        }
+
+        function toggleUserMicMute() {
+            if (!isVoiceModeActive) return;
+            isUserMicMuted = !isUserMicMuted;
+
+            const micBtn = document.getElementById("voiceMicToggleBtn");
+            const micOnSvg = document.getElementById("micOnSvg");
+            const micOffSvg = document.getElementById("micOffSvg");
+            const beaconDot = document.getElementById("liveBeaconDot");
+            const badgeText = document.getElementById("liveHeaderBadgeText");
+
+            micBtn.classList.toggle("muted", isUserMicMuted);
+            micOnSvg.style.display = isUserMicMuted ? "none" : "block";
+            micOffSvg.style.display = isUserMicMuted ? "block" : "none";
+            beaconDot.classList.toggle("muted", isUserMicMuted);
+            badgeText.innerText = isUserMicMuted ? "Mic Muted" : "HookSpike Live";
+
+            if (isUserMicMuted) {
+                pauseRecognitionSafely();
+                if (!isAiSpeaking) {
+                    setVoiceVisualState("muted", "MIC MUTED", "Your microphone is muted. Tap the mic button to speak.");
+                }
             } else {
-                overlayEl.classList.remove('active');
-                orbEl.className = 'voice-orb-core';
-                statusLabel.innerText = "Call ended.";
-                stopActiveAudio();
-                if (speechRecognitionInstance) {
-                    try { speechRecognitionInstance.abort(); } catch(e) {}
+                if (!isAiSpeaking) {
+                    setVoiceVisualState("listening", "LISTENING", "I'm listening... Go ahead!");
+                    resumeRecognitionSafely();
                 }
             }
         }
 
-        function startSpeechListening() {
+        function interruptAiSpeech() {
+            if (!isVoiceModeActive || !isAiSpeaking) return;
+            stopActiveAudio();
+            if (!isUserMicMuted) {
+                setVoiceVisualState("listening", "LISTENING", "Interrupted — go ahead, I'm listening!");
+                resumeRecognitionSafely();
+            } else {
+                setVoiceVisualState("muted", "MIC MUTED", "Audio stopped. Unmute your mic to speak.");
+            }
+        }
+
+        function toggleVoiceMode(activate) {
+            isVoiceModeActive = activate;
+            const overlayEl = document.getElementById('voice-mode-overlay');
+            
+            if (activate) {
+                isUserMicMuted = false;
+                voiceCallHistory = [];
+                document.getElementById("voiceMicToggleBtn").classList.remove("muted");
+                document.getElementById("micOnSvg").style.display = "block";
+                document.getElementById("micOffSvg").style.display = "none";
+                document.getElementById("liveBeaconDot").classList.remove("muted");
+                document.getElementById("liveHeaderBadgeText").innerText = "HookSpike Live";
+
+                overlayEl.classList.add('active');
+                startVoiceCallTimer();
+                initSpeechRecognitionEngine();
+                // Let the AI generate its own spontaneous opening line!
+                sendVoiceQueryToAI("__INIT_VOICE_GREETING__", true);
+            } else {
+                overlayEl.classList.remove('active');
+                clearInterval(voiceTimerInterval);
+                stopActiveAudio();
+                pauseRecognitionSafely();
+            }
+        }
+
+        function initSpeechRecognitionEngine() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
-                document.getElementById('voiceStatusLabel').innerText = "Speech recognition is not supported in this browser. Please use Chrome.";
+                setVoiceVisualState("muted", "UNSUPPORTED", "Speech recognition requires Google Chrome.");
                 return;
             }
 
+            if (speechRecognitionInstance) {
+                try { speechRecognitionInstance.abort(); } catch(e) {}
+            }
+
             speechRecognitionInstance = new SpeechRec();
-            speechRecognitionInstance.lang = 'en-US'; // Locked to clean natural English
+            speechRecognitionInstance.lang = 'en-US';
             speechRecognitionInstance.interimResults = false;
             speechRecognitionInstance.maxAlternatives = 1;
 
             speechRecognitionInstance.onresult = async function(event) {
-                const spokenText = event.results[0][0].transcript;
-                document.getElementById('voiceStatusLabel').innerText = `"${spokenText}"`;
-                stopActiveAudio();
-                await sendVoiceQueryToAI(spokenText);
+                // Strict guard: Ignore mic pickup while AI is speaking or mic is muted!
+                if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) return;
+                const spokenText = (event.results[0][0].transcript || "").trim();
+                if (!spokenText) return;
+
+                pauseRecognitionSafely();
+                setVoiceVisualState("thinking", "YOU SAID", `"${spokenText}"`);
+                await sendVoiceQueryToAI(spokenText, false);
             };
 
             speechRecognitionInstance.onerror = function(event) {
-                console.log("Speech recognition notice:", event.error);
+                // Ignore harmless no-speech or aborted events
             };
 
             speechRecognitionInstance.onend = function() {
-                if (isVoiceModeActive) {
-                    try { speechRecognitionInstance.start(); } catch(e) {}
+                if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
+                    setTimeout(() => {
+                        if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
+                            try { speechRecognitionInstance.start(); } catch(e) {}
+                        }
+                    }, 180);
                 }
             };
-
-            try {
-                speechRecognitionInstance.start();
-            } catch(e) {}
         }
 
-        async function sendVoiceQueryToAI(userText) {
-            const statusLabel = document.getElementById('voiceStatusLabel');
-            const orbEl = document.getElementById('hookspikeOrb');
-            statusLabel.innerText = "Thinking...";
-            orbEl.className = 'voice-orb-core listening';
+        async function sendVoiceQueryToAI(userText, isInitialGreeting = false) {
+            if (!isVoiceModeActive) return;
+
+            isAiSpeaking = true; // Lock mic while AI thinks & speaks
+            pauseRecognitionSafely();
+
+            if (isInitialGreeting) {
+                setVoiceVisualState("thinking", "CONNECTING", "Waking up your companion...");
+            } else {
+                setVoiceVisualState("thinking", "THINKING", `"${userText}"`);
+            }
 
             const activeEmail = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email") || "";
 
@@ -1718,7 +1938,8 @@
                         message: userText,
                         display_message: userText,
                         voice_mode: true,
-                        session_id: currentSessionId,
+                        history: voiceCallHistory.slice(-4),
+                        session_id: null,
                         user_email: activeEmail,
                         access_token: CURRENT_ACCESS_TOKEN
                     })
@@ -1742,28 +1963,37 @@
                             try {
                                 const parsed = JSON.parse(dataStr);
                                 if (parsed.token) fullAiReply += parsed.token;
-                                if (parsed.session_id) currentSessionId = parsed.session_id;
                             } catch(e) {}
                         }
                     }
                 }
 
-                if (fullAiReply && isVoiceModeActive) {
-                    statusLabel.innerText = fullAiReply;
-                    await playVoiceTTSResponse(fullAiReply);
+                const cleanReply = fullAiReply.trim();
+                if (cleanReply && isVoiceModeActive) {
+                    if (!isInitialGreeting) {
+                        voiceCallHistory.push({ role: "user", content: userText });
+                    }
+                    voiceCallHistory.push({ role: "assistant", content: cleanReply });
+                    await playVoiceTTSResponse(cleanReply);
+                } else {
+                    isAiSpeaking = false;
+                    resumeRecognitionSafely();
                 }
             } catch (err) {
+                isAiSpeaking = false;
                 if (isVoiceModeActive) {
-                    statusLabel.innerText = "Connection hiccup, could you repeat that?";
-                    orbEl.className = 'voice-orb-core listening';
+                    setVoiceVisualState("listening", "LISTENING", "Slight network hiccup—go ahead, I'm listening!");
+                    resumeRecognitionSafely();
                 }
             }
         }
 
         async function playVoiceTTSResponse(textToSpeak) {
             if (!isVoiceModeActive) return;
-            const orbEl = document.getElementById('hookspikeOrb');
-            orbEl.className = 'voice-orb-core speaking';
+
+            isAiSpeaking = true;
+            pauseRecognitionSafely();
+            setVoiceVisualState("thinking", "SYNTHESIZING VOICE", textToSpeak);
 
             try {
                 const res = await fetch(`${BACKEND_URL}/api/voice-tts`, {
@@ -1779,17 +2009,41 @@
                 const audioUrl = URL.createObjectURL(audioBlob);
                 voiceAudioPlayer.src = audioUrl;
 
-                voiceAudioPlayer.onended = () => {
+                voiceAudioPlayer.onplay = () => {
                     if (isVoiceModeActive) {
-                        orbEl.className = 'voice-orb-core listening';
-                        document.getElementById('voiceStatusLabel').innerText = "Listening...";
+                        setVoiceVisualState("speaking", "SPEAKING (TAP ORB TO INTERRUPT)", textToSpeak);
                     }
                 };
 
-                voiceAudioPlayer.play();
+                voiceAudioPlayer.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    isAiSpeaking = false;
+                    if (isVoiceModeActive) {
+                        if (isUserMicMuted) {
+                            setVoiceVisualState("muted", "MIC MUTED", "Tap the mic button below when you're ready to speak.");
+                        } else {
+                            setVoiceVisualState("listening", "LISTENING", "Listening... Go ahead!");
+                            resumeRecognitionSafely();
+                        }
+                    }
+                };
+
+                voiceAudioPlayer.onerror = () => {
+                    isAiSpeaking = false;
+                    if (isVoiceModeActive && !isUserMicMuted) {
+                        setVoiceVisualState("listening", "LISTENING", "Listening...");
+                        resumeRecognitionSafely();
+                    }
+                };
+
+                await voiceAudioPlayer.play();
             } catch(e) {
                 console.error("TTS playback error:", e);
-                if (isVoiceModeActive) orbEl.className = 'voice-orb-core listening';
+                isAiSpeaking = false;
+                if (isVoiceModeActive && !isUserMicMuted) {
+                    setVoiceVisualState("listening", "LISTENING", textToSpeak);
+                    resumeRecognitionSafely();
+                }
             }
         }
 

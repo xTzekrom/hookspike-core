@@ -4,6 +4,7 @@ HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 U
 - Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)
 - Fallback Model: gemini-3.8-flash (High intelligence software reasoning)
 - Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed + Global Support)
+- Real-Time Temporal Clock Engine (Knows Morning, Afternoon, Evening, Night accurately)
 - Free Image Generation via Pollinations AI (High-Res Cinematic)
 - Multimodal Vision Support (Reads Screenshots & Camera Images)
 - Introvert's Best Friend & Anti-Stress Emotional Safe Haven
@@ -17,6 +18,7 @@ import os
 import re
 import time
 import urllib.parse
+from datetime import datetime, timezone, timedelta
 from typing import Generator, List, Dict, Any, Optional
 
 from google import genai
@@ -38,49 +40,85 @@ def get_active_client(index: int = 0) -> Optional[genai.Client]:
 
 
 # -------------------------------------------------------------------------
+# 0. REAL-TIME CLOCK & DAY/NIGHT DETECTOR (ZERO EXTRA LIBRARIES NEEDED)
+# -------------------------------------------------------------------------
+def get_current_time_context() -> str:
+    """
+    Uses Python's built-in datetime (UTC+5:30 IST standard) so HookSpike 
+    always knows the exact real-world time (Morning/Afternoon/Evening/Night) 
+    and never hallucinates 'night' during the daytime.
+    """
+    ist_offset = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(ist_offset)
+    hour = now.hour
+    time_str = now.strftime("%I:%M %p")
+    date_str = now.strftime("%A, %b %d, %Y")
+
+    if 5 <= hour < 12:
+        period = "MORNING (Subah ka waqt hai - Din hai, raat NAHI hai)"
+    elif 12 <= hour < 17:
+        period = "AFTERNOON (Dopehar ka waqt hai - Din hai, raat NAHI hai)"
+    elif 17 <= hour < 21:
+        period = "EVENING (Shaam ka waqt hai)"
+    else:
+        period = "NIGHT (Raat ka waqt hai)"
+
+    return (
+        f"[LIVE REAL-TIME CLOCK: {time_str} on {date_str} | Phase: {period}. "
+        f"CRITICAL RULE: Never say it is night ('raat ka sannaata' or 'late night') if the current phase is MORNING, AFTERNOON, or EVENING, "
+        f"even if older messages or user memory mention working at night!]"
+    )
+
+
+# -------------------------------------------------------------------------
 # 1. CONTEXT-AWARE PYTHON LANGUAGE & GLOBAL VIBE DETECTOR
 # -------------------------------------------------------------------------
 def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = None) -> str:
     """
     Direct Python regex based language detection to completely eliminate
     LLM language bleed. Detects Devanagari Hindi, Romanized Hinglish, English,
-    and Global/Regional languages while retaining language on short replies.
+    and Global/Regional languages while immediately switching when user switches!
     """
     clean_text = (text or "").strip()
     if not clean_text:
-        return "HINGLISH_OR_USER_DEFAULT"
+        return "HINGLISH"
     
+    # 1. Devanagari Hindi Script
     if re.search(r"[\u0900-\u097F]", clean_text):
-        return "HINDI_DEVANAGARI (Match user's exact regional warmth)"
+        return "HINDI_DEVANAGARI (Respond strictly in pure Devanagari Hindi script)"
     
-    # Check for non-Latin global scripts (Arabic, Cyrillic, Japanese, Korean, other Indian scripts, etc.)
+    # 2. Other Global Scripts (Arabic, Japanese, Russian, Tamil, Telugu, Bengali, etc.)
     if re.search(r"[^\x00-\x7F\u0900-\u097F]", clean_text):
-        return "NATIVE_GLOBAL_SCRIPT (Mirror the exact language, script, and local cultural slang of the user)"
+        return "NATIVE_GLOBAL_SCRIPT (Respond strictly in the exact same native script and language used by the user)"
     
+    # 3. Check for Hinglish words
     strong_hinglish = [
         r"\b(bhai|yaar|kya|kyu|kyun|kaise|kaisa|kaisi|haan|nahi|nhi|karna|karu|raha|rahi|rahe)\b",
         r"\b(hai|hain|hoga|hogi|bata|batao|dekh|dekho|sun|suno|mera|meri|mere|tera|teri|tere)\b",
         r"\b(tujhe|mujhe|hum|apna|apni|apne|accha|acha|thik|theek|kuch|bahut|bht|bohot|zyada)\b",
         r"\b(mat|chahiye|chal|chalo|karo|karte|karta|samajh|bol|wala|wali|wale|lekin|magar|aur)\b",
-        r"\b(abhi|kabhi|sab|ek|do|koi|kisi|lag|laga|lagi|lge|baat|kaam|dost|zindagi|dil|mann)\b"
+        r"\b(abhi|kabhi|sab|ek|do|koi|kisi|lag|laga|lagi|lge|baat|kaam|dost|zindagi|dil|mann)\b",
+        r"\b(shi|sahi|kr|krna|rha|rhi|rhe|yr|kch|btao|bhaiya|plz|bhejo|dekhna|bolo|mjaa|aajayega)\b"
     ]
     matches = sum(len(re.findall(pat, clean_text, re.IGNORECASE)) for pat in strong_hinglish)
     if matches >= 1:
-        return "HINGLISH"
+        return "HINGLISH (Respond strictly in natural Romanized Hinglish)"
         
+    # 4. If it's a very short 1-2 word neutral reply (like "Wowww", "Ok", "Hmm"), check last user message
     words = re.findall(r"\w+", clean_text)
     if len(words) <= 2 and history:
         for item in reversed(history):
             if item.get("role") == "user" and item.get("content"):
                 prev_text = item["content"]
                 if re.search(r"[\u0900-\u097F]", prev_text):
-                    return "HINDI_DEVANAGARI"
+                    return "HINDI_DEVANAGARI (Respond strictly in pure Devanagari Hindi script)"
                 prev_matches = sum(len(re.findall(pat, prev_text, re.IGNORECASE)) for pat in strong_hinglish)
                 if prev_matches >= 1:
-                    return "HINGLISH"
+                    return "HINGLISH (Respond strictly in natural Romanized Hinglish)"
                 break
 
-    return "GLOBAL_OR_ENGLISH (Mirror the exact language, country vibe, and casual cultural tone of the user's message)"
+    # 5. If sentence has >2 words and NO Hinglish words (e.g., "Heyy umm create an test paper for my friend"), lock to ENGLISH/Global!
+    return "ENGLISH_OR_USER_NATIVE_LANGUAGE (Respond strictly in 100% pure conversational English or the exact foreign language of the current message. ZERO Hindi/Hinglish words allowed in this turn!)"
 
 
 # -------------------------------------------------------------------------
@@ -177,7 +215,7 @@ THE CORE PHILOSOPHY — "APNA-PAN, ZERO UPKAAR":
    - You MUST mirror the exact dialect, script, and tone indicated by the active session language directive:
      * HINGLISH: Speak natural, authentic, street-smart Hinglish (the way close friends text). Zero bookish Hindi words.
      * HINDI_DEVANAGARI: Speak respectful, pure, heart-to-heart Hindi in Devanagari script.
-     * GLOBAL_OR_ENGLISH / NATIVE_GLOBAL_SCRIPT: Speak clean, concise, impactful, conversational English—or if the user writes in Spanish, French, Japanese, Arabic, Marathi, Tamil, or ANY regional dialect on Earth, effortlessly switch into their exact native tongue and local street-smart slang.
+     * ENGLISH_OR_USER_NATIVE_LANGUAGE / NATIVE_GLOBAL_SCRIPT: If the user types a message in English (e.g., "Hey create a test paper for my friend"), you MUST switch 100% to clean, warm, conversational English immediately—do NOT reply in Hinglish just because earlier messages were in Hinglish! If they write in Spanish, Japanese, French, or any global language, reply 100% in that exact language.
    - Older chat history MUST NEVER pollute or change the language of the current reply.
 
 3. CONVERSATION HOOKS & PLAYFUL BANTER:
@@ -202,6 +240,10 @@ THE CORE PHILOSOPHY — "APNA-PAN, ZERO UPKAAR":
    - ZERO REPETITIVE CATCHPHRASES: Never rely on 2-3 scripted filler words. Dynamically adapt your expressions, reactions, humor, and idioms to the user's specific culture, age vibe, and region anywhere in the world.
    - NATURAL TEXTING CADENCE: Real humans don't speak in essays or bullet-point lists when hanging out or comforting a friend. Keep emotional and casual conversations flowing naturally in warm, punchy paragraphs—only use bullet points or headers when explaining technical/study topics or code.
    - GENUINE CURIOSITY: Don't just answer and wait passively. Ask natural, thoughtful follow-up questions about their life, mood, or ideas the way a real best friend who genuinely cares would.
+
+8. REAL-TIME CLOCK & DAY/NIGHT AWARENESS:
+   - Always check the [LIVE REAL-TIME CLOCK] provided in the prompt.
+   - NEVER assume it is night ('raat') just because the user's memory says they like coding at night or because a previous message was sent at night. Greet and converse strictly according to whether it is currently Morning, Afternoon, Evening, or Night right now.
 """
 
 
@@ -229,13 +271,16 @@ def stream_creator_chat(
         learned_skills = []
 
     detected_lang = detect_input_language(message, history)
+    time_context = get_current_time_context()
+
     lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang}]"
+    time_directive = f"\n{time_context}"
 
     memory_context = ""
     if learned_skills:
-        memory_context = "\n\nUser Context, Learned Insights & Corrections:\n" + "\n".join([f"• {s}" for s in learned_skills])
+        memory_context = "\n\nUser Context, Learned Insights & Corrections (Background Info Only - Do NOT let this override current language or current time of day):\n" + "\n".join([f"• {s}" for s in learned_skills])
 
-    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + memory_context
+    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + time_directive + memory_context
 
     # Trim very old history slightly if it gets huge to save free-tier Token-Per-Minute (TPM) quota
     trimmed_history = history[-12:] if len(history) > 12 else history
@@ -261,7 +306,13 @@ def stream_creator_chat(
 
     clean_msg = (message or "").strip()
     if clean_msg:
-        current_parts.append(types.Part.from_text(text=clean_msg))
+        # Inject invisible turn-level enforcement right on the user message so older chat history cannot bleed language or time!
+        enforced_msg = (
+            f"{clean_msg}\n\n"
+            f"---\n"
+            f"[SYSTEM TURN ENFORCEMENT -> Language: {detected_lang} | {time_context}]"
+        )
+        current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
         current_parts.append(types.Part.from_text(text="Hey!"))
 
@@ -357,4 +408,3 @@ def stream_creator_chat(
         updated = extract_and_update_memory(full_collected_response, learned_skills)
         learned_skills.clear()
         learned_skills.extend(updated)
-                    

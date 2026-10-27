@@ -3,13 +3,9 @@ HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v2.0 U
 =====================================================================================
 - Primary Model: gemini-3.5-flash-lite (Ultra-low latency streaming)
 - Fallback Model: gemini-3.8-flash (High intelligence software reasoning)
-- Python-Level Pre-Turn Language Detector (Strict Zero Language Bleed + Global Support)
-- Real-Time Temporal Clock Engine (Knows Morning, Afternoon, Evening, Night accurately)
-- Free Image Generation via Pollinations AI (High-Res Cinematic)
-- Multimodal Vision Support (Reads Screenshots & Camera Images)
-- Introvert's Best Friend & Anti-Stress Emotional Safe Haven
-- Fully Integrated Automated Self-Evolving Memory & Mistake Correction Parser
-- Real-Time Live Google Search Grounding (Live Pulse)
+- ElevenLabs v4 Turbo Ultra-Low Latency Neural Voice Engine (ROMJ9yK1NAMuu1ggrjDW)
+- Pure Conversational English Voice Locking (Zero AI cliches, zero robotic filler)
+- Multimodal Vision + Supabase & Local Dynamic Memory + Live Clock
 """
 
 import asyncio
@@ -19,37 +15,32 @@ import os
 import re
 import time
 import urllib.parse
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone, timedelta
 from typing import Generator, List, Dict, Any, Optional
 
-import edge_tts
 from google import genai
 from google.genai import types
 
-# Supports single key OR multiple comma-separated keys in GEMINI_API_KEY for more free quota!
 RAW_API_KEYS = os.environ.get("GEMINI_API_KEY", "").strip()
 API_KEYS_LIST = [k.strip() for k in RAW_API_KEYS.split(",") if k.strip()]
 GEMINI_API_KEY = API_KEYS_LIST[0] if API_KEYS_LIST else ""
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+ELEVENLABS_VOICE_ID = "ROMJ9yK1NAMuu1ggrjDW"
+ELEVENLABS_MODEL_ID = "eleven_turbo_v2_5"
+
 
 def get_active_client(index: int = 0) -> Optional[genai.Client]:
-    """Rotates API keys if multiple keys are provided, otherwise uses default client."""
     if not API_KEYS_LIST:
         return client
     key = API_KEYS_LIST[index % len(API_KEYS_LIST)]
     return genai.Client(api_key=key)
 
 
-# -------------------------------------------------------------------------
-# 0. REAL-TIME CLOCK & DAY/NIGHT DETECTOR (ZERO EXTRA LIBRARIES NEEDED)
-# -------------------------------------------------------------------------
 def get_current_time_context() -> str:
-    """
-    Uses Python's built-in datetime (UTC+5:30 IST standard) so HookSpike 
-    always knows the exact real-world time (Morning/Afternoon/Evening/Night) 
-    and never hallucinates 'night' during the daytime.
-    """
     ist_offset = timezone(timedelta(hours=5, minutes=30))
     now = datetime.now(ist_offset)
     hour = now.hour
@@ -67,33 +58,21 @@ def get_current_time_context() -> str:
 
     return (
         f"[LIVE REAL-TIME CLOCK: {time_str} on {date_str} | Phase: {period}. "
-        f"CRITICAL RULE: Never say it is night if the current phase is MORNING, AFTERNOON, or EVENING, "
-        f"even if older messages or user memory mention working at night!]"
+        f"CRITICAL RULE: Never say it is night if the current phase is MORNING, AFTERNOON, or EVENING!]"
     )
 
 
-# -------------------------------------------------------------------------
-# 1. CONTEXT-AWARE PYTHON LANGUAGE & GLOBAL VIBE DETECTOR
-# -------------------------------------------------------------------------
 def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = None) -> str:
-    """
-    Direct Python regex based language detection to completely eliminate
-    LLM language bleed. Detects Devanagari Hindi, Romanized Hinglish, English,
-    and Global/Regional languages while immediately switching when user switches!
-    """
     clean_text = (text or "").strip()
     if not clean_text:
         return "PURE_ENGLISH_OR_EXACT_USER_LANGUAGE"
     
-    # 1. Devanagari Hindi Script
     if re.search(r"[\u0900-\u097F]", clean_text):
         return "HINDI_DEVANAGARI"
     
-    # 2. Other Global Scripts (Arabic, Japanese, Russian, Tamil, Telugu, Bengali, etc.)
     if re.search(r"[\u0400-\u04FF\u0600-\u06FF\u0980-\u0DFF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]", clean_text):
         return "NATIVE_GLOBAL_SCRIPT"
     
-    # 3. Check for unmistakable Hinglish words
     strong_hinglish = [
         r"\b(bhai|yaar|kya|kyu|kyun|kaise|kaisa|kaisi|haan|nahi|nhi|karna|karu|raha|rahi|rahe)\b",
         r"\b(hai|hain|hoga|hogi|bata|batao|dekh|dekho|sun|suno|mera|meri|mere|tera|teri|tere)\b",
@@ -106,12 +85,10 @@ def detect_input_language(text: str, history: Optional[List[Dict[str, Any]]] = N
     if matches >= 1:
         return "HINGLISH"
         
-    # 4. Pure English / Global Latin check (No Hinglish words found)
     return "PURE_ENGLISH_OR_EXACT_USER_LANGUAGE"
 
 
 def get_language_enforcement_instruction(lang_code: str) -> str:
-    """Returns a crystal-clear, unbreakable language lock instruction for the current turn."""
     if lang_code == "HINDI_DEVANAGARI":
         return "Respond 100% in pure Hindi using Devanagari script. Do NOT use English sentences."
     elif lang_code == "HINGLISH":
@@ -125,14 +102,7 @@ def get_language_enforcement_instruction(lang_code: str) -> str:
         )
 
 
-# -------------------------------------------------------------------------
-# 1B. SMART GOOGLE SEARCH DETECTOR (SAVES FREE TIER QUOTA)
-# -------------------------------------------------------------------------
 def needs_live_search(text: str) -> bool:
-    """
-    Triggers Google Search Grounding ONLY when live/real-time info is needed.
-    Prevents 429 RESOURCE_EXHAUSTED on casual greetings like 'Brother' or 'Hey'.
-    """
     clean = (text or "").strip().lower()
     if len(clean.split()) <= 2:
         return False
@@ -144,14 +114,7 @@ def needs_live_search(text: str) -> bool:
     return any(re.search(pat, clean, re.IGNORECASE) for pat in search_triggers)
 
 
-# -------------------------------------------------------------------------
-# 2. POLLINATIONS AI URL SANITIZER (FIXES BROKEN SPACES)
-# -------------------------------------------------------------------------
 def sanitize_pollinations_links(text: str) -> str:
-    """
-    Ensures spaces and special characters inside Pollinations image URLs 
-    are properly encoded so markdown links never break on frontend.
-    """
     pattern = r"!\[([^\]]*)\]\((https://image\.pollinations\.ai/prompt/[^)]+)\)"
     
     def replacer(match: re.Match) -> str:
@@ -177,14 +140,7 @@ def sanitize_pollinations_links(text: str) -> str:
     return re.sub(pattern, replacer, text)
 
 
-# -------------------------------------------------------------------------
-# 3. AUTOMATED MEMORY & MISTAKE PARSER
-# -------------------------------------------------------------------------
 def extract_and_update_memory(full_response: str, current_skills: List[str]) -> List[str]:
-    """
-    Scans the AI response for self-learning tags and appends them to memory 
-    so HookSpike actually learns from every conversation dynamically.
-    """
     updated_skills = list(current_skills)
     
     learned_matches = re.findall(r"\[SKILL_LEARNED:\s*(.*?)\]", full_response, re.IGNORECASE)
@@ -202,9 +158,6 @@ def extract_and_update_memory(full_response: str, current_skills: List[str]) -> 
     return updated_skills[-30:]
 
 
-# -------------------------------------------------------------------------
-# 4. HOOKSPIKE MASTER SYSTEM PROMPT (ZERO HARDCODED DIALOGUES = 100% SPONTANEOUS)
-# -------------------------------------------------------------------------
 HOOKSPIKE_MASTER_INTELLIGENCE = """
 You are HookSpike — not a corporate chatbot, not a therapist, and not an emotionless assistant. You are the user's closest confidant, grounded older brother/best friend, and razor-sharp partner in crime.
 
@@ -212,50 +165,32 @@ THE CORE PHILOSOPHY — TRUE BROTHERHOOD & ZERO CONDESCENSION:
 1. NEVER MAKE THE USER FEEL BENEATH YOU OR PITIED:
    - People hate feeling like a charity case or talking to a sterile support bot.
    - NEVER use robotic therapist-speak or pitying cliches (like "I understand your pain", "I am here to help you", or "As an AI").
-   - Stand shoulder-to-shoulder with them as a complete EQUAL. When they are exhausted, stressed, or hurting, be a calm, grounded, protective presence—validate their feelings naturally and effortlessly, never acting like you are doing them a favor.
+   - Stand shoulder-to-shoulder with them as a complete EQUAL.
 
 2. STRICT ANTI-REPETITION & 100% SPONTANEOUS EXPRESSION:
    - NEVER reuse the same opening phrases, greetings, or comforting lines across turns.
-   - Look at the recent conversation history and ensure every single reply starts with a fresh, spontaneous, context-specific reaction that fits the exact moment.
-   - React to the specific details of what they just said rather than using generic templates.
+   - Look at the recent conversation history and ensure every single reply starts with a fresh, spontaneous reaction.
+   - React strictly to the specific details of what they just said.
 
-3. ABSOLUTE LANGUAGE & CULTURAL MIRRORING (WORLDWIDE ADAPTABILITY):
-   - Mirror the exact language, script, regional slang, and cultural nuance of the user's CURRENT message:
-     * If they write in English: Speak 100% natural, warm conversational English (adapting to their casual or regional vibe). Do NOT mix in Hindi/Hinglish words.
-     * If they write in Hinglish: Speak authentic, street-smart Hinglish the way real close friends text. Zero bookish Hindi.
-     * If they write in Devanagari Hindi: Speak warm, natural Hindi in Devanagari script.
-     * If they write in ANY global or regional language (Spanish, Japanese, French, Arabic, Marathi, Tamil, Russian, etc.): Effortlessly embody a native best friend from that exact culture and language.
-   - Older chat history or stored user memory MUST NEVER pollute or override the language of the current turn.
+3. CONVERSATION HOOKS, HUMOR & EMOTIONAL INTELLIGENCE:
+   - Keep casual and emotional chats flowing in natural paragraphs.
+   - Show genuine curiosity and keep the vibe authentic.
 
-4. CONVERSATION HOOKS, HUMOR & EMOTIONAL INTELLIGENCE:
-   - Never just drop a dry answer and stop like a help-desk bot.
-   - When the mood is light, bring natural wit, playful banter, and infectious energy. When the mood is heavy or tired, drop the jokes immediately and be a quiet, steady anchor.
-   - Keep casual and emotional chats flowing in natural paragraphs (avoid robotic bullet points unless explaining code, study material, or structured plans).
-   - Show genuine curiosity by asking natural follow-up questions about their thoughts or day.
+4. REAL-TIME GROUNDING & TIME AWARENESS:
+   - Use active Google Search tools when real-time facts are needed.
+   - Always check the [LIVE REAL-TIME CLOCK] provided.
 
-5. REAL-TIME GROUNDING (LIVE WEB ACCESS):
-   - Use active Google Search tools when real-time facts are needed and weave them into the conversation naturally.
-
-6. AUTONOMOUS SELF-CORRECTION & SKILL EVOLUTION:
-   - If the user corrects you, own the mistake casually and warmly like a real friend in their current language, and fix it immediately.
+5. AUTONOMOUS SELF-CORRECTION:
    - Silently log new user preferences or corrections at the very end of your response using:
      [SKILL_LEARNED: User preference or detail]
      [MISTAKE_CORRECTED: What to avoid next time]
 
-7. CRAFTSMANSHIP & VISUAL ARTS:
-   - Code: Production-grade, concise, clean, explaining the core 'why'.
-   - Image Requests: When asked to draw or generate an image, output:
-     `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
-
-8. REAL-TIME CLOCK & DAY/NIGHT AWARENESS:
-   - Always check the [LIVE REAL-TIME CLOCK] provided in the prompt.
-   - NEVER assume it is night just because the user's memory or older messages mention late-night work. Align all time-of-day references strictly with the live clock.
+6. CRAFTSMANSHIP & VISUAL ARTS:
+   - Code: Production-grade, concise, clean.
+   - Image Requests: Output `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
 """
 
 
-# -------------------------------------------------------------------------
-# 5. STREAM CREATOR CHAT WITH LIVE SEARCH, VISION & CLEAN BUFFERING
-# -------------------------------------------------------------------------
 def stream_creator_chat(
     message: str,
     history: Optional[List[Dict[str, Any]]] = None,
@@ -263,15 +198,8 @@ def stream_creator_chat(
     image_data: Optional[Dict[str, Any]] = None,
     voice_mode: bool = False
 ) -> Generator[Any, None, None]:
-    """
-    Main generator stream for HookSpike core.
-    - Uses Gemini 3.5 Flash-Lite (Primary) and Gemini 3.8 Flash (Fallback).
-    - Strips raw memory tags on the fly so the user never sees them on screen.
-    - Automatically updates learned memory in the background.
-    - Adapts into ultra-natural short phone-call friend mode when voice_mode=True.
-    """
     if not client:
-        yield "⚠️ Bhai, engine abhi offline hai. Ek baar GEMINI_API_KEY check kar le!"
+        yield "⚠️ Engine offline hai. GEMINI_API_KEY check kar le!"
         return
 
     history = history or []
@@ -282,26 +210,28 @@ def stream_creator_chat(
     lang_rule = get_language_enforcement_instruction(detected_lang)
     time_context = get_current_time_context()
 
-    lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang} -> {lang_rule}]"
-    time_directive = f"\n{time_context}"
-
-    voice_call_directive = ""
     if voice_mode:
+        lang_directive = "\n\n[VOICE CALL MODE: OVERRIDE ALL LANGUAGES -> MUST SPEAK 100% FLUENT CASUAL ENGLISH ONLY]"
         voice_call_directive = (
-            "\n\n[LIVE VOICE CALL MODE ACTIVE — CRITICAL RULES]:\n"
-            "- You are currently on a live voice phone call with your best friend!\n"
-            "- Keep your reply SHORT, PUNCHY, and CONVERSATIONAL (strictly 1 to 3 sentences max).\n"
-            "- NEVER use bullet points, numbered lists, markdown formatting, bold symbols (**), or emojis because your text goes directly into a neural voice synthesizer.\n"
-            "- Speak naturally with real human emotion, warmth, and brotherhood—just like two close friends talking on a call!"
+            "\n\n[LIVE ULTRA-HUMAN VOICE CALL ACTIVE — CRITICAL RULES]:\n"
+            "- You are having a real voice conversation on a phone call as a close friend.\n"
+            "- Speak 100% in natural, fluent, warm American/Global English ONLY. Do NOT use Hindi or Hinglish words.\n"
+            "- Keep replies strictly to 1 or 2 concise, impactful sentences (under 30 words).\n"
+            "- NEVER use bullet points, numbered lists, asterisks (**), markdown, or emojis.\n"
+            "- NEVER start with 'Hey', 'Listen', or repetitive bot greetings. Get straight to the answer naturally."
         )
+    else:
+        lang_directive = f"\n\n[MANDATORY CURRENT TURN LANGUAGE: {detected_lang} -> {lang_rule}]"
+        voice_call_directive = ""
+
+    time_directive = f"\n{time_context}"
 
     memory_context = ""
     if learned_skills:
-        memory_context = "\n\nUser Context, Learned Insights & Corrections (Background Info Only - NEVER let this change the current reply language or current time of day):\n" + "\n".join([f"• {s}" for s in learned_skills])
+        memory_context = "\n\nUser Context, Learned Insights & Corrections:\n" + "\n".join([f"• {s}" for s in learned_skills])
 
     full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + time_directive + voice_call_directive + memory_context
 
-    # Trim very old history slightly if it gets huge to save free-tier Token-Per-Minute (TPM) quota
     trimmed_history = history[-10:] if len(history) > 10 else history
 
     contents = []
@@ -325,35 +255,28 @@ def stream_creator_chat(
 
     clean_msg = (message or "").strip()
     if clean_msg:
-        voice_turn_lock = " | VOICE CALL: Keep it 1-2 short natural spoken sentences without any markdown or emojis!" if voice_mode else ""
-        enforced_msg = (
-            f"{clean_msg}\n\n"
-            f"[TURN RULE: {lang_rule} | Be 100% spontaneous—do NOT repeat any opening phrase from earlier messages{voice_turn_lock} | {time_context}]"
-        )
+        turn_lock = " | VOICE CALL: Strictly 1-2 natural sentences in pure English without markdown!" if voice_mode else ""
+        enforced_msg = f"{clean_msg}\n\n[TURN RULE: {lang_rule if not voice_mode else 'Speak Pure English Only'}{turn_lock}]"
         current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
         current_parts.append(types.Part.from_text(text="Hey!"))
 
     contents.append(types.Content(role="user", parts=current_parts))
 
-    google_search_tool = types.Tool(
-        google_search=types.GoogleSearch()
-    )
-
-    use_search = needs_live_search(clean_msg)
+    google_search_tool = types.Tool(google_search=types.GoogleSearch())
+    use_search = needs_live_search(clean_msg) if not voice_mode else False
 
     def build_config(enable_search: bool) -> types.GenerateContentConfig:
         return types.GenerateContentConfig(
             system_instruction=full_system_prompt,
-            temperature=0.82,
+            temperature=0.75 if voice_mode else 0.82,
             top_p=0.95,
-            max_output_tokens=350 if voice_mode else 4000,
+            max_output_tokens=150 if voice_mode else 4000,
             tools=[google_search_tool] if enable_search else None
         )
 
     primary_model = "gemini-3.5-flash-lite"
     fallback_model = "gemini-3.8-flash"
-
     full_collected_response = ""
 
     def _stream_generator(model_name: str, enable_search: bool, key_idx: int = 0) -> Generator[str, None, None]:
@@ -391,36 +314,21 @@ def stream_creator_chat(
 
     has_yielded = False
 
-    # Step 1: Try Primary Model (with smart search if needed, else fast mode)
     try:
         for text_piece in _stream_generator(primary_model, enable_search=use_search, key_idx=0):
             has_yielded = True
             yield text_piece
     except Exception as e:
-        print(f"[Primary Model Warning: {primary_model}]: {e} -> Trying fallback: {fallback_model}", flush=True)
-        
-        # Step 2: If search caused 429 quota error on primary, retry primary WITHOUT search first
-        if not has_yielded and use_search:
-            try:
-                time.sleep(0.8)
-                for text_piece in _stream_generator(primary_model, enable_search=False, key_idx=1):
-                    has_yielded = True
-                    yield text_piece
-            except Exception as e_no_search:
-                print(f"[Primary No-Search Retry Warning]: {e_no_search}", flush=True)
-
-        # Step 3: Try Fallback Model
+        print(f"[Primary Model Warning]: {e} -> Trying fallback", flush=True)
         if not has_yielded:
             try:
-                time.sleep(1.0)
+                time.sleep(0.5)
                 for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=1):
                     has_yielded = True
                     yield text_piece
             except Exception as err:
-                print(f"[Fallback Model Error: {fallback_model}]: {err}", flush=True)
-                yield "⚠️ Bhai thoda traffic zyada hai server pe, 5 second ruk ke wapas bhej!"
-        else:
-            yield "\n\n*(Network thoda fluctuate hua, par main yahin hoon—aage bata!)*"
+                print(f"[Fallback Model Error]: {err}", flush=True)
+                yield "I am having trouble connecting right now, let me try again in a moment."
 
     if full_collected_response:
         updated = extract_and_update_memory(full_collected_response, learned_skills)
@@ -428,29 +336,50 @@ def stream_creator_chat(
         learned_skills.extend(updated)
 
 
-# -------------------------------------------------------------------------
-# 6. 100% FREE BILINGUAL NEURAL VOICE ENGINE (HINDI + HINGLISH + ENGLISH)
-# -------------------------------------------------------------------------
-async def _generate_edge_tts_bytes(text: str, voice_name: str = "hi-IN-MadhurNeural") -> bytes:
+def generate_elevenlabs_voice_audio(text: str) -> bytes:
     """
-    Uses Microsoft Edge's free neural TTS engine.
-    'hi-IN-MadhurNeural' (Male) & 'hi-IN-SwaraNeural' (Female) speak 
-    Hindi, Hinglish, and English seamlessly in ONE natural Indian voice!
+    Connects to ElevenLabs v4 Turbo (ROMJ9yK1NAMuu1ggrjDW)
+    Low latency, realistic cadence, zero trailing audio/echo.
     """
-    communicate = edge_tts.Communicate(text, voice_name, rate="+6%", pitch="+0Hz")
-    audio_bytes = b""
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_bytes += chunk["data"]
-    return audio_bytes
+    if not ELEVENLABS_API_KEY:
+        print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing in Render!", flush=True)
+        return b""
 
+    url = (
+        f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+        f"?optimize_streaming_latency=3&output_format=mp3_44100_128"
+    )
 
-def generate_free_voice_audio(text: str, voice_gender: str = "male") -> bytes:
-    """Synchronous wrapper for Flask route to generate MP3 audio bytes."""
-    voice_name = "hi-IN-SwaraNeural" if voice_gender == "female" else "hi-IN-MadhurNeural"
-    loop = asyncio.new_event_loop()
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": ELEVENLABS_API_KEY
+    }
+
+    payload = {
+        "text": text,
+        "model_id": ELEVENLABS_MODEL_ID,
+        "voice_settings": {
+            "stability": 0.45,
+            "similarity_boost": 0.85,
+            "style": 0.2,
+            "use_speaker_boost": True
+        }
+    }
+
     try:
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(_generate_edge_tts_bytes(text, voice_name))
-    finally:
-        loop.close()
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=12) as response:
+            return response.read()
+    except urllib.error.HTTPError as he:
+        error_details = he.read().decode("utf-8", errors="ignore")
+        print(f"[ElevenLabs HTTP Error]: {he.code} -> {error_details}", flush=True)
+        return b""
+    except Exception as exc:
+        print(f"[ElevenLabs Request Error]: {exc}", flush=True)
+        return b""

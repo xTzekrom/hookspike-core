@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Self-Learning Skills + Vision)
+HookSpike AI - Production Backend (100% Secure Dual-Key Supabase Cloud + Self-Learning Skills + Vision + Voice)
 """
 
 import json
@@ -497,6 +497,7 @@ def chat_stream():
     image_data = payload.get("image_data")
     history = payload.get("history", [])
     session_id = payload.get("session_id")
+    voice_mode = bool(payload.get("voice_mode", False))
 
     if not message and not image_data:
         return jsonify({"error": "Empty message"}), 400
@@ -521,7 +522,7 @@ def chat_stream():
         pending_buffer = ""
 
         try:
-            for chunk in ai_engine.stream_creator_chat(message, history, learned_skills, image_data):
+            for chunk in ai_engine.stream_creator_chat(message, history, learned_skills, image_data, voice_mode=voice_mode):
                 if chunk:
                     pending_buffer += chunk
                     if not re.search(r"\[(?:SKILL|MISTAKE)", pending_buffer) and not pending_buffer.endswith("["):
@@ -530,12 +531,12 @@ def chat_stream():
                         pending_buffer = ""
 
             if pending_buffer:
-                skill_matches = re.findall(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
+                skill_matches = re.findall(r"\[(?:SKILL_LEARNED\vert{}MISTAKE_CORRECTED):\s*(.*?)\]", pending_buffer, flags=re.DOTALL)
                 for skill_text in skill_matches:
                     if target_email and skill_text.strip():
                         db_save_user_skill(target_email, skill_text.strip(), target_jwt)
 
-                clean_tail = re.sub(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
+                clean_tail = re.sub(r"\[(?:SKILL_LEARNED\vert{}MISTAKE_CORRECTED):\s*.*?\]", "", pending_buffer, flags=re.DOTALL).rstrip()
                 if clean_tail:
                     accumulated_reply += clean_tail
                     yield f"data: {json.dumps({'token': clean_tail, 'session_id': active_sess_id})}\n\n"
@@ -565,6 +566,44 @@ def chat_stream():
     }
 
     return Response(stream_with_context(generate_sse()), headers=headers)
+
+
+# -------------------------------------------------------------------------
+# FREE NEURAL VOICE CALL ENDPOINT (HINDI + HINGLISH + ENGLISH)
+# -------------------------------------------------------------------------
+@app.route("/api/voice-tts", methods=["POST"])
+def voice_tts_endpoint():
+    data = request.get_json(silent=True) or {}
+    raw_text = (data.get("text") or "").strip()
+    voice_gender = (data.get("voice") or "male").strip().lower()
+
+    if not raw_text:
+        return jsonify({"error": "Empty text"}), 400
+
+    # Strip Markdown links, code blocks, and symbols so the voice speaks naturally
+    clean_speech = re.sub(r"```[\s\S]*?```", " ", raw_text)
+    clean_speech = re.sub(r"!\[.*?\]\(.*?\)", " ", clean_speech)
+    clean_speech = re.sub(r"\[([^\]]+)\]\(.*?\)", r"\1", clean_speech)
+    clean_speech = re.sub(r"[*#_~`>|]", " ", clean_speech)
+    clean_speech = re.sub(r"\s+", " ", clean_speech).strip()
+
+    if not clean_speech:
+        clean_speech = "Haan bhai, bol!"
+
+    try:
+        audio_bytes = ai_engine.generate_free_voice_audio(clean_speech, voice_gender)
+        return Response(
+            audio_bytes,
+            mimetype="audio/mpeg",
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Disposition": "inline; filename=hookspike_voice.mp3"
+            }
+        )
+    except Exception as e:
+        print(f"[Voice TTS Error]: {e}", flush=True)
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

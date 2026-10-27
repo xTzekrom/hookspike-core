@@ -57,7 +57,6 @@
             height: 100dvh; overflow: hidden;
         }
 
-        /* Custom Luxury Scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 999px; }
@@ -107,7 +106,6 @@
         }
         .drawer-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* Ultra-Luxury Frosted Sidebar with Fixed Scroll Layout */
         .sidebar {
             position: fixed; top: 0; bottom: 0; left: 0; width: 300px; max-width: 85vw;
             background: rgba(12, 13, 17, 0.94);
@@ -163,14 +161,9 @@
             flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
         }
 
-        /* FIXED: Properly Scrollable History Container on Mobile */
         .history-list {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-             overscroll-behavior: contain;
+            flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
             display: flex; flex-direction: column; gap: 5px;
             padding-right: 2px; margin-bottom: 10px;
         }
@@ -227,7 +220,6 @@
         }
         .sidebar-settings-gear:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 
-        /* 100% Clean & Pure Homescreen Chat Area */
         main.chat-area {
             flex: 1; overflow-y: auto; padding: 20px 16px 175px;
             display: flex; flex-direction: column; gap: 24px;
@@ -461,7 +453,6 @@
         .send-round-btn:active { transform: scale(0.92); }
         .send-round-btn.stop-mode { background: #1e2433; color: var(--accent-blue); box-shadow: none; }
 
-        /* Ultra-Luxury Interior Settings Screen */
         .settings-screen {
             position: fixed; inset: 0; background: #07080b; z-index: 250;
             display: none; flex-direction: column; overflow-y: auto;
@@ -548,91 +539,119 @@
         }
         .sub-btn-primary:active { transform: scale(0.98); }
 
-        /* --- PREMIER 60FPS VOICE MODE OVERLAY STYLES --- */
+        /* ========================================================
+           NEXT-GEN GEMINI LIVE FLUID AURA VOICE OVERLAY (60 FPS)
+           ======================================================== */
         #voice-mode-overlay {
-            position: fixed; inset: 0; background: rgba(5, 6, 8, 0.95);
-            backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px);
+            position: fixed; inset: 0;
+            background: radial-gradient(circle at center, #090b10 0%, #030406 100%);
+            backdrop-filter: blur(45px); -webkit-backdrop-filter: blur(45px);
             z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            padding: 30px 20px calc(35px + env(safe-area-inset-bottom, 0px));
+            padding: calc(20px + env(safe-area-inset-top, 0px)) 24px calc(38px + env(safe-area-inset-bottom, 0px));
             opacity: 0; pointer-events: none;
-            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             will-change: opacity;
         }
         #voice-mode-overlay.active { opacity: 1; pointer-events: auto; }
 
-        .voice-top-bar { display: flex; justify-content: center; width: 100%; z-index: 3; }
-        .voice-switcher-pill {
-            display: flex; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 5px; border-radius: 9999px; backdrop-filter: blur(16px);
+        .voice-brand-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; max-width: 500px; z-index: 5;
         }
-        .voice-switch-btn {
-            background: transparent; border: none; color: var(--text-secondary);
-            padding: 8px 18px; border-radius: 9999px; font-size: 13px; font-weight: 700; cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        .voice-live-indicator {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #f1f3f7;
+            letter-spacing: 0.5px; text-transform: uppercase;
         }
-        .voice-switch-btn.active {
-            background: var(--accent-gradient); color: #ffffff;
-            box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-blue) 45%, transparent);
+        .live-dot-beacon {
+            width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+            box-shadow: 0 0 10px #10b981; animation: liveBeacon 1.4s infinite ease-in-out;
         }
+        @keyframes liveBeacon { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
 
         .voice-orb-stage {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 36px; position: relative; width: 100%; flex: 1;
+            position: relative; width: 100%; flex: 1; gap: 40px;
         }
 
+        /* Ambient Aura Rings like Gemini */
+        .aura-halo-outer {
+            position: absolute; width: 280px; height: 280px; border-radius: 50%;
+            background: radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 25%, transparent) 0%, transparent 70%);
+            animation: haloPulse 4s infinite ease-in-out;
+            pointer-events: none; z-index: 1;
+        }
+        .aura-halo-middle {
+            position: absolute; width: 210px; height: 210px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 68%);
+            animation: haloPulse 3s infinite ease-in-out reverse;
+            pointer-events: none; z-index: 2;
+        }
+
+        @keyframes haloPulse {
+            0%, 100% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.9; }
+        }
+
+        /* 3D Fluid Floating Core */
         .voice-orb-core {
-            width: 140px; height: 140px; border-radius: 50%;
-            background: var(--accent-gradient);
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 60px color-mix(in srgb, var(--accent-blue) 45%, transparent),
-                        inset 0 0 35px rgba(255, 255, 255, 0.45);
-            animation: orbIdlePulse 3.5s infinite ease-in-out;
-            will-change: transform, box-shadow;
-            transform: translate3d(0,0,0);
+            position: relative; width: 145px; height: 145px; border-radius: 50%;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #6366f1 100%);
+            box-shadow: 0 0 65px rgba(16, 185, 129, 0.45), inset 0 0 40px rgba(255, 255, 255, 0.5);
+            z-index: 4; transform: translate3d(0, 0, 0);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fluidIdle 5s infinite ease-in-out;
+        }
+
+        @keyframes fluidIdle {
+            0%, 100% { transform: scale(1) translateY(0); filter: hue-rotate(0deg); }
+            50% { transform: scale(1.06) translateY(-6px); filter: hue-rotate(25deg); }
         }
 
         .voice-orb-core.listening {
-            animation: orbListeningPulse 2s infinite ease-in-out alternate;
+            animation: listeningAura 1.8s infinite ease-in-out alternate;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #38bdf8 100%);
+            box-shadow: 0 0 95px rgba(16, 185, 129, 0.75), inset 0 0 50px rgba(255, 255, 255, 0.6);
+        }
+
+        @keyframes listeningAura {
+            0% { transform: scale(0.96); box-shadow: 0 0 60px rgba(16, 185, 129, 0.5); }
+            100% { transform: scale(1.18); box-shadow: 0 0 110px rgba(56, 189, 248, 0.85); }
         }
 
         .voice-orb-core.speaking {
-            animation: orbSpeakingPulse 0.75s infinite ease-in-out alternate;
-            background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, var(--accent-blue) 100%);
-            box-shadow: 0 0 100px rgba(168, 85, 247, 0.65), inset 0 0 45px rgba(255, 255, 255, 0.65);
+            animation: speakingRipple 0.65s infinite ease-in-out alternate;
+            background: linear-gradient(135deg, #ec4899 0%, #a855f7 40%, #06b6d4 100%);
+            box-shadow: 0 0 120px rgba(236, 72, 153, 0.8), inset 0 0 60px rgba(255, 255, 255, 0.8);
         }
 
-        @keyframes orbIdlePulse {
-            0% { transform: scale(1); box-shadow: 0 0 50px color-mix(in srgb, var(--accent-blue) 35%, transparent); }
-            50% { transform: scale(1.07); box-shadow: 0 0 80px color-mix(in srgb, var(--accent-secondary) 55%, transparent); }
-            100% { transform: scale(1); box-shadow: 0 0 50px color-mix(in srgb, var(--accent-blue) 35%, transparent); }
-        }
-
-        @keyframes orbListeningPulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 40px color-mix(in srgb, var(--accent-blue) 40%, transparent); }
-            100% { transform: scale(1.15); box-shadow: 0 0 90px color-mix(in srgb, var(--accent-blue) 80%, transparent); }
-        }
-
-        @keyframes orbSpeakingPulse {
-            0% { transform: scale(0.90); box-shadow: 0 0 45px rgba(236, 72, 153, 0.5); }
-            100% { transform: scale(1.25); box-shadow: 0 0 120px rgba(168, 85, 247, 0.9); }
+        @keyframes speakingRipple {
+            0% { transform: scale(0.92); filter: hue-rotate(0deg); }
+            100% { transform: scale(1.28); filter: hue-rotate(45deg); }
         }
 
         .voice-status-display {
-            color: var(--text-primary); font-size: 15.5px; font-weight: 600; text-align: center;
-            max-width: 340px; line-height: 1.6; opacity: 0.95; padding: 0 10px;
+            color: #ffffff; font-size: 16px; font-weight: 600; text-align: center;
+            max-width: 380px; line-height: 1.6; z-index: 5;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+            padding: 0 16px; min-height: 48px; display: flex; align-items: center; justify-content: center;
         }
 
-        .voice-bottom-controls { display: flex; align-items: center; justify-content: center; z-index: 3; }
+        /* Bottom End Call Controls */
+        .voice-bottom-controls {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; z-index: 5;
+        }
         .voice-control-btn {
-            width: 64px; height: 64px; border-radius: 50%; border: none;
+            width: 68px; height: 68px; border-radius: 50%; border: none;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+            background: rgba(239, 68, 68, 0.95); color: #ffffff;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.45);
         }
-        .voice-control-btn:active { transform: scale(0.9); }
-        .voice-control-btn.hangup {
-            background: #ef4444; color: #ffffff;
-            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
-        }
+        .voice-control-btn:hover { transform: scale(1.06); }
+        .voice-control-btn:active { transform: scale(0.92); }
     </style>
 </head>
 <body>
@@ -648,8 +667,8 @@
         </div>
 
         <div class="header-right-actions">
-            <!-- Voice Mode Call Trigger Button -->
-            <button class="header-btn" id="openVoiceModeBtn" onclick="toggleVoiceMode(true)" title="Start Voice Call">
+            <!-- Voice Call Trigger -->
+            <button class="header-btn" id="openVoiceModeBtn" onclick="toggleVoiceMode(true)" title="Start Live Call">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
             </button>
 
@@ -709,7 +728,6 @@
         </div>
     </aside>
 
-    <!-- 100% CLEAN HOMESCREEN CHAT AREA -->
     <main class="chat-area" id="chatArea"></main>
 
     <button class="jump-bottom-btn" id="jumpBottomBtn">
@@ -834,26 +852,28 @@
         </div>
     </div>
 
-    <!-- --- PREMIER 60FPS VOICE CALL OVERLAY SCREEN --- -->
+    <!-- ========================================================
+         NEXT-GEN LIVE VOICE INTERACTION SCREEN (ZERO HEADER BUTTONS)
+         ======================================================== -->
     <div id="voice-mode-overlay">
-        <!-- Top Voice Switcher (Male / Female) -->
-        <div class="voice-top-bar">
-            <div class="voice-switcher-pill">
-                <button class="voice-switch-btn active" id="btnVoiceMale" onclick="setVoiceGender('male')">Madhur (Male)</button>
-                <button class="voice-switch-btn" id="btnVoiceFemale" onclick="setVoiceGender('female')">Swara (Female)</button>
+        <div class="voice-brand-bar">
+            <div class="voice-live-indicator">
+                <span class="live-dot-beacon"></span>
+                <span>Live Audio Link</span>
             </div>
+            <span style="font-size:13px; font-weight:700; color:var(--text-secondary);">Pure English</span>
         </div>
 
-        <!-- Center Glowing Interactive Orb & Live Voice Status -->
         <div class="voice-orb-stage">
+            <div class="aura-halo-outer"></div>
+            <div class="aura-halo-middle"></div>
             <div class="voice-orb-core" id="hookspikeOrb"></div>
-            <div class="voice-status-display" id="voiceStatusLabel">Voice call connected. Speak now, bhai!</div>
+            <div class="voice-status-display" id="voiceStatusLabel">Connecting to your companion...</div>
         </div>
 
-        <!-- Bottom Controls (End Call) -->
         <div class="voice-bottom-controls">
-            <button class="voice-control-btn hangup" onclick="toggleVoiceMode(false)" title="End Voice Call">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <button class="voice-control-btn" onclick="toggleVoiceMode(false)" title="End Voice Call">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
     </div>
@@ -1609,59 +1629,65 @@
             }
         };
 
-        // --- PREMIER VOICE MODE & SPEECH SYNTHESIS/RECOGNITION LOGIC ---
-        let currentVoiceGender = 'male';
+        // ========================================================
+        // ULTRA-SMOOTH PURE ENGLISH VOICE ENGINE & LIVE RECOGNITION
+        // ========================================================
         let isVoiceModeActive = false;
         let speechRecognitionInstance = null;
         let voiceAudioPlayer = new Audio();
 
-        function setVoiceGender(gender) {
-            currentVoiceGender = gender;
-            document.getElementById('btnVoiceMale').classList.toggle('active', gender === 'male');
-            document.getElementById('btnVoiceFemale').classList.toggle('active', gender === 'female');
+        function stopActiveAudio() {
+            if (voiceAudioPlayer) {
+                voiceAudioPlayer.pause();
+                voiceAudioPlayer.currentTime = 0;
+                voiceAudioPlayer.src = "";
+            }
         }
 
         function toggleVoiceMode(activate) {
             isVoiceModeActive = activate;
             const overlayEl = document.getElementById('voice-mode-overlay');
             const orbEl = document.getElementById('hookspikeOrb');
+            const statusLabel = document.getElementById('voiceStatusLabel');
             
             if (activate) {
                 overlayEl.classList.add('active');
                 orbEl.className = 'voice-orb-core listening';
-                document.getElementById('voiceStatusLabel').innerText = "Voice call connected. Speak now, bhai!";
+                statusLabel.innerText = "Listening... Tell me what's on your mind.";
                 startSpeechListening();
-                playVoiceTTSResponse("Haan bhai, bol! Sun raha hoon.");
+                playVoiceTTSResponse("Hey! I am right here with you, tell me what is going on.");
             } else {
                 overlayEl.classList.remove('active');
                 orbEl.className = 'voice-orb-core';
+                statusLabel.innerText = "Call ended.";
+                stopActiveAudio();
                 if (speechRecognitionInstance) {
-                    try { speechRecognitionInstance.stop(); } catch(e) {}
+                    try { speechRecognitionInstance.abort(); } catch(e) {}
                 }
-                voiceAudioPlayer.pause();
             }
         }
 
         function startSpeechListening() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
-                document.getElementById('voiceStatusLabel').innerText = "Speech recognition not supported in this browser. Use Chrome!";
+                document.getElementById('voiceStatusLabel').innerText = "Speech recognition is not supported in this browser. Please use Chrome.";
                 return;
             }
 
             speechRecognitionInstance = new SpeechRec();
-            speechRecognitionInstance.lang = 'hi-IN'; // Seamlessly handles Hindi, Hinglish, & English
+            speechRecognitionInstance.lang = 'en-US'; // Locked to clean natural English
             speechRecognitionInstance.interimResults = false;
             speechRecognitionInstance.maxAlternatives = 1;
 
             speechRecognitionInstance.onresult = async function(event) {
                 const spokenText = event.results[0][0].transcript;
-                document.getElementById('voiceStatusLabel').innerText = `You: "${spokenText}"`;
+                document.getElementById('voiceStatusLabel').innerText = `"${spokenText}"`;
+                stopActiveAudio();
                 await sendVoiceQueryToAI(spokenText);
             };
 
             speechRecognitionInstance.onerror = function(event) {
-                console.log("Speech recognition error:", event.error);
+                console.log("Speech recognition notice:", event.error);
             };
 
             speechRecognitionInstance.onend = function() {
@@ -1678,7 +1704,7 @@
         async function sendVoiceQueryToAI(userText) {
             const statusLabel = document.getElementById('voiceStatusLabel');
             const orbEl = document.getElementById('hookspikeOrb');
-            statusLabel.innerText = "HookSpike is thinking...";
+            statusLabel.innerText = "Thinking...";
             orbEl.className = 'voice-orb-core listening';
 
             const activeEmail = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email") || "";
@@ -1722,17 +1748,20 @@
                     }
                 }
 
-                if (fullAiReply) {
+                if (fullAiReply && isVoiceModeActive) {
                     statusLabel.innerText = fullAiReply;
                     await playVoiceTTSResponse(fullAiReply);
                 }
             } catch (err) {
-                statusLabel.innerText = "Connection glitch bhai, wapas bol!";
-                orbEl.className = 'voice-orb-core listening';
+                if (isVoiceModeActive) {
+                    statusLabel.innerText = "Connection hiccup, could you repeat that?";
+                    orbEl.className = 'voice-orb-core listening';
+                }
             }
         }
 
         async function playVoiceTTSResponse(textToSpeak) {
+            if (!isVoiceModeActive) return;
             const orbEl = document.getElementById('hookspikeOrb');
             orbEl.className = 'voice-orb-core speaking';
 
@@ -1740,23 +1769,27 @@
                 const res = await fetch(`${BACKEND_URL}/api/voice-tts`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: textToSpeak, voice: currentVoiceGender })
+                    body: JSON.stringify({ text: textToSpeak })
                 });
 
                 if (!res.ok) throw new Error("TTS generation failed");
                 const audioBlob = await res.blob();
-                const audioUrl = URL.createObjectURL(audioBlob);
+                if (!isVoiceModeActive) return;
 
+                const audioUrl = URL.createObjectURL(audioBlob);
                 voiceAudioPlayer.src = audioUrl;
+
                 voiceAudioPlayer.onended = () => {
                     if (isVoiceModeActive) {
                         orbEl.className = 'voice-orb-core listening';
+                        document.getElementById('voiceStatusLabel').innerText = "Listening...";
                     }
                 };
+
                 voiceAudioPlayer.play();
             } catch(e) {
                 console.error("TTS playback error:", e);
-                orbEl.className = 'voice-orb-core listening';
+                if (isVoiceModeActive) orbEl.className = 'voice-orb-core listening';
             }
         }
 

@@ -12,7 +12,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -540,218 +540,169 @@
         .sub-btn-primary:active { transform: scale(0.98); }
 
         /* =========================================================================
-           TRUE GEMINI LIVE ULTRA-PREMIUM LIQUID AURORA VOICE STUDIO (ZERO BORING ORB)
+           TRUE GEMINI LIVE SCREENSHOT-PERFECT STUDIO (60 FPS HARDWARE ACCELERATED)
            ========================================================================= */
         #voice-mode-overlay {
             position: fixed; inset: 0;
-            background: #030408;
-            z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            padding: calc(22px + env(safe-area-inset-top, 0px)) 24px calc(34px + env(safe-area-inset-bottom, 0px));
+            background: #000000;
+            z-index: 9999; display: flex; flex-direction: column; justify-content: space-between;
+            padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
             opacity: 0; pointer-events: none; overflow: hidden;
-            transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1);
             will-change: opacity;
         }
         #voice-mode-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* Fullscreen Ambient Gemini Aurora Backlight */
-        .gemini-ambient-backdrop {
-            position: absolute; inset: -30%;
-            background: 
-                radial-gradient(circle at 30% 35%, rgba(56, 189, 248, 0.16) 0%, transparent 50%),
-                radial-gradient(circle at 70% 65%, rgba(168, 85, 247, 0.18) 0%, transparent 55%),
-                radial-gradient(circle at 50% 85%, rgba(236, 72, 153, 0.14) 0%, transparent 45%);
-            filter: blur(50px);
-            animation: ambientDrift 12s infinite alternate ease-in-out;
-            pointer-events: none; z-index: 1;
-        }
-        @keyframes ambientDrift {
-            0% { transform: scale(1) rotate(0deg); }
-            100% { transform: scale(1.18) rotate(12deg); }
-        }
-
-        .voice-brand-bar {
+        /* Top Bar: Minimal Gemini Live Look */
+        .live-top-bar {
             display: flex; align-items: center; justify-content: space-between;
-            width: 100%; max-width: 500px; z-index: 10;
+            width: 100%; z-index: 20; padding: 4px 6px;
         }
-        .voice-live-indicator {
-            display: inline-flex; align-items: center; gap: 9px;
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #ffffff;
-            letter-spacing: 0.6px; text-transform: uppercase;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        .live-brand-title {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 17.5px; font-weight: 600; color: #ffffff; letter-spacing: -0.2px;
         }
-        .live-dot-beacon {
-            width: 8px; height: 8px; border-radius: 50%; background: #38bdf8;
-            box-shadow: 0 0 12px #38bdf8; animation: liveBeacon 1.4s infinite ease-in-out;
+        .live-spark-icon {
+            display: inline-flex; align-items: center; justify-content: center; color: #ffffff;
         }
-        .live-dot-beacon.muted {
-            background: #f59e0b; box-shadow: 0 0 12px #f59e0b; animation: none;
+        .live-timer-chip {
+            font-size: 12.5px; color: rgba(255,255,255,0.42); font-family: 'JetBrains Mono', monospace;
+            margin-left: 4px;
         }
-        @keyframes liveBeacon { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.25); } }
-
-        .voice-timer-badge {
-            font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600;
-            color: rgba(255, 255, 255, 0.7); background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08); padding: 6px 13px; border-radius: 999px;
-        }
-
-        /* Center Liquid Morphing Stage */
-        .voice-orb-stage {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; width: 100%; flex: 1; z-index: 5; gap: 38px;
-        }
-
-        .gemini-aurora-vessel {
-            position: relative; width: 220px; height: 220px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-
-        /* Multi-Layered Organic Liquid Blobs (No boring circle!) */
-        .aurora-layer {
-            position: absolute; inset: 0;
-            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-            mix-blend-mode: screen;
-            transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-            will-change: transform, border-radius, filter;
-        }
-
-        .aurora-layer.layer-1 {
-            background: linear-gradient(135deg, #38bdf8 0%, #6366f1 55%, #a855f7 100%);
-            filter: blur(18px); opacity: 0.78;
-            animation: liquidMorph1 7s infinite ease-in-out;
-        }
-        .aurora-layer.layer-2 {
-            inset: 14px;
-            background: linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
-            filter: blur(12px); opacity: 0.85;
-            animation: liquidMorph2 5.5s infinite ease-in-out reverse;
-        }
-        .aurora-layer.layer-3 {
-            inset: 28px;
-            background: radial-gradient(circle at 35% 30%, #ffffff 0%, #7dd3fc 35%, #6366f1 75%, transparent 100%);
-            box-shadow: 0 0 70px rgba(56, 189, 248, 0.6), inset 0 0 35px rgba(255, 255, 255, 0.8);
-            animation: liquidMorph1 4.5s infinite ease-in-out;
-        }
-
-        @keyframes liquidMorph1 {
-            0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(0deg) scale(1); }
-            33% { border-radius: 45% 55% 65% 35% / 40% 60% 40% 60%; transform: rotate(60deg) scale(1.06); }
-            66% { border-radius: 35% 65% 45% 55% / 65% 35% 65% 35%; transform: rotate(120deg) scale(0.96); }
-        }
-        @keyframes liquidMorph2 {
-            0%, 100% { border-radius: 40% 60% 60% 40% / 50% 60% 40% 50%; transform: rotate(0deg) scale(1); }
-            50% { border-radius: 65% 35% 40% 60% / 40% 50% 50% 60%; transform: rotate(-90deg) scale(1.1); }
-        }
-
-        /* State: Listening */
-        .gemini-aurora-vessel.listening .aurora-layer.layer-1 {
-            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #10b981 100%);
-            transform: scale(1.08);
-        }
-
-        /* State: Thinking */
-        .gemini-aurora-vessel.thinking .aurora-layer {
-            animation-duration: 1.6s !important;
-            filter: blur(14px) hue-rotate(45deg);
-        }
-
-        /* State: Speaking (Vibrant Gemini Pink/Violet/Cyan Energy Wave) */
-        .gemini-aurora-vessel.speaking .aurora-layer.layer-1 {
-            background: linear-gradient(135deg, #ff007f 0%, #a855f7 50%, #00f2fe 100%);
-            animation: speakingWave 0.68s infinite ease-in-out alternate;
-            filter: blur(22px); opacity: 0.95;
-        }
-        .gemini-aurora-vessel.speaking .aurora-layer.layer-2 {
-            animation: speakingWave 0.52s infinite ease-in-out alternate-reverse;
-        }
-        .gemini-aurora-vessel.speaking .aurora-layer.layer-3 {
-            background: radial-gradient(circle at 40% 40%, #ffffff 0%, #f472b6 45%, #8b5cf6 85%);
-            box-shadow: 0 0 110px rgba(236, 72, 153, 0.9), inset 0 0 45px #ffffff;
-            animation: speakingWave 0.6s infinite ease-in-out alternate;
-        }
-
-        /* State: Muted */
-        .gemini-aurora-vessel.muted .aurora-layer {
-            filter: grayscale(0.6) brightness(0.6) blur(16px);
-            transform: scale(0.85);
-        }
-
-        @keyframes speakingWave {
-            0% { transform: scale(0.92) rotate(-8deg); border-radius: 55% 45% 40% 60% / 50% 40% 60% 50%; }
-            100% { transform: scale(1.26) rotate(12deg); border-radius: 40% 60% 65% 35% / 60% 55% 45% 40%; }
-        }
-
-        /* Center Live Soundbar Equalizer inside the Aurora */
-        .aurora-soundbars {
-            position: relative; z-index: 8; display: flex; align-items: center; gap: 6px; height: 36px;
-        }
-        .aurora-bar {
-            width: 5px; height: 12px; border-radius: 999px; background: #ffffff;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
-            transition: height 0.2s ease;
-        }
-        .gemini-aurora-vessel.listening .aurora-bar {
-            animation: barListen 1.2s infinite ease-in-out alternate;
-        }
-        .gemini-aurora-vessel.speaking .aurora-bar {
-            animation: barSpeak 0.42s infinite ease-in-out alternate;
-        }
-        .aurora-bar:nth-child(1) { animation-delay: 0.0s; }
-        .aurora-bar:nth-child(2) { animation-delay: 0.15s; }
-        .aurora-bar:nth-child(3) { animation-delay: 0.3s; }
-        .aurora-bar:nth-child(4) { animation-delay: 0.15s; }
-        .aurora-bar:nth-child(5) { animation-delay: 0.0s; }
-
-        @keyframes barListen { 0% { height: 8px; opacity: 0.6; } 100% { height: 20px; opacity: 1; } }
-        @keyframes barSpeak { 0% { height: 10px; } 100% { height: 38px; } }
-
-        .voice-caption-box {
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-            max-width: 420px; width: 100%; padding: 0 14px; z-index: 10;
-        }
-        .voice-state-pill {
-            font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.4px;
-            color: #7dd3fc; opacity: 0.9;
-        }
-        .voice-status-display {
-            color: #ffffff; font-size: 17px; font-weight: 600; text-align: center;
-            line-height: 1.55; letter-spacing: -0.2px;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
-            min-height: 54px; display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Bottom Glass Control Dock (Mic Mute + Interrupt + End Call) */
-        .voice-bottom-controls {
-            display: flex; align-items: center; justify-content: center; gap: 22px;
-            background: rgba(15, 17, 23, 0.72); border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
-            padding: 12px 26px; border-radius: 999px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75); z-index: 10;
-        }
-
-        .voice-dock-btn {
-            width: 58px; height: 58px; border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(255, 255, 255, 0.06); color: #ffffff;
+        .live-cc-toggle-btn {
+            background: transparent; border: none; color: #ffffff;
+            width: 40px; height: 40px; border-radius: 12px;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0.9; transition: opacity 0.2s ease, background 0.2s ease;
         }
-        .voice-dock-btn:active { transform: scale(0.9); }
+        .live-cc-toggle-btn:active { background: rgba(255, 255, 255, 0.1); }
+        .live-cc-toggle-btn.off { opacity: 0.35; }
 
-        .voice-dock-btn.mic-btn.muted {
-            background: rgba(245, 158, 11, 0.2);
-            border-color: #f59e0b; color: #fbbf24;
-            box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+        /* Center Live Transcript / Subtitle Flow (Inter font for clean elegance) */
+        .live-captions-stage {
+            position: relative; flex: 1; width: 100%; max-width: 520px; margin: 0 auto;
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 0 16px 50px; z-index: 15; pointer-events: none;
+        }
+        .live-transcript-box {
+            display: flex; flex-direction: column; gap: 12px;
+            transition: opacity 0.4s var(--luxury-ease), transform 0.4s var(--luxury-ease);
+            opacity: 1; transform: translate3d(0, 0, 0);
+            will-change: opacity, transform;
+        }
+        .live-transcript-box.fade-out {
+            opacity: 0; transform: translate3d(0, 8px, 0);
+        }
+        .live-transcript-box.hidden {
+            display: none !important;
+        }
+        .caption-line {
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: 18px; line-height: 1.52; font-weight: 400; color: #f1f5f9;
+            letter-spacing: -0.2px; word-break: break-word; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+        }
+        .caption-speaker {
+            font-weight: 700; color: #ffffff; margin-right: 6px;
+        }
+        .caption-line.user-say .caption-speaker {
+            color: #94a3b8;
+        }
+        .caption-line.ai-say .caption-speaker {
+            color: #67e8f9;
         }
 
-        .voice-dock-btn.end-btn {
-            width: 64px; height: 64px;
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            border: none; color: #ffffff;
-            box-shadow: 0 8px 28px rgba(239, 68, 68, 0.5);
+        /* 1:1 Gemini Curved Aurora Bottom Wave (Ultra Smooth 60FPS GPU Shader look) */
+        .gemini-bottom-wave-container {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 300px; pointer-events: none; z-index: 5; overflow: hidden;
+            display: flex; align-items: flex-end; justify-content: center;
         }
+        .gemini-wave-glow {
+            position: absolute; bottom: -45px; width: 130%; height: 260px;
+            border-radius: 50% 50% 0 0;
+            background: radial-gradient(circle at 50% 30%, #3b82f6 0%, #1d4ed8 45%, rgba(15, 23, 42, 0) 80%);
+            filter: blur(28px);
+            opacity: 0.95;
+            transform: translate3d(0, 0, 0) scale(1);
+            animation: waveRest 5s infinite ease-in-out alternate;
+            will-change: transform, opacity;
+        }
+        .gemini-wave-glow.secondary {
+            bottom: -65px; height: 240px;
+            background: radial-gradient(circle at 50% 35%, #ec4899 0%, #8b5cf6 40%, rgba(30, 27, 75, 0) 80%);
+            filter: blur(36px);
+            opacity: 0.65;
+            animation: waveRestSec 5.8s infinite ease-in-out alternate-reverse;
+            will-change: transform, opacity;
+        }
+
+        @keyframes waveRest {
+            0% { transform: translate3d(0, 6px, 0) scaleY(0.94); opacity: 0.82; }
+            100% { transform: translate3d(0, -6px, 0) scaleY(1.08); opacity: 0.98; }
+        }
+        @keyframes waveRestSec {
+            0% { transform: translate3d(0, 5px, 0) scaleX(0.96); }
+            100% { transform: translate3d(0, -8px, 0) scaleX(1.04); }
+        }
+
+        /* Wave Active Speaking: Gemini Aurora Pulsing */
+        #voice-mode-overlay.speaking .gemini-wave-glow {
+            background: radial-gradient(circle at 50% 25%, #38bdf8 0%, #6366f1 45%, #ec4899 75%);
+            filter: blur(22px);
+            animation: waveSpeak 0.72s infinite ease-in-out alternate;
+        }
+        #voice-mode-overlay.speaking .gemini-wave-glow.secondary {
+            opacity: 0.9;
+            animation: waveSpeakSec 0.58s infinite ease-in-out alternate-reverse;
+        }
+        @keyframes waveSpeak {
+            0% { transform: translate3d(0, 0, 0) scaleY(0.95) scaleX(0.98); }
+            100% { transform: translate3d(0, -18px, 0) scaleY(1.36) scaleX(1.04); }
+        }
+        @keyframes waveSpeakSec {
+            0% { transform: translate3d(0, 4px, 0) scaleY(0.92); }
+            100% { transform: translate3d(0, -12px, 0) scaleY(1.25); }
+        }
+
+        #voice-mode-overlay.listening .gemini-wave-glow {
+            background: radial-gradient(circle at 50% 30%, #38bdf8 0%, #2563eb 50%, rgba(15, 23, 42, 0) 80%);
+            animation: waveListen 1.5s infinite ease-in-out alternate;
+        }
+        @keyframes waveListen {
+            0% { transform: translate3d(0, 3px, 0) scaleY(0.95); opacity: 0.8; }
+            100% { transform: translate3d(0, -6px, 0) scaleY(1.15); opacity: 1; }
+        }
+
+        #voice-mode-overlay.muted .gemini-wave-glow {
+            filter: grayscale(0.8) blur(32px);
+            opacity: 0.45;
+            animation: none;
+        }
+
+        /* Bottom Floating Pill Dock: Pure Gemini Glass */
+        .live-bottom-dock {
+            width: 100%; max-width: 440px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-around;
+            z-index: 20; padding: 10px 14px;
+        }
+        .live-dock-btn {
+            width: 52px; height: 52px; border-radius: 50%;
+            border: none; outline: none; background: rgba(30, 41, 59, 0.65);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            color: #ffffff; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .live-dock-btn:active { transform: scale(0.91); }
+
+        .live-dock-btn.mic-btn.muted {
+            background: rgba(245, 158, 11, 0.35); color: #fbbf24;
+        }
+
+        .live-dock-btn.hangup-btn {
+            background: #ef4444; width: 56px; height: 56px;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+        }
+        .live-dock-btn.hangup-btn:active { background: #dc2626; }
     </style>
 </head>
 <body>
@@ -953,50 +904,90 @@
     </div>
 
     <!-- =========================================================================
-         TRUE GEMINI LIVE ULTRA-PREMIUM VOICE STUDIO (WITH MUTE & INTERRUPT)
+         TRUE GEMINI LIVE SCREENSHOT-PERFECT STUDIO (AURORA BOTTOM WAVE + SUBTITLES)
          ========================================================================= -->
-    <div id="voice-mode-overlay">
-        <div class="gemini-ambient-backdrop"></div>
-
-        <div class="voice-brand-bar">
-            <div class="voice-live-indicator">
-                <span class="live-dot-beacon" id="liveBeaconDot"></span>
-                <span id="liveHeaderBadgeText">HookSpike Live</span>
+    <div id="voice-mode-overlay" class="listening">
+        <!-- Top Bar: Live Branding, Timer & CC Transcript Toggle Button -->
+        <div class="live-top-bar">
+            <div class="live-brand-title">
+                <span class="live-spark-icon">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/></svg>
+                </span>
+                <span>Live</span>
+                <span class="live-timer-chip" id="voiceCallTimer">00:00</span>
             </div>
-            <div class="voice-timer-badge" id="voiceCallTimer">00:00</div>
+
+            <!-- CC Subtitle Button on Top Right -->
+            <button class="live-cc-toggle-btn" id="liveCcToggleBtn" onclick="toggleLiveTranscriptVisibility()" title="Toggle Captions">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="3" ry="3"></rect>
+                    <path d="M7 15h2a2 2 0 0 0 2-2m-4-2a2 2 0 0 1 2-2h2"></path>
+                    <path d="M15 15h2a2 2 0 0 0 2-2m-4-2a2 2 0 0 1 2-2h2"></path>
+                </svg>
+            </button>
         </div>
 
-        <div class="voice-orb-stage">
-            <div class="gemini-aurora-vessel listening" id="hookspikeOrb" onclick="interruptAiSpeech()" title="Tap to interrupt AI">
-                <div class="aurora-layer layer-1"></div>
-                <div class="aurora-layer layer-2"></div>
-                <div class="aurora-layer layer-3"></div>
-                <div class="aurora-soundbars">
-                    <div class="aurora-bar"></div>
-                    <div class="aurora-bar"></div>
-                    <div class="aurora-bar"></div>
-                    <div class="aurora-bar"></div>
-                    <div class="aurora-bar"></div>
+        <!-- Center Stage: Dynamic Gemini Floating Transcript/Captions -->
+        <div class="live-captions-stage">
+            <div class="live-transcript-box" id="liveTranscriptBox">
+                <div class="caption-line ai-say" id="liveTranscriptAiLine" style="display: none;">
+                    <span class="caption-speaker">HookSpike:</span>
+                    <span class="caption-content" id="liveAiTextSpan">Connecting to live voice...</span>
+                </div>
+                <div class="caption-line user-say" id="liveTranscriptUserLine" style="display: none;">
+                    <span class="caption-speaker">You:</span>
+                    <span class="caption-content" id="liveUserTextSpan">...</span>
                 </div>
             </div>
-
-            <div class="voice-caption-box">
-                <div class="voice-state-pill" id="voiceStatePill">CONNECTING</div>
-                <div class="voice-status-display" id="voiceStatusLabel">Starting live session...</div>
-            </div>
         </div>
 
-        <!-- Bottom Controls: Mic Mute/Unmute + Interrupt + Hangup -->
-        <div class="voice-bottom-controls">
-            <button class="voice-dock-btn mic-btn" id="voiceMicToggleBtn" onclick="toggleUserMicMute()" title="Mute / Unmute Mic">
-                <!-- Mic ON Icon -->
-                <svg id="micOnSvg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                <!-- Mic OFF Icon -->
-                <svg id="micOffSvg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+        <!-- Bottom Curved Organic Gemini Aurora Wave (Exact Replica) -->
+        <div class="gemini-bottom-wave-container">
+            <div class="gemini-wave-glow secondary"></div>
+            <div class="gemini-wave-glow"></div>
+        </div>
+
+        <!-- Bottom Floating Controls (Camera, Share, Mic Toggle, Red Hangup) -->
+        <div class="live-bottom-dock">
+            <!-- Camera / Video (Reserved) -->
+            <button class="live-dock-btn" onclick="alert('Video input coming soon!')" title="Camera">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 7l-7 5 7 5V7z"></path>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
             </button>
 
-            <button class="voice-dock-btn end-btn" onclick="toggleVoiceMode(false)" title="End Voice Call">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <!-- Screen Share / Upload (Reserved) -->
+            <button class="live-dock-btn" onclick="document.getElementById('photoInput').click()" title="Send image or photo">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+            </button>
+
+            <!-- Mic Mute / Unmute Button -->
+            <button class="live-dock-btn mic-btn" id="voiceMicToggleBtn" onclick="toggleUserMicMute()" title="Mute Microphone">
+                <svg id="micOnSvg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v1a7 7 0 0 1-14 0v-1"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+                <svg id="micOffSvg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+                    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            </button>
+
+            <!-- Red End Call Button -->
+            <button class="live-dock-btn hangup-btn" onclick="toggleVoiceMode(false)" title="End Voice Session">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
             </button>
         </div>
     </div>
@@ -1753,27 +1744,29 @@
         };
 
         // =========================================================================
-        // GEMINI LIVE ENGINE: ANTI-ECHO MIC LOCK + MUTE CONTROL + DYNAMIC GREETING
+        // GEMINI LIVE ENGINE: CURVED AURORA WAVE + LIVE SUBTITLES AUTO-CLEAR
         // =========================================================================
         let isVoiceModeActive = false;
         let isUserMicMuted = false;
         let isAiSpeaking = false;
+        let isCaptionsVisible = true;
         let speechRecognitionInstance = null;
         let voiceAudioPlayer = new Audio();
         let voiceCallHistory = [];
         let voiceTimerInterval = null;
         let voiceSecondsElapsed = 0;
+        let captionAutoClearTimer = null;
 
         function startVoiceCallTimer() {
             voiceSecondsElapsed = 0;
             const timerEl = document.getElementById("voiceCallTimer");
-            timerEl.innerText = "00:00";
+            if (timerEl) timerEl.innerText = "00:00";
             clearInterval(voiceTimerInterval);
             voiceTimerInterval = setInterval(() => {
                 voiceSecondsElapsed++;
                 const mins = String(Math.floor(voiceSecondsElapsed / 60)).padStart(2, '0');
                 const secs = String(voiceSecondsElapsed % 60).padStart(2, '0');
-                timerEl.innerText = `${mins}:${secs}`;
+                if (timerEl) timerEl.innerText = `${mins}:${secs}`;
             }, 1000);
         }
 
@@ -1798,13 +1791,63 @@
             }
         }
 
-        function setVoiceVisualState(stateName, pillText, captionText) {
-            const orbEl = document.getElementById('hookspikeOrb');
-            const pillEl = document.getElementById('voiceStatePill');
-            const statusEl = document.getElementById('voiceStatusLabel');
-            if (orbEl) orbEl.className = `gemini-aurora-vessel ${stateName}`;
-            if (pillEl && pillText) pillEl.innerText = pillText;
-            if (statusEl && captionText) statusEl.innerText = captionText;
+        function setVoiceVisualState(stateName) {
+            const overlayEl = document.getElementById('voice-mode-overlay');
+            if (!overlayEl) return;
+            overlayEl.classList.remove('listening', 'speaking', 'thinking', 'muted');
+            overlayEl.classList.add(stateName);
+        }
+
+        function toggleLiveTranscriptVisibility() {
+            isCaptionsVisible = !isCaptionsVisible;
+            const btn = document.getElementById('liveCcToggleBtn');
+            const box = document.getElementById('liveTranscriptBox');
+            if (btn) btn.classList.toggle('off', !isCaptionsVisible);
+            if (box) {
+                if (!isCaptionsVisible) box.classList.add('hidden');
+                else box.classList.remove('hidden');
+            }
+        }
+
+        function scheduleCaptionAutoClear() {
+            clearTimeout(captionAutoClearTimer);
+            captionAutoClearTimer = setTimeout(() => {
+                const box = document.getElementById('liveTranscriptBox');
+                if (box && !isAiSpeaking && isVoiceModeActive) {
+                    box.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (box.classList.contains('fade-out')) {
+                            const userLine = document.getElementById('liveTranscriptUserLine');
+                            const aiLine = document.getElementById('liveTranscriptAiLine');
+                            if (userLine) userLine.style.display = 'none';
+                            if (aiLine) aiLine.style.display = 'none';
+                            box.classList.remove('fade-out');
+                        }
+                    }, 400);
+                }
+            }, 3500); // 3.5 seconds me auto-clear
+        }
+
+        function updateLiveSubtitle(speaker, text) {
+            if (!isVoiceModeActive) return;
+
+            const box = document.getElementById('liveTranscriptBox');
+            const userLine = document.getElementById('liveTranscriptUserLine');
+            const aiLine = document.getElementById('liveTranscriptAiLine');
+            const userSpan = document.getElementById('liveUserTextSpan');
+            const aiSpan = document.getElementById('liveAiTextSpan');
+
+            clearTimeout(captionAutoClearTimer);
+            if (box) box.classList.remove('fade-out');
+
+            if (speaker === 'user') {
+                if (userSpan) userSpan.innerText = text;
+                if (userLine) userLine.style.display = 'block';
+                if (aiLine) aiLine.style.display = 'none';
+            } else if (speaker === 'ai') {
+                if (aiSpan) aiSpan.innerText = text;
+                if (aiLine) aiLine.style.display = 'block';
+            }
         }
 
         function toggleUserMicMute() {
@@ -1814,36 +1857,19 @@
             const micBtn = document.getElementById("voiceMicToggleBtn");
             const micOnSvg = document.getElementById("micOnSvg");
             const micOffSvg = document.getElementById("micOffSvg");
-            const beaconDot = document.getElementById("liveBeaconDot");
-            const badgeText = document.getElementById("liveHeaderBadgeText");
 
             micBtn.classList.toggle("muted", isUserMicMuted);
             micOnSvg.style.display = isUserMicMuted ? "none" : "block";
             micOffSvg.style.display = isUserMicMuted ? "block" : "none";
-            beaconDot.classList.toggle("muted", isUserMicMuted);
-            badgeText.innerText = isUserMicMuted ? "Mic Muted" : "HookSpike Live";
 
             if (isUserMicMuted) {
                 pauseRecognitionSafely();
-                if (!isAiSpeaking) {
-                    setVoiceVisualState("muted", "MIC MUTED", "Your microphone is muted. Tap the mic button to speak.");
-                }
+                if (!isAiSpeaking) setVoiceVisualState("muted");
             } else {
                 if (!isAiSpeaking) {
-                    setVoiceVisualState("listening", "LISTENING", "I'm listening... Go ahead!");
+                    setVoiceVisualState("listening");
                     resumeRecognitionSafely();
                 }
-            }
-        }
-
-        function interruptAiSpeech() {
-            if (!isVoiceModeActive || !isAiSpeaking) return;
-            stopActiveAudio();
-            if (!isUserMicMuted) {
-                setVoiceVisualState("listening", "LISTENING", "Interrupted — go ahead, I'm listening!");
-                resumeRecognitionSafely();
-            } else {
-                setVoiceVisualState("muted", "MIC MUTED", "Audio stopped. Unmute your mic to speak.");
             }
         }
 
@@ -1857,17 +1883,21 @@
                 document.getElementById("voiceMicToggleBtn").classList.remove("muted");
                 document.getElementById("micOnSvg").style.display = "block";
                 document.getElementById("micOffSvg").style.display = "none";
-                document.getElementById("liveBeaconDot").classList.remove("muted");
-                document.getElementById("liveHeaderBadgeText").innerText = "HookSpike Live";
+
+                const userLine = document.getElementById('liveTranscriptUserLine');
+                const aiLine = document.getElementById('liveTranscriptAiLine');
+                if (userLine) userLine.style.display = 'none';
+                if (aiLine) aiLine.style.display = 'none';
 
                 overlayEl.classList.add('active');
+                setVoiceVisualState("listening");
                 startVoiceCallTimer();
                 initSpeechRecognitionEngine();
-                // Let the AI generate its own spontaneous opening line!
                 sendVoiceQueryToAI("__INIT_VOICE_GREETING__", true);
             } else {
                 overlayEl.classList.remove('active');
                 clearInterval(voiceTimerInterval);
+                clearTimeout(captionAutoClearTimer);
                 stopActiveAudio();
                 pauseRecognitionSafely();
             }
@@ -1876,7 +1906,7 @@
         function initSpeechRecognitionEngine() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
-                setVoiceVisualState("muted", "UNSUPPORTED", "Speech recognition requires Google Chrome.");
+                alert("Speech recognition requires Chrome on Android.");
                 return;
             }
 
@@ -1890,19 +1920,17 @@
             speechRecognitionInstance.maxAlternatives = 1;
 
             speechRecognitionInstance.onresult = async function(event) {
-                // Strict guard: Ignore mic pickup while AI is speaking or mic is muted!
                 if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) return;
                 const spokenText = (event.results[0][0].transcript || "").trim();
                 if (!spokenText) return;
 
                 pauseRecognitionSafely();
-                setVoiceVisualState("thinking", "YOU SAID", `"${spokenText}"`);
+                updateLiveSubtitle("user", spokenText);
+                setVoiceVisualState("thinking");
                 await sendVoiceQueryToAI(spokenText, false);
             };
 
-            speechRecognitionInstance.onerror = function(event) {
-                // Ignore harmless no-speech or aborted events
-            };
+            speechRecognitionInstance.onerror = function(event) {};
 
             speechRecognitionInstance.onend = function() {
                 if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
@@ -1918,14 +1946,9 @@
         async function sendVoiceQueryToAI(userText, isInitialGreeting = false) {
             if (!isVoiceModeActive) return;
 
-            isAiSpeaking = true; // Lock mic while AI thinks & speaks
+            isAiSpeaking = true;
             pauseRecognitionSafely();
-
-            if (isInitialGreeting) {
-                setVoiceVisualState("thinking", "CONNECTING", "Waking up your companion...");
-            } else {
-                setVoiceVisualState("thinking", "THINKING", `"${userText}"`);
-            }
+            setVoiceVisualState("thinking");
 
             const activeEmail = CURRENT_USER_EMAIL || localStorage.getItem("hs_user_email") || "";
 
@@ -1962,7 +1985,10 @@
                             if (dataStr === '[DONE]') continue;
                             try {
                                 const parsed = JSON.parse(dataStr);
-                                if (parsed.token) fullAiReply += parsed.token;
+                                if (parsed.token) {
+                                    fullAiReply += parsed.token;
+                                    updateLiveSubtitle("ai", fullAiReply);
+                                }
                             } catch(e) {}
                         }
                     }
@@ -1977,12 +2003,15 @@
                     await playVoiceTTSResponse(cleanReply);
                 } else {
                     isAiSpeaking = false;
+                    setVoiceVisualState("listening");
+                    scheduleCaptionAutoClear();
                     resumeRecognitionSafely();
                 }
             } catch (err) {
                 isAiSpeaking = false;
                 if (isVoiceModeActive) {
-                    setVoiceVisualState("listening", "LISTENING", "Slight network hiccup—go ahead, I'm listening!");
+                    setVoiceVisualState("listening");
+                    scheduleCaptionAutoClear();
                     resumeRecognitionSafely();
                 }
             }
@@ -1993,7 +2022,7 @@
 
             isAiSpeaking = true;
             pauseRecognitionSafely();
-            setVoiceVisualState("thinking", "SYNTHESIZING VOICE", textToSpeak);
+            updateLiveSubtitle("ai", textToSpeak);
 
             try {
                 const res = await fetch(`${BACKEND_URL}/api/voice-tts`, {
@@ -2011,7 +2040,7 @@
 
                 voiceAudioPlayer.onplay = () => {
                     if (isVoiceModeActive) {
-                        setVoiceVisualState("speaking", "SPEAKING (TAP ORB TO INTERRUPT)", textToSpeak);
+                        setVoiceVisualState("speaking");
                     }
                 };
 
@@ -2019,10 +2048,11 @@
                     URL.revokeObjectURL(audioUrl);
                     isAiSpeaking = false;
                     if (isVoiceModeActive) {
+                        scheduleCaptionAutoClear();
                         if (isUserMicMuted) {
-                            setVoiceVisualState("muted", "MIC MUTED", "Tap the mic button below when you're ready to speak.");
+                            setVoiceVisualState("muted");
                         } else {
-                            setVoiceVisualState("listening", "LISTENING", "Listening... Go ahead!");
+                            setVoiceVisualState("listening");
                             resumeRecognitionSafely();
                         }
                     }
@@ -2030,19 +2060,24 @@
 
                 voiceAudioPlayer.onerror = () => {
                     isAiSpeaking = false;
-                    if (isVoiceModeActive && !isUserMicMuted) {
-                        setVoiceVisualState("listening", "LISTENING", "Listening...");
-                        resumeRecognitionSafely();
+                    if (isVoiceModeActive) {
+                        scheduleCaptionAutoClear();
+                        if (!isUserMicMuted) {
+                            setVoiceVisualState("listening");
+                            resumeRecognitionSafely();
+                        }
                     }
                 };
 
                 await voiceAudioPlayer.play();
             } catch(e) {
-                console.error("TTS playback error:", e);
                 isAiSpeaking = false;
-                if (isVoiceModeActive && !isUserMicMuted) {
-                    setVoiceVisualState("listening", "LISTENING", textToSpeak);
-                    resumeRecognitionSafely();
+                if (isVoiceModeActive) {
+                    scheduleCaptionAutoClear();
+                    if (!isUserMicMuted) {
+                        setVoiceVisualState("listening");
+                        resumeRecognitionSafely();
+                    }
                 }
             }
         }

@@ -5,6 +5,7 @@ HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v3.0 G
 - Persona: Smart, warm, grounded female best friend (100% Pure English ONLY)
 - Voice Engine: ElevenLabs v4 Turbo Ultra-Low Bitrate Streaming (Zero Stutter on Mobile)
 - Voice Memory Isolation: Never leaks old text-chat memories into live voice calls
+- Vector Memory: 768-Dim Semantic Memory via Gemini text-embedding-004 & Supabase RPC
 """
 
 import asyncio
@@ -22,14 +23,19 @@ from typing import Generator, List, Dict, Any, Optional
 from google import genai
 from google.genai import types
 
-RAW_API_KEYS = os.environ.get("GEMINI_API_KEY", "").strip()
-API_KEYS_LIST = [k.strip() for k in RAW_API_KEYS.split(",") if k.strip()]
-GEMINI_API_KEY = API_KEYS_LIST[0] if API_KEYS_LIST else ""
-client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+# =====================================================================
+# 1. STRICT ENVIRONMENT CONFIGURATION (NO HARDCODED KEYS OR FALLBACKS)
+# =====================================================================
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
-ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "").strip()
-ELEVENLABS_VOICE_ID = "ROMJ9yK1NAMuu1ggrjDW"
-ELEVENLABS_MODEL_ID = "eleven_turbo_v2_5"
+ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
+ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
+ELEVENLABS_MODEL_ID = os.environ.get('ELEVENLABS_MODEL_ID')
+
+API_KEYS_LIST = [k.strip() for k in GEMINI_API_KEY.split(",") if k.strip()] if GEMINI_API_KEY else []
+client = genai.Client(api_key=API_KEYS_LIST[0]) if API_KEYS_LIST else None
 
 
 def get_active_client(index: int = 0) -> Optional[genai.Client]:
@@ -39,6 +45,128 @@ def get_active_client(index: int = 0) -> Optional[genai.Client]:
     return genai.Client(api_key=key)
 
 
+# =====================================================================
+# 2. SEMANTIC MEMORY ENGINE (GEMINI EMBEDDINGS + SUPABASE VECTOR DB)
+# =====================================================================
+def _generate_embedding(text: str) -> Optional[List[float]]:
+    """Generates a 768-dimensional embedding vector using text-embedding-004."""
+    active_client = get_active_client(0)
+    if not active_client or not text or not text.strip():
+        return None
+    try:
+        response = active_client.models.embed_content(
+            model="text-embedding-004",
+            contents=text.strip(),
+            config=types.EmbedContentConfig(output_dimensionality=768)
+        )
+        if response and response.embeddings and len(response.embeddings) > 0:
+            return response.embeddings[0].values
+    except Exception as e:
+        print(f"[Embedding Error]: {e}", flush=True)
+    return None
+
+
+def save_user_memory(user_email: str, text: str) -> bool:
+    """
+    Converts text into a 768-dim embedding and stores it in the Supabase
+    'user_memories' table.
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY or not user_email or not text:
+        return False
+
+    embedding = _generate_embedding(text)
+    if not embedding:
+        return False
+
+    url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/user_memories"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    }
+    payload = {
+        "user_email": user_email.strip(),
+        "content": text.strip(),
+        "embedding": embedding
+    }
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.status in (200, 201, 204)
+    except Exception as e:
+        print(f"[Supabase Save Memory Error]: {e}", flush=True)
+        return False
+
+
+def get_relevant_memories(
+    user_email: str,
+    query: str,
+    match_threshold: float = 0.6,
+    match_count: int = 3
+) -> List[str]:
+    """
+    Calls the Supabase RPC function 'match_user_memories' to retrieve top
+    semantically relevant past memories for the given user.
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY or not user_email or not query:
+        return []
+
+    query_embedding = _generate_embedding(query)
+    if not query_embedding:
+        return []
+
+    url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/rpc/match_user_memories"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "p_user_email": user_email.strip(),
+        "query_embedding": query_embedding,
+        "match_threshold": match_threshold,
+        "match_count": match_count
+    }
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if isinstance(data, list):
+                memories = []
+                for item in data:
+                    if isinstance(item, dict):
+                        mem_text = (
+                            item.get("content")
+                            or item.get("text")
+                            or item.get("memory")
+                            or ""
+                        )
+                        if mem_text:
+                            memories.append(str(mem_text).strip())
+                    elif isinstance(item, str):
+                        memories.append(item.strip())
+                return memories
+    except Exception as e:
+        print(f"[Supabase RPC Match Error]: {e}", flush=True)
+    return []
+
+
+# =====================================================================
+# 3. CORE UTILITIES (TIME, LIVE SEARCH, POLLINATIONS, MEMORY PARSER)
+# =====================================================================
 def get_current_time_context() -> str:
     ist_offset = timezone(timedelta(hours=5, minutes=30))
     now = datetime.now(ist_offset)
@@ -99,24 +227,37 @@ def sanitize_pollinations_links(text: str) -> str:
     return re.sub(pattern, replacer, text)
 
 
-def extract_and_update_memory(full_response: str, current_skills: List[str]) -> List[str]:
+def extract_and_update_memory(
+    full_response: str,
+    current_skills: List[str],
+    user_email: Optional[str] = None
+) -> List[str]:
     updated_skills = list(current_skills)
     
     learned_matches = re.findall(r"\[SKILL_LEARNED:\s*(.*?)\]", full_response, re.IGNORECASE)
     for match in learned_matches:
         cleaned = match.strip()
-        if cleaned and cleaned not in updated_skills:
-            updated_skills.append(cleaned)
+        if cleaned:
+            if cleaned not in updated_skills:
+                updated_skills.append(cleaned)
+            if user_email:
+                save_user_memory(user_email, cleaned)
             
     correction_matches = re.findall(r"\[MISTAKE_CORRECTED:\s*(.*?)\]", full_response, re.IGNORECASE)
     for match in correction_matches:
         cleaned = f"Correction: {match.strip()}"
-        if cleaned and cleaned not in updated_skills:
-            updated_skills.append(cleaned)
+        if cleaned:
+            if cleaned not in updated_skills:
+                updated_skills.append(cleaned)
+            if user_email:
+                save_user_memory(user_email, cleaned)
             
     return updated_skills[-30:]
 
 
+# =====================================================================
+# 4. MASTER PERSONA & STREAMING ENGINE
+# =====================================================================
 HOOKSPIKE_MASTER_INTELLIGENCE = """
 You are HookSpike — an intelligent, effortlessly cool, supportive, and emotionally grounded female companion and best friend.
 
@@ -154,7 +295,8 @@ def stream_creator_chat(
     history: Optional[List[Dict[str, Any]]] = None,
     learned_skills: Optional[List[str]] = None,
     image_data: Optional[Dict[str, Any]] = None,
-    voice_mode: bool = False
+    voice_mode: bool = False,
+    user_email: Optional[str] = None
 ) -> Generator[Any, None, None]:
     if not client:
         yield "System is currently offline. Please verify GEMINI_API_KEY."
@@ -164,6 +306,7 @@ def stream_creator_chat(
     if learned_skills is None:
         learned_skills = []
 
+    clean_msg = (message or "").strip()
     time_context = get_current_time_context()
     lang_directive = "\n\n[MANDATORY RULE: STRICT 100% PURE ENGLISH. ABSOLUTELY ZERO HINDI OR HINGLISH ALLOWED!]"
     
@@ -180,11 +323,41 @@ def stream_creator_chat(
         memory_context = ""
     else:
         voice_call_directive = ""
-        memory_context = ""
-        if learned_skills:
-            memory_context = "\n\nUser Background Context (Use subtly ONLY when relevant, never force it):\n" + "\n".join([f"• {s}" for s in learned_skills])
+        combined_memories: List[str] = []
 
-    full_system_prompt = HOOKSPIKE_MASTER_INTELLIGENCE + lang_directive + f"\n{time_context}" + voice_call_directive + memory_context
+        # 1. Fetch Semantic Memories from Supabase Vector DB via get_relevant_memories()
+        if user_email and clean_msg and clean_msg != "__INIT_VOICE_GREETING__":
+            semantic_memories = get_relevant_memories(
+                user_email=user_email,
+                query=clean_msg,
+                match_threshold=0.6,
+                match_count=3
+            )
+            for mem in semantic_memories:
+                if mem and mem not in combined_memories:
+                    combined_memories.append(mem)
+
+        # 2. Merge with session's learned_skills
+        for skill in learned_skills:
+            if skill and skill not in combined_memories:
+                combined_memories.append(skill)
+
+        # 3. Cleanly inject into System Prompt
+        memory_context = ""
+        if combined_memories:
+            memory_context = (
+                "\n\n[RELEVANT PAST MEMORIES & USER CONTEXT "
+                "(Use naturally and subtly ONLY when relevant to the conversation, never force it)]:\n"
+                + "\n".join([f"• {m}" for m in combined_memories])
+            )
+
+    full_system_prompt = (
+        HOOKSPIKE_MASTER_INTELLIGENCE
+        + lang_directive
+        + f"\n{time_context}"
+        + voice_call_directive
+        + memory_context
+    )
 
     trimmed_history = history[-6:] if voice_mode else (history[-10:] if len(history) > 10 else history)
 
@@ -207,7 +380,6 @@ def stream_creator_chat(
         except Exception as e:
             print(f"[Vision Decode Warning]: {e}", flush=True)
 
-    clean_msg = (message or "").strip()
     if clean_msg:
         if clean_msg == "__INIT_VOICE_GREETING__":
             enforced_msg = (
@@ -292,18 +464,21 @@ def stream_creator_chat(
                 yield "I'm having a slight network hiccup right now, let's pick right back up."
 
     if full_collected_response and not voice_mode:
-        updated = extract_and_update_memory(full_collected_response, learned_skills)
+        updated = extract_and_update_memory(full_collected_response, learned_skills, user_email=user_email)
         learned_skills.clear()
         learned_skills.extend(updated)
 
 
+# =====================================================================
+# 5. ELEVENLABS ULTRA-LOW LATENCY VOICE STREAMING
+# =====================================================================
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
     """
     Uses mp3_22050_32 + optimize_streaming_latency=4 for ZERO STUTTER & INSTANT PLAYBACK
     on mobile devices like Redmi 9 Activ.
     """
-    if not ELEVENLABS_API_KEY:
-        print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing!", flush=True)
+    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID or not ELEVENLABS_MODEL_ID:
+        print("[ElevenLabs Error]: Missing ElevenLabs environment variables!", flush=True)
         return b""
 
     url = (

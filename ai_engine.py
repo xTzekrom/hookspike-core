@@ -98,7 +98,7 @@ def save_user_memory(user_email: str, text: str) -> bool:
             headers=headers,
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             return resp.status in (200, 201, 204)
     except Exception as e:
         print(f"[Supabase Save Memory Error]: {e}", flush=True)
@@ -113,9 +113,13 @@ def get_relevant_memories(
 ) -> List[str]:
     """
     Calls the Supabase RPC function 'match_user_memories' to retrieve top
-    semantically relevant past memories for the given user.
+    semantically relevant past memories for the given user (fast 2.5s timeout).
     """
     if not SUPABASE_URL or not SUPABASE_KEY or not user_email or not query:
+        return []
+
+    # Skip slow embedding lookup for ultra-short greetings (< 3 words) to keep response ~1s
+    if len(query.strip().split()) < 3:
         return []
 
     query_embedding = _generate_embedding(query)
@@ -142,7 +146,7 @@ def get_relevant_memories(
             headers=headers,
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
                 memories = []
@@ -256,7 +260,7 @@ def extract_and_update_memory(
 
 
 # =====================================================================
-# 4. MASTER PERSONA & DYNAMIC MULTILINGUAL STREAMING ENGINE
+# 4. MASTER PERSONA & ZERO-LATENCY TOKEN STREAMING ENGINE
 # =====================================================================
 HOOKSPIKE_MASTER_INTELLIGENCE = """
 You are HookSpike — an intelligent, effortlessly cool, supportive, and emotionally grounded female companion and best friend.
@@ -401,7 +405,7 @@ def stream_creator_chat(
     def build_config(enable_search: bool) -> types.GenerateContentConfig:
         return types.GenerateContentConfig(
             system_instruction=full_system_prompt,
-            temperature=0.88 if voice_mode else 0.8,
+            temperature=0.85 if voice_mode else 0.78,
             top_p=0.95,
             max_output_tokens=90 if voice_mode else 4000,
             tools=[google_search_tool] if enable_search else None
@@ -411,9 +415,10 @@ def stream_creator_chat(
     fallback_model = "gemini-3.8-flash"
     full_collected_response = ""
 
+    # ZERO-BUFFERING INSTANT STREAM GENERATOR (1-2s Time-to-First-Token)
     def _stream_generator(model_name: str, enable_search: bool, key_idx: int = 0) -> Generator[str, None, None]:
         nonlocal full_collected_response
-        buffer = ""
+        tag_hold_buffer = ""
         active_client = get_active_client(key_idx)
         response_stream = active_client.models.generate_content_stream(
             model=model_name,
@@ -424,26 +429,30 @@ def stream_creator_chat(
             if not chunk.text:
                 continue
             full_collected_response += chunk.text
-            buffer += chunk.text
-            
-            if "[" in buffer:
-                if not re.search(r"\[(SKILL_LEARNED|MISTAKE_CORRECTED):", buffer):
-                    parts = buffer.split("[", 1)
-                    if parts[0]:
-                        yield sanitize_pollinations_links(parts[0])
-                    buffer = "[" + parts[1]
+            tag_hold_buffer += chunk.text
+
+            # Only hold back text if a '[' bracket appears (potential memory tag or image link)
+            if "[" in tag_hold_buffer:
+                parts = tag_hold_buffer.split("[", 1)
+                if parts[0]:
+                    yield parts[0]
+                tag_hold_buffer = "[" + parts[1]
+
+                # If bracket closed and it's NOT a hidden skill tag, flush it right away
+                if "]" in tag_hold_buffer and not re.search(r"\[(SKILL_LEARNED|MISTAKE_CORRECTED):", tag_hold_buffer, re.IGNORECASE):
+                    if "image.pollinations.ai" not in tag_hold_buffer or ")" in tag_hold_buffer:
+                        yield sanitize_pollinations_links(tag_hold_buffer)
+                        tag_hold_buffer = ""
                 continue
-            
-            if len(buffer) > 18 if voice_mode else len(buffer) > 30:
-                cut_len = 18 if voice_mode else 30
-                flush_part = buffer[:-cut_len]
-                buffer = buffer[-cut_len:]
-                yield sanitize_pollinations_links(flush_part)
-                
-        if buffer:
-            clean_buffer = re.sub(r"\s*\[(SKILL_LEARNED|MISTAKE_CORRECTED):[^\]]*\]", "", buffer)
-            if clean_buffer:
-                yield sanitize_pollinations_links(clean_buffer)
+
+            # Otherwise yield token IMMEDIATELY with 0 buffering delay!
+            yield tag_hold_buffer
+            tag_hold_buffer = ""
+
+        if tag_hold_buffer:
+            clean_tail = re.sub(r"\s*\[(SKILL_LEARNED|MISTAKE_CORRECTED):[^\]]*\]", "", tag_hold_buffer, flags=re.IGNORECASE)
+            if clean_tail:
+                yield sanitize_pollinations_links(clean_tail)
 
     has_yielded = False
 
@@ -455,7 +464,6 @@ def stream_creator_chat(
         print(f"[Primary Model Warning]: {e} -> Trying fallback", flush=True)
         if not has_yielded:
             try:
-                time.sleep(0.3)
                 for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=1):
                     has_yielded = True
                     yield text_piece
@@ -473,10 +481,6 @@ def stream_creator_chat(
 # 5. ELEVENLABS MULTILINGUAL ULTRA-LOW LATENCY VOICE STREAMING
 # =====================================================================
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
-    """
-    Standard, clean ElevenLabs Text-to-Speech call using eleven_turbo_v2_5
-    (supports 32+ languages including English, Hindi, Marathi with ~250ms latency).
-    """
     clean_text = (text or "").strip()
     if not clean_text:
         return b""

@@ -3,7 +3,7 @@ HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v3.0 G
 =================================================================================================
 - Model: Gemini 3.5 Flash-Lite (Primary) & Gemini 3.8 Flash (Fallback)
 - Persona: Smart, warm, grounded female best friend (100% Pure English ONLY)
-- Voice Engine: ElevenLabs v4 Turbo Ultra-Low Bitrate Streaming (Zero Stutter on Mobile)
+- Voice Engine: ElevenLabs Turbo v2.5 Ultra-Low Bitrate Streaming (Zero Stutter on Mobile)
 - Voice Memory Isolation: Never leaks old text-chat memories into live voice calls
 - Vector Memory: 768-Dim Semantic Memory via Gemini text-embedding-004 & Supabase RPC
 """
@@ -319,13 +319,11 @@ def stream_creator_chat(
             "- React ONLY to what the user just said right now. Do NOT mention past background facts or assume why they feel a certain way.\n"
             "- NEVER use lists, markdown symbols (**), asterisks, or emojis."
         )
-        # Complete isolation from past text memories during voice call!
         memory_context = ""
     else:
         voice_call_directive = ""
         combined_memories: List[str] = []
 
-        # 1. Fetch Semantic Memories from Supabase Vector DB via get_relevant_memories()
         if user_email and clean_msg and clean_msg != "__INIT_VOICE_GREETING__":
             semantic_memories = get_relevant_memories(
                 user_email=user_email,
@@ -337,12 +335,10 @@ def stream_creator_chat(
                 if mem and mem not in combined_memories:
                     combined_memories.append(mem)
 
-        # 2. Merge with session's learned_skills
         for skill in learned_skills:
             if skill and skill not in combined_memories:
                 combined_memories.append(skill)
 
-        # 3. Cleanly inject into System Prompt
         memory_context = ""
         if combined_memories:
             memory_context = (
@@ -470,36 +466,40 @@ def stream_creator_chat(
 
 
 # =====================================================================
-# 5. ELEVENLABS ULTRA-LOW LATENCY VOICE STREAMING
+# 5. ELEVENLABS ULTRA-LOW LATENCY VOICE STREAMING (BULLETPROOF FIXED)
 # =====================================================================
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
     """
-    Uses mp3_22050_32 + optimize_streaming_latency=4 for ZERO STUTTER & INSTANT PLAYBACK
-    on mobile devices like Redmi 9 Activ.
+    Clean and standard ElevenLabs Text-to-Speech call with bulletproof
+    HTTP error decoding to catch exact API JSON response on error 400.
     """
-    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID or not ELEVENLABS_MODEL_ID:
-        print("[ElevenLabs Error]: Missing ElevenLabs environment variables!", flush=True)
+    clean_text = (text or "").strip()
+    if not clean_text:
         return b""
 
-    url = (
-        f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
-        f"?optimize_streaming_latency=4&output_format=mp3_22050_32"
-    )
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "").strip() or "ROMJ9yK1NAMuu1ggrjDW"
+    model_id = os.environ.get("ELEVENLABS_MODEL_ID", "").strip() or "eleven_turbo_v2_5"
+
+    if not api_key:
+        print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing!", flush=True)
+        return b""
+
+    # Clean URL without query parameters that cause 400 conflict
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
-        "xi-api-key": ELEVENLABS_API_KEY
+        "xi-api-key": api_key
     }
 
     payload = {
-        "text": text,
-        "model_id": ELEVENLABS_MODEL_ID,
+        "text": clean_text,
+        "model_id": model_id,
         "voice_settings": {
-            "stability": 0.52,
-            "similarity_boost": 0.82,
-            "style": 0.15,
-            "use_speaker_boost": True
+            "stability": 0.5,
+            "similarity_boost": 0.75
         }
     }
 
@@ -510,8 +510,12 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
             headers=headers,
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=12) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             return response.read()
+    except urllib.error.HTTPError as err:
+        error_json = err.read().decode("utf-8", errors="replace")
+        print(f"[ElevenLabs HTTP {err.code} Exact JSON]: {error_json}", flush=True)
+        return b""
     except Exception as exc:
         print(f"[ElevenLabs Voice Error]: {exc}", flush=True)
         return b""

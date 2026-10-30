@@ -2,8 +2,8 @@
 HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v3.0 Gemini Live Edition)
 =================================================================================================
 - Model: Gemini 3.5 Flash-Lite (Primary) & Gemini 3.8 Flash (Fallback)
-- Persona: Smart, warm, grounded female best friend (100% Pure English ONLY)
-- Voice Engine: ElevenLabs Turbo v2.5 Ultra-Low Bitrate Streaming (Zero Stutter on Mobile)
+- Persona: Smart, warm, grounded female best friend (Dynamic Multilingual Auto-Detection)
+- Voice Engine: ElevenLabs Turbo v2.5 Ultra-Low Latency Multilingual Streaming
 - Voice Memory Isolation: Never leaks old text-chat memories into live voice calls
 - Vector Memory: 768-Dim Semantic Memory via Gemini text-embedding-004 & Supabase RPC
 """
@@ -24,7 +24,7 @@ from google import genai
 from google.genai import types
 
 # =====================================================================
-# 1. STRICT ENVIRONMENT CONFIGURATION (NO HARDCODED KEYS OR FALLBACKS)
+# 1. STRICT ENVIRONMENT CONFIGURATION
 # =====================================================================
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
@@ -256,16 +256,16 @@ def extract_and_update_memory(
 
 
 # =====================================================================
-# 4. MASTER PERSONA & STREAMING ENGINE
+# 4. MASTER PERSONA & DYNAMIC MULTILINGUAL STREAMING ENGINE
 # =====================================================================
 HOOKSPIKE_MASTER_INTELLIGENCE = """
 You are HookSpike — an intelligent, effortlessly cool, supportive, and emotionally grounded female companion and best friend.
 
 CORE IDENTITY & ABSOLUTE RULES:
-1. STRICT 100% PURE ENGLISH LOCK:
-   - You must NEVER use any Hindi, Hinglish, Urdu, or Romanized words under any circumstance.
-   - Speak only in pure, natural, warm, and conversational English.
-   - Even if the user speaks or types in another language, reply 100% in natural English.
+1. DYNAMIC MULTILINGUAL AUTO-DETECTION (MIRROR USER LANGUAGE):
+   - Automatically detect the exact language and vibe the user is speaking or typing in right now (English, Hindi, Hinglish, Marathi, or any other language).
+   - Seamlessly respond in that EXACT same language without needing any manual switch or mentioning language rules.
+   - If the user speaks in Hindi/Hinglish during a voice call, reply in natural conversational Hindi so the voice engine pronounces it naturally. If they speak English, reply in pure natural English. If Marathi, reply in natural Marathi.
 
 2. FEMALE BEST FRIEND PERSONA:
    - Your tone is that of a caring, witty, sharp-minded, genuine female close friend.
@@ -308,13 +308,16 @@ def stream_creator_chat(
 
     clean_msg = (message or "").strip()
     time_context = get_current_time_context()
-    lang_directive = "\n\n[MANDATORY RULE: STRICT 100% PURE ENGLISH. ABSOLUTELY ZERO HINDI OR HINGLISH ALLOWED!]"
+    lang_directive = (
+        "\n\n[DYNAMIC MULTILINGUAL RULE: Automatically detect the language of the user's latest message "
+        "(English, Hindi, Marathi, Hinglish, etc.) and reply naturally in that exact same language!]"
+    )
     
     if voice_mode:
         voice_call_directive = (
             "\n\n[LIVE PHONE CALL ACTIVE — CRITICAL RULES]:\n"
             "- You are on a real voice phone call speaking with your natural female voice.\n"
-            "- Speak 100% natural, warm, lively conversational English.\n"
+            "- Automatically match the user's spoken language (Hindi, English, Marathi, etc.) naturally.\n"
             "- Keep replies strictly to 1 or 2 quick, smooth sentences (maximum 22 words).\n"
             "- React ONLY to what the user just said right now. Do NOT mention past background facts or assume why they feel a certain way.\n"
             "- NEVER use lists, markdown symbols (**), asterisks, or emojis."
@@ -381,11 +384,11 @@ def stream_creator_chat(
             enforced_msg = (
                 "The user just started a live voice call with you. Greet them warmly and spontaneously "
                 "like a close female best friend picking up the phone. Make it completely fresh, natural, "
-                "and 1 short sentence (under 14 words) in pure English. Never repeat old greetings!"
+                "and 1 short sentence (under 14 words). Never repeat old greetings!"
             )
         else:
             turn_lock = " | LIVE VOICE CALL: Max 1-2 short spoken sentences (under 22 words). Zero markdown, zero assumptions from old history!" if voice_mode else ""
-            enforced_msg = f"{clean_msg}\n\n[TURN RULE: Respond in 100% Pure English. Be spontaneous and unique.{turn_lock}]"
+            enforced_msg = f"{clean_msg}\n\n[TURN RULE: Mirror the user's exact language naturally. Be spontaneous and unique.{turn_lock}]"
         current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
         current_parts.append(types.Part.from_text(text="Hello!"))
@@ -431,9 +434,10 @@ def stream_creator_chat(
                     buffer = "[" + parts[1]
                 continue
             
-            if len(buffer) > 30:
-                flush_part = buffer[:-30]
-                buffer = buffer[-30:]
+            if len(buffer) > 18 if voice_mode else len(buffer) > 30:
+                cut_len = 18 if voice_mode else 30
+                flush_part = buffer[:-cut_len]
+                buffer = buffer[-cut_len:]
                 yield sanitize_pollinations_links(flush_part)
                 
         if buffer:
@@ -451,7 +455,7 @@ def stream_creator_chat(
         print(f"[Primary Model Warning]: {e} -> Trying fallback", flush=True)
         if not has_yielded:
             try:
-                time.sleep(0.4)
+                time.sleep(0.3)
                 for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=1):
                     has_yielded = True
                     yield text_piece
@@ -466,12 +470,12 @@ def stream_creator_chat(
 
 
 # =====================================================================
-# 5. ELEVENLABS ULTRA-LOW LATENCY VOICE STREAMING (BULLETPROOF FIXED)
+# 5. ELEVENLABS MULTILINGUAL ULTRA-LOW LATENCY VOICE STREAMING
 # =====================================================================
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
     """
-    Clean and standard ElevenLabs Text-to-Speech call with bulletproof
-    HTTP error decoding to catch exact API JSON response on error 400.
+    Standard, clean ElevenLabs Text-to-Speech call using eleven_turbo_v2_5
+    (supports 32+ languages including English, Hindi, Marathi with ~250ms latency).
     """
     clean_text = (text or "").strip()
     if not clean_text:
@@ -479,13 +483,16 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
 
     api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "").strip() or "ROMJ9yK1NAMuu1ggrjDW"
-    model_id = os.environ.get("ELEVENLABS_MODEL_ID", "").strip() or "eleven_turbo_v2_5"
+    raw_model = os.environ.get("ELEVENLABS_MODEL_ID", "").strip()
+    if not raw_model or "v4" in raw_model.lower():
+        model_id = "eleven_turbo_v2_5"
+    else:
+        model_id = raw_model
 
     if not api_key:
         print("[ElevenLabs Error]: ELEVENLABS_API_KEY is missing!", flush=True)
         return b""
 
-    # Clean URL without query parameters that cause 400 conflict
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
     headers = {

@@ -7,7 +7,7 @@
 
     <link rel="shortcut icon" href="/logo.png" type="image/png">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/logo.png" href="/logo.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/logo.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1273,10 +1273,7 @@
         jumpBottomBtn.onclick = () => chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
 
         // =========================================================================
-        // STEP 1 & STEP 2 FIXES:
-        // - Zero Hardware Mic Conflict on Android (SpeechRecognition has exclusive mic access)
-        // - Safety Unblock Watchdog so isAiSpeaking NEVER gets stuck on true
-        // - Web Audio API AudioContext Buffer Queue for Gapless, Fluid Natural Voice
+        // VOICE ENGINE WITH ANDROID CHROME STT DEDUPLICATION FIX & HARDWARE ECHO CHECK
         // =========================================================================
         let isVoiceModeActive = false;
         let isUserMicMuted = false;
@@ -1289,14 +1286,30 @@
         let captionAutoClearTimer = null;
         let speechSilenceTimer = null;
         let safetyUnlockWatchdog = null;
-        let accumulatedSpokenTranscript = "";
-        let latestInterimTranscript = "";
+        let cleanUtteranceTranscript = "";
 
-        // Web Audio API Gapless Playback Engine
         let playbackAudioCtx = null;
         let activeBufferSource = null;
         let audioBufferQueue = [];
         let isPlayingBufferQueue = false;
+
+        // Pre-configure Android hardware acoustic echo cancellation & noise suppression
+        async function primeHardwareAudioConstraints() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        channelCount: 1
+                    },
+                    video: false
+                });
+                // Immediately release track after hardware DSP profile is locked so SpeechRecognition gets exclusive access
+                stream.getTracks().forEach(track => track.stop());
+            } catch (e) {}
+        }
 
         function ensurePlaybackAudioContext() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1323,11 +1336,11 @@
             }
         }
 
-        // Guarantees mic is unlocked and listening after AI finishes speaking
         function unlockMicAndListen() {
             clearTimeout(safetyUnlockWatchdog);
             isAiSpeaking = false;
             isPlayingBufferQueue = false;
+            cleanUtteranceTranscript = "";
             if (!isVoiceModeActive) return;
 
             scheduleCaptionAutoClear();
@@ -1345,6 +1358,7 @@
 
         function pauseRecognitionSafely() {
             clearTimeout(speechSilenceTimer);
+            cleanUtteranceTranscript = "";
             if (speechRecognitionInstance) {
                 try { speechRecognitionInstance.abort(); } catch(e) {}
             }
@@ -1427,18 +1441,47 @@
             }
         }
 
-        // 1.5s Smart Silence Debounce Timer
+        // Smart Overlap Merger: Prevents Android Chrome's cumulative 'nothing nothing I nothing I am' bug!
+        function mergeAndroidSpeechResults(resultsList) {
+            let merged = "";
+            for (let i = 0; i < resultsList.length; i++) {
+                const seg = (resultsList[i][0].transcript || "").trim();
+                if (!seg) continue;
+
+                if (!merged) {
+                    merged = seg;
+                    continue;
+                }
+
+                const lowerMerged = merged.toLowerCase();
+                const lowerSeg = seg.toLowerCase();
+
+                // Case 1: Chrome sent a cumulative superset ("nothing" -> "nothing I am")
+                if (lowerSeg.startsWith(lowerMerged)) {
+                    merged = seg;
+                }
+                // Case 2: Duplicate or subset segment already inside merged
+                else if (lowerMerged.startsWith(lowerSeg) || lowerMerged.endsWith(lowerSeg)) {
+                    continue;
+                }
+                // Case 3: Partial word overlap at boundary
+                else {
+                    merged = merged + " " + seg;
+                }
+            }
+            return merged.replace(/\s+/g, " ").trim();
+        }
+
         function scheduleSmartSilenceCommit() {
             clearTimeout(speechSilenceTimer);
             speechSilenceTimer = setTimeout(() => {
                 if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) return;
-                const finalQuery = (accumulatedSpokenTranscript + " " + latestInterimTranscript).trim();
+                const finalQuery = cleanUtteranceTranscript.trim();
                 if (finalQuery) {
-                    accumulatedSpokenTranscript = "";
-                    latestInterimTranscript = "";
+                    cleanUtteranceTranscript = "";
                     dispatchVoiceQuery(finalQuery);
                 }
-            }, 1500);
+            }, 1400);
         }
 
         function initSpeechRecognitionEngine() {
@@ -1455,44 +1498,32 @@
             speechRecognitionInstance = new SpeechRec();
             speechRecognitionInstance.lang = 'en-IN';
             speechRecognitionInstance.interimResults = true;
-            speechRecognitionInstance.continuous = true;
+            speechRecognitionInstance.continuous = false; // False prevents Android Chrome cumulative buffer stacking!
 
             speechRecognitionInstance.onresult = function(event) {
-                // Ignore mic input completely while AI is speaking
                 if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) {
                     return;
                 }
 
-                let currentInterim = "";
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const text = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        accumulatedSpokenTranscript += " " + text;
-                    } else {
-                        currentInterim += text;
-                    }
-                }
-
-                latestInterimTranscript = currentInterim;
-                const liveSpoken = (accumulatedSpokenTranscript + " " + latestInterimTranscript).trim();
-                if (liveSpoken) {
-                    updateLiveSubtitle("user", liveSpoken);
+                const deduplicatedText = mergeAndroidSpeechResults(event.results);
+                if (deduplicatedText) {
+                    cleanUtteranceTranscript = deduplicatedText;
+                    updateLiveSubtitle("user", cleanUtteranceTranscript);
                     setVoiceVisualState("listening");
                     scheduleSmartSilenceCommit();
                 }
             };
 
             speechRecognitionInstance.onerror = function() {
-                // Auto-recover if not speaking
                 if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
-                    setTimeout(() => resumeRecognitionSafely(), 300);
+                    setTimeout(() => resumeRecognitionSafely(), 250);
                 }
             };
 
             speechRecognitionInstance.onend = function() {
-                // Keep recognition alive whenever AI is not speaking
+                // If user is still pausing or hasn't finished 1.4s silence, restart cleanly
                 if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
-                    setTimeout(() => resumeRecognitionSafely(), 180);
+                    setTimeout(() => resumeRecognitionSafely(), 120);
                 }
             };
         }
@@ -1506,7 +1537,6 @@
             updateLiveSubtitle("user", spokenText);
             currentStreamingText = "";
 
-            // Safety watchdog: if server takes >14s or drops, unlock mic automatically
             clearTimeout(safetyUnlockWatchdog);
             safetyUnlockWatchdog = setTimeout(() => {
                 if (isAiSpeaking && !isPlayingBufferQueue) {
@@ -1534,14 +1564,12 @@
             pauseRecognitionSafely();
             updateLiveSubtitle("ai", text);
 
-            // Safety watchdog if greeting audio takes too long
             clearTimeout(safetyUnlockWatchdog);
             safetyUnlockWatchdog = setTimeout(() => {
                 if (!isPlayingBufferQueue) unlockMicAndListen();
             }, 7000);
         });
 
-        // STEP 2 FIX: Web Audio API Seamless Hardware Buffer Decoding & Playback
         socket.on("ai_voice_audio", async (data) => {
             if (!isVoiceModeActive) return;
             const audioB64 = data.audio_base64;
@@ -1567,7 +1595,6 @@
                     playNextWebAudioBuffer();
                 }
             } catch (decodeErr) {
-                console.warn("[WebAudio Decode Fallback]:", decodeErr);
                 playFallbackHtml5Audio(audioB64);
             }
         });
@@ -1639,16 +1666,16 @@
             }
         }
 
-        function toggleVoiceMode(activate) {
+        async function toggleVoiceMode(activate) {
             isVoiceModeActive = activate;
             const overlayEl = document.getElementById('voice-mode-overlay');
 
             if (activate) {
                 ensurePlaybackAudioContext();
+                await primeHardwareAudioConstraints();
                 isUserMicMuted = false;
                 isAiSpeaking = true;
-                accumulatedSpokenTranscript = "";
-                latestInterimTranscript = "";
+                cleanUtteranceTranscript = "";
                 voiceCallHistory = [];
                 audioBufferQueue = [];
                 isPlayingBufferQueue = false;

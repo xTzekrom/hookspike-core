@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (Fluid Natural Voice + WebSockets)
+HookSpike AI - Production Backend (Instant Token Flush + Fluid Voice + WebSockets)
 """
 
 import base64
@@ -161,7 +161,7 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
         encoded_email = urllib.parse.quote(user_email)
         url = f"{SUPABASE_URL}/rest/v1/user_skills?user_email=eq.{encoded_email}&select=skill_rule&order=created_at.desc&limit=25"
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
-        with urllib.request.urlopen(req, timeout=4) as resp:
+        with urllib.request.urlopen(req, timeout=3) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
                 skills = [row["skill_rule"] for row in data if row.get("skill_rule")]
@@ -647,7 +647,7 @@ def voice_tts_endpoint():
 
 
 # =====================================================================
-# REAL-TIME WEBSOCKET PIPELINE (FLUID SINGLE-PROSODY VOICE GENERATION)
+# REAL-TIME WEBSOCKET PIPELINE (INSTANT PACKET FLUSH via socketio.sleep(0))
 # =====================================================================
 @socketio.on("start_voice_call")
 def handle_start_voice_call(data=None):
@@ -656,6 +656,7 @@ def handle_start_voice_call(data=None):
 
     greeting_text = random.choice(VOICE_GREETINGS)
     emit("ai_voice_greeting", {"text": greeting_text})
+    socketio.sleep(0)
 
     def _stream_greeting_audio(target_sid: str, text_to_speak: str):
         if not ACTIVE_STREAM_FLAGS.get(target_sid, False):
@@ -671,9 +672,10 @@ def handle_start_voice_call(data=None):
                 },
                 to=target_sid
             )
+            socketio.sleep(0)
         else:
-            # Ensure client mic unlocks even if ElevenLabs fails
             socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
+            socketio.sleep(0)
 
     socketio.start_background_task(_stream_greeting_audio, sid, greeting_text)
 
@@ -690,14 +692,15 @@ def handle_user_interrupted(data=None):
         ACTIVE_STREAM_FLAGS[user_email] = False
 
     emit("ai_stream_aborted", {"aborted": True})
+    socketio.sleep(0)
 
 
 @socketio.on("send_message")
 def handle_socket_send_message(data):
     """
     Real-Time Chat & Fluid Voice Event:
-    Generates text chunks live and synthesizes the complete short spoken turn
-    in one seamless prosody buffer so the voice never sounds robotic or choppy.
+    Uses socketio.sleep(0) after every single token emit so Eventlet flushes
+    WebSocket frames immediately (1-2s Time-to-First-Token).
     """
     payload = data if isinstance(data, dict) else {}
     sid = request.sid
@@ -765,6 +768,7 @@ def handle_socket_send_message(data):
             ):
                 if not is_still_active():
                     socketio.emit("ai_stream_aborted", {"aborted": True}, to=target_sid)
+                    socketio.sleep(0)
                     return
 
                 if chunk:
@@ -776,10 +780,13 @@ def handle_socket_send_message(data):
                             {"chunk": pending_buffer, "session_id": active_sess_id},
                             to=target_sid
                         )
+                        # CRITICAL FIX: Force Eventlet to flush token packet over network immediately!
+                        socketio.sleep(0)
                         pending_buffer = ""
 
             if not is_still_active():
                 socketio.emit("ai_stream_aborted", {"aborted": True}, to=target_sid)
+                socketio.sleep(0)
                 return
 
             if pending_buffer:
@@ -805,16 +812,7 @@ def handle_socket_send_message(data):
                         {"chunk": clean_tail, "session_id": active_sess_id},
                         to=target_sid
                     )
-
-            # Save conversation history in text mode
-            if accumulated_reply.strip() and target_email and not voice_flag and is_still_active():
-                if not active_sess_id:
-                    title_text = (disp_msg[:30] + "...") if len(disp_msg) > 30 else disp_msg
-                    active_sess_id = db_create_session(target_email, title_text, target_jwt)
-
-                if active_sess_id:
-                    db_create_message(active_sess_id, "user", disp_msg, target_jwt)
-                    db_create_message(active_sess_id, "assistant", accumulated_reply.strip(), target_jwt)
+                    socketio.sleep(0)
 
             # Synthesize complete short voice response in one natural prosody pass
             if voice_flag and is_still_active():
@@ -831,10 +829,13 @@ def handle_socket_send_message(data):
                             },
                             to=target_sid
                         )
+                        socketio.sleep(0)
                     else:
                         socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
+                        socketio.sleep(0)
                 else:
                     socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
+                    socketio.sleep(0)
 
             if is_still_active():
                 socketio.emit(
@@ -842,11 +843,23 @@ def handle_socket_send_message(data):
                     {"done": True, "session_id": active_sess_id, "full_text": accumulated_reply.strip()},
                     to=target_sid
                 )
+                socketio.sleep(0)
+
+            # Save conversation history in text mode AFTER emitting stream_done so UI never waits
+            if accumulated_reply.strip() and target_email and not voice_flag and is_still_active():
+                if not active_sess_id:
+                    title_text = (disp_msg[:30] + "...") if len(disp_msg) > 30 else disp_msg
+                    active_sess_id = db_create_session(target_email, title_text, target_jwt)
+
+                if active_sess_id:
+                    db_create_message(active_sess_id, "user", disp_msg, target_jwt)
+                    db_create_message(active_sess_id, "assistant", accumulated_reply.strip(), target_jwt)
 
         except Exception as exc:
             print(f"[Socket Stream Error]: {exc}", flush=True)
             socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
             socketio.emit("ai_error", {"error": str(exc)}, to=target_sid)
+            socketio.sleep(0)
 
     socketio.start_background_task(
         _run_realtime_stream,

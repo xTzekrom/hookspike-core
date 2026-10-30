@@ -7,7 +7,7 @@
 
     <link rel="shortcut icon" href="/logo.png" type="image/png">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/logo.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/logo.png" href="/logo.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1066,6 +1066,11 @@
             if (activeAiCursor) { activeAiCursor.remove(); activeAiCursor = null; }
             activeAiBox = null;
             currentStreamingText = "";
+            unlockMicAndListen();
+        });
+
+        socket.on("ai_voice_unlock", () => {
+            unlockMicAndListen();
         });
 
         socket.on("ai_error", (err) => {
@@ -1075,6 +1080,7 @@
                 activeAiBox.innerText = `Issue: ${err.error || 'Connection error'}`;
             }
             activeAiBox = null;
+            unlockMicAndListen();
         });
 
         attachBtn.onclick = () => photoInput.click();
@@ -1267,138 +1273,94 @@
         jumpBottomBtn.onclick = () => chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
 
         // =========================================================================
-        // 6 CRITICAL UPGRADES:
-        // - AI Self-Trigger Lock (Ignores mic while isAiSpeaking = true)
-        // - Hardware Echo Cancellation & Noise Suppression Stream
-        // - Web Audio API + AnalyserNode Real-Time Energy VAD
-        // - 1.5s Smart Silence Debounce Timer
-        // - Progressive Audio Queue for Sentence-Chunk TTS
-        // - Dynamic Multilingual Recognition
+        // STEP 1 & STEP 2 FIXES:
+        // - Zero Hardware Mic Conflict on Android (SpeechRecognition has exclusive mic access)
+        // - Safety Unblock Watchdog so isAiSpeaking NEVER gets stuck on true
+        // - Web Audio API AudioContext Buffer Queue for Gapless, Fluid Natural Voice
         // =========================================================================
         let isVoiceModeActive = false;
         let isUserMicMuted = false;
         let isAiSpeaking = false;
         let isCaptionsVisible = true;
         let speechRecognitionInstance = null;
-        let voiceAudioPlayer = new Audio();
-        let voiceAudioQueue = [];
-        let isPlayingAudioQueue = false;
         let voiceCallHistory = [];
         let voiceTimerInterval = null;
         let voiceSecondsElapsed = 0;
         let captionAutoClearTimer = null;
         let speechSilenceTimer = null;
+        let safetyUnlockWatchdog = null;
         let accumulatedSpokenTranscript = "";
         let latestInterimTranscript = "";
 
-        // Web Audio API & Hardware Constraints State
-        let micMediaStream = null;
-        let audioCtx = null;
-        let micAnalyserNode = null;
-        let vadAnimationFrame = null;
-        let lastUserVoiceEnergyTime = 0;
+        // Web Audio API Gapless Playback Engine
+        let playbackAudioCtx = null;
+        let activeBufferSource = null;
+        let audioBufferQueue = [];
+        let isPlayingBufferQueue = false;
 
-        async function initHardwareEchoCancelledMicAndVAD() {
-            try {
-                // Point 2: Hardware Echo Cancellation, Noise Suppression, AutoGainControl
-                micMediaStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                        channelCount: 1
-                    },
-                    video: false
-                });
-
-                // Point 3: Web Audio API & AnalyserNode Setup (Smart VAD)
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (AudioContextClass) {
-                    audioCtx = new AudioContextClass();
-                    const source = audioCtx.createMediaStreamSource(micMediaStream);
-                    micAnalyserNode = audioCtx.createAnalyser();
-                    micAnalyserNode.fftSize = 512;
-                    micAnalyserNode.smoothingTimeConstant = 0.65;
-                    source.connect(micAnalyserNode);
-                    monitorMicEnergyLoop();
-                }
-            } catch (err) {
-                console.warn("[Hardware Mic / VAD Warning]:", err);
+        function ensurePlaybackAudioContext() {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!playbackAudioCtx && AudioCtx) {
+                playbackAudioCtx = new AudioCtx();
+            }
+            if (playbackAudioCtx && playbackAudioCtx.state === "suspended") {
+                playbackAudioCtx.resume().catch(() => {});
             }
         }
 
-        function stopHardwareMicAndVAD() {
-            if (vadAnimationFrame) cancelAnimationFrame(vadAnimationFrame);
-            vadAnimationFrame = null;
-            if (micMediaStream) {
-                micMediaStream.getTracks().forEach(t => t.stop());
-                micMediaStream = null;
+        function stopActiveAudio() {
+            clearTimeout(safetyUnlockWatchdog);
+            isAiSpeaking = false;
+            isPlayingBufferQueue = false;
+            audioBufferQueue = [];
+            if (activeBufferSource) {
+                try {
+                    activeBufferSource.onended = null;
+                    activeBufferSource.stop();
+                    activeBufferSource.disconnect();
+                } catch(e) {}
+                activeBufferSource = null;
             }
-            if (audioCtx) {
-                try { audioCtx.close(); } catch(e) {}
-                audioCtx = null;
-            }
-            micAnalyserNode = null;
         }
 
-        function monitorMicEnergyLoop() {
-            if (!isVoiceModeActive || !micAnalyserNode) return;
-            const dataArray = new Uint8Array(micAnalyserNode.frequencyBinCount);
+        // Guarantees mic is unlocked and listening after AI finishes speaking
+        function unlockMicAndListen() {
+            clearTimeout(safetyUnlockWatchdog);
+            isAiSpeaking = false;
+            isPlayingBufferQueue = false;
+            if (!isVoiceModeActive) return;
 
-            function checkEnergy() {
-                if (!isVoiceModeActive || !micAnalyserNode) return;
-                micAnalyserNode.getByteFrequencyData(dataArray);
-
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) {
-                    sum += dataArray[i];
-                }
-                const avgAmplitude = sum / dataArray.length;
-
-                // Point 1: Strictly ignore mic energy when AI is speaking or mic is muted
-                if (!isAiSpeaking && !isUserMicMuted) {
-                    const wavePri = document.getElementById("waveGlowPri");
-                    if (wavePri && avgAmplitude > 12) {
-                        const dynamicScale = Math.min(1.38, 1 + (avgAmplitude / 140));
-                        wavePri.style.transform = `scaleY(${dynamicScale})`;
+            scheduleCaptionAutoClear();
+            if (isUserMicMuted) {
+                setVoiceVisualState("muted");
+            } else {
+                setVoiceVisualState("listening");
+                setTimeout(() => {
+                    if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
+                        resumeRecognitionSafely();
                     }
-
-                    // If user is actively making vocal sound (breathing/speaking threshold)
-                    if (avgAmplitude > 20) {
-                        lastUserVoiceEnergyTime = Date.now();
-                        // Extend the 1.5s silence timer if transcript is pending
-                        if ((accumulatedSpokenTranscript || latestInterimTranscript).trim()) {
-                            scheduleSmartSilenceCommit();
-                        }
-                    }
-                }
-
-                vadAnimationFrame = requestAnimationFrame(checkEnergy);
+                }, 220);
             }
-
-            vadAnimationFrame = requestAnimationFrame(checkEnergy);
         }
 
-        // Point 4: Smart 1.5s Silence Debounce Timer
-        function scheduleSmartSilenceCommit() {
+        function pauseRecognitionSafely() {
             clearTimeout(speechSilenceTimer);
-            speechSilenceTimer = setTimeout(() => {
-                if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) return;
+            if (speechRecognitionInstance) {
+                try { speechRecognitionInstance.abort(); } catch(e) {}
+            }
+        }
 
-                // If Web Audio API VAD still detects strong vocal energy right now, wait another 450ms
-                const msSinceLastVoiceEnergy = Date.now() - lastUserVoiceEnergyTime;
-                if (msSinceLastVoiceEnergy < 400) {
-                    scheduleSmartSilenceCommit();
-                    return;
-                }
+        function resumeRecognitionSafely() {
+            if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking && speechRecognitionInstance) {
+                try { speechRecognitionInstance.start(); } catch(e) {}
+            }
+        }
 
-                const finalQuery = (accumulatedSpokenTranscript + " " + latestInterimTranscript).trim();
-                if (finalQuery) {
-                    accumulatedSpokenTranscript = "";
-                    latestInterimTranscript = "";
-                    dispatchVoiceQuery(finalQuery);
-                }
-            }, 1500);
+        function setVoiceVisualState(stateName) {
+            const overlayEl = document.getElementById('voice-mode-overlay');
+            if (!overlayEl) return;
+            overlayEl.classList.remove('listening', 'speaking', 'thinking', 'muted');
+            overlayEl.classList.add(stateName);
         }
 
         function startVoiceCallTimer() {
@@ -1412,37 +1374,6 @@
                 const secs = String(voiceSecondsElapsed % 60).padStart(2, '0');
                 if (timerEl) timerEl.innerText = `${mins}:${secs}`;
             }, 1000);
-        }
-
-        function stopActiveAudio() {
-            isAiSpeaking = false;
-            isPlayingAudioQueue = false;
-            voiceAudioQueue = [];
-            if (voiceAudioPlayer) {
-                voiceAudioPlayer.pause();
-                voiceAudioPlayer.currentTime = 0;
-                voiceAudioPlayer.src = "";
-            }
-        }
-
-        function pauseRecognitionSafely() {
-            clearTimeout(speechSilenceTimer);
-            if (speechRecognitionInstance) {
-                try { speechRecognitionInstance.abort(); } catch(e) {}
-            }
-        }
-
-        function resumeRecognitionSafely() {
-            if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
-                try { speechRecognitionInstance.start(); } catch(e) {}
-            }
-        }
-
-        function setVoiceVisualState(stateName) {
-            const overlayEl = document.getElementById('voice-mode-overlay');
-            if (!overlayEl) return;
-            overlayEl.classList.remove('listening', 'speaking', 'thinking', 'muted');
-            overlayEl.classList.add(stateName);
         }
 
         function toggleLiveTranscriptVisibility() {
@@ -1496,29 +1427,38 @@
             }
         }
 
+        // 1.5s Smart Silence Debounce Timer
+        function scheduleSmartSilenceCommit() {
+            clearTimeout(speechSilenceTimer);
+            speechSilenceTimer = setTimeout(() => {
+                if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) return;
+                const finalQuery = (accumulatedSpokenTranscript + " " + latestInterimTranscript).trim();
+                if (finalQuery) {
+                    accumulatedSpokenTranscript = "";
+                    latestInterimTranscript = "";
+                    dispatchVoiceQuery(finalQuery);
+                }
+            }, 1500);
+        }
+
         function initSpeechRecognitionEngine() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRec) return;
+            if (!SpeechRec) {
+                alert("Voice recognition requires Chrome browser.");
+                return;
+            }
 
             if (speechRecognitionInstance) {
                 try { speechRecognitionInstance.abort(); } catch(e) {}
             }
 
             speechRecognitionInstance = new SpeechRec();
-            // Point 6: Dynamic Multilingual Support (en-IN natively captures English, Hindi, Hinglish, Marathi on Android/Chrome)
-            speechRecognitionInstance.lang = navigator.language || 'en-IN';
+            speechRecognitionInstance.lang = 'en-IN';
             speechRecognitionInstance.interimResults = true;
             speechRecognitionInstance.continuous = true;
 
-            // Point 1: AI Self-Trigger Fix — NEVER interrupt or process mic while isAiSpeaking is true!
-            speechRecognitionInstance.onspeechstart = function() {
-                if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) {
-                    return;
-                }
-            };
-
             speechRecognitionInstance.onresult = function(event) {
-                // Point 1: Strict Self-Trigger Guard
+                // Ignore mic input completely while AI is speaking
                 if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) {
                     return;
                 }
@@ -1542,15 +1482,17 @@
                 }
             };
 
-            speechRecognitionInstance.onerror = function() {};
+            speechRecognitionInstance.onerror = function() {
+                // Auto-recover if not speaking
+                if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
+                    setTimeout(() => resumeRecognitionSafely(), 300);
+                }
+            };
 
             speechRecognitionInstance.onend = function() {
+                // Keep recognition alive whenever AI is not speaking
                 if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
-                    setTimeout(() => {
-                        if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
-                            try { speechRecognitionInstance.start(); } catch(e) {}
-                        }
-                    }, 150);
+                    setTimeout(() => resumeRecognitionSafely(), 180);
                 }
             };
         }
@@ -1558,12 +1500,19 @@
         function dispatchVoiceQuery(spokenText) {
             if (!isVoiceModeActive || isAiSpeaking) return;
 
-            // Lock mic while AI thinks & speaks so it never hears itself
             isAiSpeaking = true;
             pauseRecognitionSafely();
             setVoiceVisualState("thinking");
             updateLiveSubtitle("user", spokenText);
             currentStreamingText = "";
+
+            // Safety watchdog: if server takes >14s or drops, unlock mic automatically
+            clearTimeout(safetyUnlockWatchdog);
+            safetyUnlockWatchdog = setTimeout(() => {
+                if (isAiSpeaking && !isPlayingBufferQueue) {
+                    unlockMicAndListen();
+                }
+            }, 14000);
 
             voiceCallHistory.push({ role: "user", content: spokenText });
 
@@ -1584,58 +1533,87 @@
             isAiSpeaking = true;
             pauseRecognitionSafely();
             updateLiveSubtitle("ai", text);
+
+            // Safety watchdog if greeting audio takes too long
+            clearTimeout(safetyUnlockWatchdog);
+            safetyUnlockWatchdog = setTimeout(() => {
+                if (!isPlayingBufferQueue) unlockMicAndListen();
+            }, 7000);
         });
 
-        // Point 5: Progressive Audio Queue for Instant Sentence-Chunk Streaming
-        socket.on("ai_voice_audio", (data) => {
+        // STEP 2 FIX: Web Audio API Seamless Hardware Buffer Decoding & Playback
+        socket.on("ai_voice_audio", async (data) => {
             if (!isVoiceModeActive) return;
             const audioB64 = data.audio_base64;
-            if (!audioB64) return;
-
-            if (data.text) updateLiveSubtitle("ai", data.text);
-
-            voiceAudioQueue.push(audioB64);
-            if (!isPlayingAudioQueue) {
-                playNextInVoiceQueue();
-            }
-        });
-
-        function playNextInVoiceQueue() {
-            if (!isVoiceModeActive || voiceAudioQueue.length === 0) {
-                isPlayingAudioQueue = false;
-                isAiSpeaking = false;
-                if (isVoiceModeActive) {
-                    scheduleCaptionAutoClear();
-                    setVoiceVisualState(isUserMicMuted ? "muted" : "listening");
-                    // Cooldown of 250ms after speaker finishes before re-opening mic to avoid room echo
-                    setTimeout(() => {
-                        if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
-                            resumeRecognitionSafely();
-                        }
-                    }, 250);
-                }
+            if (!audioB64) {
+                unlockMicAndListen();
                 return;
             }
 
-            isPlayingAudioQueue = true;
+            if (data.text) updateLiveSubtitle("ai", data.text);
+
+            try {
+                ensurePlaybackAudioContext();
+                const binaryString = window.atob(audioB64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const decodedBuffer = await playbackAudioCtx.decodeAudioData(bytes.buffer.slice(0));
+                audioBufferQueue.push(decodedBuffer);
+                if (!isPlayingBufferQueue) {
+                    playNextWebAudioBuffer();
+                }
+            } catch (decodeErr) {
+                console.warn("[WebAudio Decode Fallback]:", decodeErr);
+                playFallbackHtml5Audio(audioB64);
+            }
+        });
+
+        function playNextWebAudioBuffer() {
+            if (!isVoiceModeActive || audioBufferQueue.length === 0) {
+                unlockMicAndListen();
+                return;
+            }
+
+            clearTimeout(safetyUnlockWatchdog);
+            isPlayingBufferQueue = true;
             isAiSpeaking = true;
             pauseRecognitionSafely();
             setVoiceVisualState("speaking");
 
-            const nextB64 = voiceAudioQueue.shift();
-            voiceAudioPlayer = new Audio(`data:audio/mp3;base64,${nextB64}`);
+            const nextBuffer = audioBufferQueue.shift();
+            const source = playbackAudioCtx.createBufferSource();
+            source.buffer = nextBuffer;
+            source.connect(playbackAudioCtx.destination);
+            activeBufferSource = source;
 
-            voiceAudioPlayer.onended = () => {
-                playNextInVoiceQueue();
+            source.onended = () => {
+                activeBufferSource = null;
+                playNextWebAudioBuffer();
             };
 
-            voiceAudioPlayer.onerror = () => {
-                playNextInVoiceQueue();
-            };
+            try {
+                source.start(0);
+            } catch (err) {
+                activeBufferSource = null;
+                playNextWebAudioBuffer();
+            }
+        }
 
-            voiceAudioPlayer.play().catch(() => {
-                playNextInVoiceQueue();
-            });
+        function playFallbackHtml5Audio(audioB64) {
+            clearTimeout(safetyUnlockWatchdog);
+            isPlayingBufferQueue = true;
+            isAiSpeaking = true;
+            pauseRecognitionSafely();
+            setVoiceVisualState("speaking");
+
+            const fallbackAudio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+            fallbackAudio.onended = () => unlockMicAndListen();
+            fallbackAudio.onerror = () => unlockMicAndListen();
+            fallbackAudio.play().catch(() => unlockMicAndListen());
         }
 
         function toggleUserMicMute() {
@@ -1661,18 +1639,19 @@
             }
         }
 
-        async function toggleVoiceMode(activate) {
+        function toggleVoiceMode(activate) {
             isVoiceModeActive = activate;
             const overlayEl = document.getElementById('voice-mode-overlay');
 
             if (activate) {
+                ensurePlaybackAudioContext();
                 isUserMicMuted = false;
-                isAiSpeaking = true; // Locked initially for greeting so greeting doesn't self-trigger
+                isAiSpeaking = true;
                 accumulatedSpokenTranscript = "";
                 latestInterimTranscript = "";
                 voiceCallHistory = [];
-                voiceAudioQueue = [];
-                isPlayingAudioQueue = false;
+                audioBufferQueue = [];
+                isPlayingBufferQueue = false;
 
                 document.getElementById("voiceMicToggleBtn").classList.remove("muted");
                 document.getElementById("micOnSvg").style.display = "block";
@@ -1686,9 +1665,6 @@
                 overlayEl.classList.add('active');
                 setVoiceVisualState("speaking");
                 startVoiceCallTimer();
-
-                // Initialize Hardware Echo Cancellation + Web Audio API AnalyserNode + SpeechRec
-                await initHardwareEchoCancelledMicAndVAD();
                 initSpeechRecognitionEngine();
 
                 socket.emit("start_voice_call");
@@ -1697,9 +1673,9 @@
                 clearInterval(voiceTimerInterval);
                 clearTimeout(captionAutoClearTimer);
                 clearTimeout(speechSilenceTimer);
+                clearTimeout(safetyUnlockWatchdog);
                 stopActiveAudio();
                 pauseRecognitionSafely();
-                stopHardwareMicAndVAD();
                 socket.emit("user_interrupted");
             }
         }

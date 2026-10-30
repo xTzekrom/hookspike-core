@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (Multilingual + Instant Sentence-Chunk Voice Streaming + WebSockets)
+HookSpike AI - Production Backend (Fluid Natural Voice + WebSockets)
 """
 
 import base64
@@ -647,7 +647,7 @@ def voice_tts_endpoint():
 
 
 # =====================================================================
-# REAL-TIME WEBSOCKET PIPELINE (PROGRESSIVE SENTENCE-CHUNK TTS STREAMING)
+# REAL-TIME WEBSOCKET PIPELINE (FLUID SINGLE-PROSODY VOICE GENERATION)
 # =====================================================================
 @socketio.on("start_voice_call")
 def handle_start_voice_call(data=None):
@@ -667,11 +667,13 @@ def handle_start_voice_call(data=None):
                 "ai_voice_audio",
                 {
                     "text": text_to_speak,
-                    "audio_base64": audio_b64,
-                    "is_final_chunk": True
+                    "audio_base64": audio_b64
                 },
                 to=target_sid
             )
+        else:
+            # Ensure client mic unlocks even if ElevenLabs fails
+            socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
 
     socketio.start_background_task(_stream_greeting_audio, sid, greeting_text)
 
@@ -693,9 +695,9 @@ def handle_user_interrupted(data=None):
 @socketio.on("send_message")
 def handle_socket_send_message(data):
     """
-    Real-Time Chat & Progressive Voice Pipeline:
-    In voice mode, immediately dispatches sentence chunks to ElevenLabs TTS as soon as
-    a sentence boundary (. ! ? ।) is reached, achieving ~1-2s Gemini Live response speed.
+    Real-Time Chat & Fluid Voice Event:
+    Generates text chunks live and synthesizes the complete short spoken turn
+    in one seamless prosody buffer so the voice never sounds robotic or choppy.
     """
     payload = data if isinstance(data, dict) else {}
     sid = request.sid
@@ -743,7 +745,6 @@ def handle_socket_send_message(data):
     ):
         accumulated_reply = ""
         pending_buffer = ""
-        tts_sentence_buffer = ""
         active_sess_id = sess_id
 
         def is_still_active() -> bool:
@@ -752,26 +753,6 @@ def handle_socket_send_message(data):
             if target_email and not ACTIVE_STREAM_FLAGS.get(target_email, True):
                 return False
             return True
-
-        def emit_tts_chunk(sentence_text: str, is_final: bool = False):
-            if not is_still_active():
-                return
-            clean_sent = clean_text_for_speech(sentence_text)
-            if not clean_sent:
-                return
-            audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_sent)
-            if audio_bytes and is_still_active():
-                audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
-                socketio.emit(
-                    "ai_voice_audio",
-                    {
-                        "text": accumulated_reply.strip(),
-                        "chunk_text": clean_sent,
-                        "audio_base64": audio_b64,
-                        "is_final_chunk": is_final
-                    },
-                    to=target_sid
-                )
 
         try:
             for chunk in ai_engine.stream_creator_chat(
@@ -795,17 +776,6 @@ def handle_socket_send_message(data):
                             {"chunk": pending_buffer, "session_id": active_sess_id},
                             to=target_sid
                         )
-
-                        # INSTANT SENTENCE-CHUNK STREAMING FOR VOICE MODE
-                        if voice_flag:
-                            tts_sentence_buffer += pending_buffer
-                            # Split on English & Devanagari sentence boundaries (. ! ? ।)
-                            sentence_match = re.search(r"^(.+?[.!?।]+)\s+(.*)$", tts_sentence_buffer, flags=re.DOTALL)
-                            if sentence_match and len(sentence_match.group(1).strip()) >= 12:
-                                ready_sentence = sentence_match.group(1).strip()
-                                tts_sentence_buffer = sentence_match.group(2)
-                                emit_tts_chunk(ready_sentence, is_final=False)
-
                         pending_buffer = ""
 
             if not is_still_active():
@@ -830,17 +800,11 @@ def handle_socket_send_message(data):
                 ).rstrip()
                 if clean_tail:
                     accumulated_reply += clean_tail
-                    if voice_flag:
-                        tts_sentence_buffer += clean_tail
                     socketio.emit(
                         "ai_chunk",
                         {"chunk": clean_tail, "session_id": active_sess_id},
                         to=target_sid
                     )
-
-            # Flush remaining voice sentence buffer
-            if voice_flag and tts_sentence_buffer.strip() and is_still_active():
-                emit_tts_chunk(tts_sentence_buffer.strip(), is_final=True)
 
             # Save conversation history in text mode
             if accumulated_reply.strip() and target_email and not voice_flag and is_still_active():
@@ -852,6 +816,26 @@ def handle_socket_send_message(data):
                     db_create_message(active_sess_id, "user", disp_msg, target_jwt)
                     db_create_message(active_sess_id, "assistant", accumulated_reply.strip(), target_jwt)
 
+            # Synthesize complete short voice response in one natural prosody pass
+            if voice_flag and is_still_active():
+                clean_speech = clean_text_for_speech(accumulated_reply)
+                if clean_speech:
+                    audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_speech)
+                    if audio_bytes and is_still_active():
+                        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+                        socketio.emit(
+                            "ai_voice_audio",
+                            {
+                                "text": clean_speech,
+                                "audio_base64": audio_b64
+                            },
+                            to=target_sid
+                        )
+                    else:
+                        socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
+                else:
+                    socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
+
             if is_still_active():
                 socketio.emit(
                     "ai_stream_done",
@@ -861,6 +845,7 @@ def handle_socket_send_message(data):
 
         except Exception as exc:
             print(f"[Socket Stream Error]: {exc}", flush=True)
+            socketio.emit("ai_voice_unlock", {"unlock": True}, to=target_sid)
             socketio.emit("ai_error", {"error": str(exc)}, to=target_sid)
 
     socketio.start_background_task(

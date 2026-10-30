@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (100% Pure English + ElevenLabs Female Voice Mode + WebSockets)
+HookSpike AI - Production Backend (Multilingual + Instant Sentence-Chunk Voice Streaming + WebSockets)
 """
 
 import base64
@@ -35,7 +35,6 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_2026_secure
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_PERMANENT"] = True
 
-# 1. SOCKETIO SETUP (Eventlet Low-Latency Async Mode)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -53,9 +52,6 @@ if SUPABASE_URL and SUPABASE_KEY:
 SESSION_MESSAGE_LIMIT = 9
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
 
-# =====================================================================
-# ZERO-LAG VOICE GREETINGS & BARGE-IN INTERRUPTION STATE
-# =====================================================================
 VOICE_GREETINGS = [
     "Hey! Perfect timing, what's on your mind?",
     "Hey there, how's your day going?",
@@ -77,7 +73,6 @@ VOICE_GREETINGS = [
     "Hey! I'm right here with you, what's on your mind?"
 ]
 
-# Tracks active streaming state per Socket SID / user_email for instant barge-in abort
 ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
 
 
@@ -413,9 +408,6 @@ def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str =
     return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue."
 
 
-# =====================================================================
-# EXISTING HTTP ROUTES (UNTOUCHED & PRESERVED)
-# =====================================================================
 @app.route("/")
 def index():
     if request.args.get("logged_out") == "1":
@@ -555,7 +547,6 @@ def chat_stream():
         message = "Please analyze this image and explain what you see."
         display_message = "[Photo Attached]"
 
-    # VOICE MODE BYPASS: Never block voice calls with session memory limit
     if user_email and session_id and not voice_mode:
         is_limited, limit_msg = check_session_memory_limit(session_id, user_email, user_jwt)
         if is_limited:
@@ -598,7 +589,6 @@ def chat_stream():
                     accumulated_reply += clean_tail
                     yield f"data: {json.dumps({'token': clean_tail, 'session_id': active_sess_id})}\n\n"
 
-            # VOICE MODE BYPASS: Only save to database during standard text chat
             if accumulated_reply.strip() and target_email and not voice_mode:
                 if not active_sess_id:
                     title_text = (display_message[:30] + "...") if len(display_message) > 30 else display_message
@@ -635,8 +625,6 @@ def voice_tts_endpoint():
         return jsonify({"error": "Empty text"}), 400
 
     clean_speech = clean_text_for_speech(raw_text)
-
-    # PURE ENGLISH FEMALE FALLBACK (Never Hindi)
     if not clean_speech:
         clean_speech = "I'm right here with you, tell me what's on your mind!"
 
@@ -659,24 +647,16 @@ def voice_tts_endpoint():
 
 
 # =====================================================================
-# REAL-TIME WEBSOCKET PIPELINE (ZERO-LAG VOICE + BARGE-IN + MEMORY)
+# REAL-TIME WEBSOCKET PIPELINE (PROGRESSIVE SENTENCE-CHUNK TTS STREAMING)
 # =====================================================================
 @socketio.on("start_voice_call")
 def handle_start_voice_call(data=None):
-    """
-    Zero-Lag Dynamic Voice Greeting:
-    Instantly picks a spontaneous English best-friend greeting without waiting
-    for Gemini API, emits text via 'ai_voice_greeting', and streams ElevenLabs audio.
-    """
     sid = request.sid
     ACTIVE_STREAM_FLAGS[sid] = True
 
     greeting_text = random.choice(VOICE_GREETINGS)
-
-    # 1. Immediately emit greeting text (0ms lag)
     emit("ai_voice_greeting", {"text": greeting_text})
 
-    # 2. Fetch & stream ElevenLabs audio bytes in background so socket never blocks
     def _stream_greeting_audio(target_sid: str, text_to_speak: str):
         if not ACTIVE_STREAM_FLAGS.get(target_sid, False):
             return
@@ -688,7 +668,7 @@ def handle_start_voice_call(data=None):
                 {
                     "text": text_to_speak,
                     "audio_base64": audio_b64,
-                    "audio_bytes": audio_bytes
+                    "is_final_chunk": True
                 },
                 to=target_sid
             )
@@ -698,10 +678,6 @@ def handle_start_voice_call(data=None):
 
 @socketio.on("user_interrupted")
 def handle_user_interrupted(data=None):
-    """
-    Barge-in / Instant Interruption:
-    Immediately cancels any ongoing Gemini streaming or TTS generation for this user.
-    """
     sid = request.sid
     ACTIVE_STREAM_FLAGS[sid] = False
 
@@ -717,8 +693,9 @@ def handle_user_interrupted(data=None):
 @socketio.on("send_message")
 def handle_socket_send_message(data):
     """
-    Real-Time Chat & Voice Event with Supabase Vector Memory Injection:
-    Streams chunks via 'ai_chunk' and respects instant barge-in interruption.
+    Real-Time Chat & Progressive Voice Pipeline:
+    In voice mode, immediately dispatches sentence chunks to ElevenLabs TTS as soon as
+    a sentence boundary (. ! ? ।) is reached, achieving ~1-2s Gemini Live response speed.
     """
     payload = data if isinstance(data, dict) else {}
     sid = request.sid
@@ -746,7 +723,6 @@ def handle_socket_send_message(data):
         message = "Please analyze this image and explain what you see."
         display_message = "[Photo Attached]"
 
-    # Enable generation flag for this turn
     ACTIVE_STREAM_FLAGS[sid] = True
     if user_email:
         ACTIVE_STREAM_FLAGS[user_email] = True
@@ -767,6 +743,7 @@ def handle_socket_send_message(data):
     ):
         accumulated_reply = ""
         pending_buffer = ""
+        tts_sentence_buffer = ""
         active_sess_id = sess_id
 
         def is_still_active() -> bool:
@@ -775,6 +752,26 @@ def handle_socket_send_message(data):
             if target_email and not ACTIVE_STREAM_FLAGS.get(target_email, True):
                 return False
             return True
+
+        def emit_tts_chunk(sentence_text: str, is_final: bool = False):
+            if not is_still_active():
+                return
+            clean_sent = clean_text_for_speech(sentence_text)
+            if not clean_sent:
+                return
+            audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_sent)
+            if audio_bytes and is_still_active():
+                audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+                socketio.emit(
+                    "ai_voice_audio",
+                    {
+                        "text": accumulated_reply.strip(),
+                        "chunk_text": clean_sent,
+                        "audio_base64": audio_b64,
+                        "is_final_chunk": is_final
+                    },
+                    to=target_sid
+                )
 
         try:
             for chunk in ai_engine.stream_creator_chat(
@@ -798,6 +795,17 @@ def handle_socket_send_message(data):
                             {"chunk": pending_buffer, "session_id": active_sess_id},
                             to=target_sid
                         )
+
+                        # INSTANT SENTENCE-CHUNK STREAMING FOR VOICE MODE
+                        if voice_flag:
+                            tts_sentence_buffer += pending_buffer
+                            # Split on English & Devanagari sentence boundaries (. ! ? ।)
+                            sentence_match = re.search(r"^(.+?[.!?।]+)\s+(.*)$", tts_sentence_buffer, flags=re.DOTALL)
+                            if sentence_match and len(sentence_match.group(1).strip()) >= 12:
+                                ready_sentence = sentence_match.group(1).strip()
+                                tts_sentence_buffer = sentence_match.group(2)
+                                emit_tts_chunk(ready_sentence, is_final=False)
+
                         pending_buffer = ""
 
             if not is_still_active():
@@ -822,11 +830,17 @@ def handle_socket_send_message(data):
                 ).rstrip()
                 if clean_tail:
                     accumulated_reply += clean_tail
+                    if voice_flag:
+                        tts_sentence_buffer += clean_tail
                     socketio.emit(
                         "ai_chunk",
                         {"chunk": clean_tail, "session_id": active_sess_id},
                         to=target_sid
                     )
+
+            # Flush remaining voice sentence buffer
+            if voice_flag and tts_sentence_buffer.strip() and is_still_active():
+                emit_tts_chunk(tts_sentence_buffer.strip(), is_final=True)
 
             # Save conversation history in text mode
             if accumulated_reply.strip() and target_email and not voice_flag and is_still_active():
@@ -837,23 +851,6 @@ def handle_socket_send_message(data):
                 if active_sess_id:
                     db_create_message(active_sess_id, "user", disp_msg, target_jwt)
                     db_create_message(active_sess_id, "assistant", accumulated_reply.strip(), target_jwt)
-
-            # Trigger ElevenLabs Voice Audio automatically if in voice mode and not interrupted
-            if voice_flag and accumulated_reply.strip() and is_still_active():
-                clean_speech = clean_text_for_speech(accumulated_reply)
-                if clean_speech:
-                    audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_speech)
-                    if audio_bytes and is_still_active():
-                        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
-                        socketio.emit(
-                            "ai_voice_audio",
-                            {
-                                "text": clean_speech,
-                                "audio_base64": audio_b64,
-                                "audio_bytes": audio_bytes
-                            },
-                            to=target_sid
-                        )
 
             if is_still_active():
                 socketio.emit(

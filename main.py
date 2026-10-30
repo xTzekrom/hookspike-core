@@ -1,9 +1,11 @@
 """
-HookSpike AI - Production Backend (100% Pure English + ElevenLabs Female Voice Mode)
+HookSpike AI - Production Backend (100% Pure English + ElevenLabs Female Voice Mode + WebSockets)
 """
 
+import base64
 import json
 import os
+import random
 import re
 import sqlite3
 import uuid
@@ -24,6 +26,7 @@ from flask import (
     send_from_directory,
     make_response,
 )
+from flask_socketio import SocketIO, emit
 from supabase import create_client, Client
 import ai_engine
 
@@ -32,8 +35,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "hookspike_vault_2026_secure
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_PERMANENT"] = True
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://jhiqvsuigdfjwjbtlnwh.supabase.co").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_dBBumAWhsq1yRU5WCYkAXQ_EfMdlqPU").strip()
+# 1. SOCKETIO SETUP (Eventlet Low-Latency Async Mode)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", SUPABASE_KEY).strip()
 
 supabase: Client | None = None
@@ -46,6 +52,43 @@ if SUPABASE_URL and SUPABASE_KEY:
 
 SESSION_MESSAGE_LIMIT = 9
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
+
+# =====================================================================
+# ZERO-LAG VOICE GREETINGS & BARGE-IN INTERRUPTION STATE
+# =====================================================================
+VOICE_GREETINGS = [
+    "Hey! Perfect timing, what's on your mind?",
+    "Hey there, how's your day going?",
+    "Hi! So good to hear from you, tell me everything!",
+    "Hey! I was just hoping you'd call, what's up?",
+    "Hello! You've got my full attention, how are things?",
+    "Hey bestie! What are we getting into today?",
+    "Hi there! Talk to me, how are you feeling right now?",
+    "Hey! Glad you called, what's happening in your world?",
+    "Hey you! Ready when you are, what's the latest?",
+    "Hi! Always happy to hear your voice, what's going on?",
+    "Hey! Take a breath and tell me how your day's been.",
+    "Hello there! What's sparking your thoughts today?",
+    "Hey! Right on cue, tell me what you're up to!",
+    "Hi! I'm all ears, what do we need to talk through?",
+    "Hey! Good vibes only, how's everything going with you?",
+    "Hey there! Spill the tea, what's new with you today?",
+    "Hi! Super glad you reached out, what's on your radar?",
+    "Hey! I'm right here with you, what's on your mind?"
+]
+
+# Tracks active streaming state per Socket SID / user_email for instant barge-in abort
+ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
+
+
+def clean_text_for_speech(raw_text: str) -> str:
+    clean_speech = re.sub(r"```[\s\S]*?```", " ", raw_text or "")
+    clean_speech = re.sub(r"!\[.*?\]\(.*?\)", " ", clean_speech)
+    clean_speech = re.sub(r"\[([^\]]+)\]\(.*?\)", r"\1", clean_speech)
+    clean_speech = re.sub(r"[*#_~`>|]", " ", clean_speech)
+    clean_speech = re.sub(r"\s+", " ", clean_speech).strip()
+    return clean_speech
+
 
 def init_local_db():
     try:
@@ -88,7 +131,9 @@ def init_local_db():
     except Exception as e:
         print(f"[Local DB Init Warning]: {e}", flush=True)
 
+
 init_local_db()
+
 
 def get_request_jwt(req_data: dict | None = None) -> str:
     auth_header = request.headers.get("Authorization", "")
@@ -102,6 +147,7 @@ def get_request_jwt(req_data: dict | None = None) -> str:
             return tok
     return session.get("access_token", "")
 
+
 def sb_headers(user_jwt: str = "") -> dict:
     master_key = SUPABASE_SERVICE_KEY if SUPABASE_SERVICE_KEY else SUPABASE_KEY
     return {
@@ -110,6 +156,7 @@ def sb_headers(user_jwt: str = "") -> dict:
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
+
 
 def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
     if not user_email:
@@ -140,6 +187,7 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
 
     return skills[:25]
 
+
 def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
     if not user_email or not skill_rule:
         return
@@ -167,6 +215,7 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
             resp.read()
     except Exception:
         pass
+
 
 def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     encoded_email = urllib.parse.quote(user_email)
@@ -197,6 +246,7 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     except Exception:
         return []
 
+
 def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "") -> bool:
     encoded_sess = urllib.parse.quote(str(session_id))
     encoded_email = urllib.parse.quote(user_email)
@@ -221,6 +271,7 @@ def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "")
         print(f"[Local SQLite Soft-Delete Warning]: {e}", flush=True)
 
     return True
+
 
 def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> list:
     encoded_sess = urllib.parse.quote(str(session_id))
@@ -258,6 +309,7 @@ def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> 
     except Exception:
         return []
 
+
 def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
     now_iso = datetime.now(timezone.utc).isoformat()
     session_id = str(uuid.uuid4())
@@ -287,6 +339,7 @@ def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
 
     return session_id
 
+
 def db_create_message(session_id: str, role: str, content: str, user_jwt: str = ""):
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -312,6 +365,7 @@ def db_create_message(session_id: str, role: str, content: str, user_jwt: str = 
             conn.commit()
     except Exception:
         pass
+
 
 def verify_and_get_email(req_data: dict | None = None) -> str:
     token = get_request_jwt(req_data)
@@ -348,6 +402,7 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
 
     return ""
 
+
 def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str = "") -> tuple[bool, str]:
     if not session_id:
         return False, ""
@@ -357,6 +412,10 @@ def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str =
 
     return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue."
 
+
+# =====================================================================
+# EXISTING HTTP ROUTES (UNTOUCHED & PRESERVED)
+# =====================================================================
 @app.route("/")
 def index():
     if request.args.get("logged_out") == "1":
@@ -371,6 +430,7 @@ def index():
         supabase_key=SUPABASE_KEY or ""
     )
 
+
 @app.route("/api/auth/sync", methods=["POST"])
 def auth_sync():
     data = request.get_json(silent=True) or {}
@@ -381,6 +441,7 @@ def auth_sync():
         return jsonify({"ok": True, "email": email})
     return jsonify({"error": "Invalid auth credentials"}), 400
 
+
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
@@ -388,13 +449,16 @@ def logout():
     resp.delete_cookie(app.config.get("SESSION_COOKIE_NAME", "session"))
     return resp
 
+
 @app.route("/logo.png")
 def serve_logo():
     return send_from_directory(".", "logo.png", mimetype="image/png")
 
+
 @app.route("/favicon.ico")
 def serve_favicon():
     return send_from_directory(".", "logo.png", mimetype="image/png")
+
 
 @app.route("/api/user-skills", methods=["GET"])
 def get_user_skills_route():
@@ -403,6 +467,7 @@ def get_user_skills_route():
         return jsonify([])
     user_jwt = get_request_jwt()
     return jsonify(db_get_user_skills(user_email, user_jwt))
+
 
 @app.route("/api/report-bug", methods=["POST"])
 def report_bug_route():
@@ -434,7 +499,8 @@ def report_bug_route():
         pass
 
     return jsonify({"ok": True})
-    
+
+
 @app.route("/api/chat-session/<session_id>", methods=["DELETE", "POST", "PATCH"])
 def delete_chat_session(session_id):
     data = request.get_json(silent=True) or {}
@@ -446,6 +512,7 @@ def delete_chat_session(session_id):
     db_soft_delete_session(session_id, user_email, user_jwt)
     return jsonify({"ok": True, "status": "soft_deleted", "session_id": session_id})
 
+
 @app.route("/api/chat-sessions", methods=["GET"])
 def get_chat_sessions():
     user_email = verify_and_get_email()
@@ -456,6 +523,7 @@ def get_chat_sessions():
     sessions = db_select_sessions(user_email, user_jwt)
     return jsonify(sessions)
 
+
 @app.route("/api/chat-messages/<session_id>", methods=["GET"])
 def get_chat_messages(session_id):
     user_email = verify_and_get_email()
@@ -465,6 +533,7 @@ def get_chat_messages(session_id):
     user_jwt = get_request_jwt()
     messages = db_select_messages(session_id, user_email, user_jwt)
     return jsonify(messages)
+
 
 @app.route("/api/chat-stream", methods=["POST"])
 def chat_stream():
@@ -503,7 +572,14 @@ def chat_stream():
         pending_buffer = ""
 
         try:
-            for chunk in ai_engine.stream_creator_chat(message, history, learned_skills, image_data, voice_mode=voice_mode):
+            for chunk in ai_engine.stream_creator_chat(
+                message,
+                history,
+                learned_skills,
+                image_data,
+                voice_mode=voice_mode,
+                user_email=target_email
+            ):
                 if chunk:
                     pending_buffer += chunk
                     if not re.search(r"\[(?:SKILL|MISTAKE)", pending_buffer) and not pending_buffer.endswith("["):
@@ -558,11 +634,7 @@ def voice_tts_endpoint():
     if not raw_text:
         return jsonify({"error": "Empty text"}), 400
 
-    clean_speech = re.sub(r"```[\s\S]*?```", " ", raw_text)
-    clean_speech = re.sub(r"!\[.*?\]\(.*?\)", " ", clean_speech)
-    clean_speech = re.sub(r"\[([^\]]+)\]\(.*?\)", r"\1", clean_speech)
-    clean_speech = re.sub(r"[*#_~`>|]", " ", clean_speech)
-    clean_speech = re.sub(r"\s+", " ", clean_speech).strip()
+    clean_speech = clean_text_for_speech(raw_text)
 
     # PURE ENGLISH FEMALE FALLBACK (Never Hindi)
     if not clean_speech:
@@ -586,6 +658,235 @@ def voice_tts_endpoint():
         return jsonify({"error": str(e)}), 500
 
 
+# =====================================================================
+# REAL-TIME WEBSOCKET PIPELINE (ZERO-LAG VOICE + BARGE-IN + MEMORY)
+# =====================================================================
+@socketio.on("start_voice_call")
+def handle_start_voice_call(data=None):
+    """
+    Zero-Lag Dynamic Voice Greeting:
+    Instantly picks a spontaneous English best-friend greeting without waiting
+    for Gemini API, emits text via 'ai_voice_greeting', and streams ElevenLabs audio.
+    """
+    sid = request.sid
+    ACTIVE_STREAM_FLAGS[sid] = True
+
+    greeting_text = random.choice(VOICE_GREETINGS)
+
+    # 1. Immediately emit greeting text (0ms lag)
+    emit("ai_voice_greeting", {"text": greeting_text})
+
+    # 2. Fetch & stream ElevenLabs audio bytes in background so socket never blocks
+    def _stream_greeting_audio(target_sid: str, text_to_speak: str):
+        if not ACTIVE_STREAM_FLAGS.get(target_sid, False):
+            return
+        audio_bytes = ai_engine.generate_elevenlabs_voice_audio(text_to_speak)
+        if audio_bytes and ACTIVE_STREAM_FLAGS.get(target_sid, False):
+            audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+            socketio.emit(
+                "ai_voice_audio",
+                {
+                    "text": text_to_speak,
+                    "audio_base64": audio_b64,
+                    "audio_bytes": audio_bytes
+                },
+                to=target_sid
+            )
+
+    socketio.start_background_task(_stream_greeting_audio, sid, greeting_text)
+
+
+@socketio.on("user_interrupted")
+def handle_user_interrupted(data=None):
+    """
+    Barge-in / Instant Interruption:
+    Immediately cancels any ongoing Gemini streaming or TTS generation for this user.
+    """
+    sid = request.sid
+    ACTIVE_STREAM_FLAGS[sid] = False
+
+    user_email = (session.get("user_email") or "").strip().lower()
+    if not user_email and isinstance(data, dict):
+        user_email = (data.get("user_email") or data.get("email") or "").strip().lower()
+    if user_email:
+        ACTIVE_STREAM_FLAGS[user_email] = False
+
+    emit("ai_stream_aborted", {"aborted": True})
+
+
+@socketio.on("send_message")
+def handle_socket_send_message(data):
+    """
+    Real-Time Chat & Voice Event with Supabase Vector Memory Injection:
+    Streams chunks via 'ai_chunk' and respects instant barge-in interruption.
+    """
+    payload = data if isinstance(data, dict) else {}
+    sid = request.sid
+
+    message = (payload.get("message") or "").strip()
+    display_message = (payload.get("display_message") or message).strip()
+    is_voice = bool(payload.get("is_voice", payload.get("voice_mode", False)))
+    history = payload.get("history", [])
+    image_data = payload.get("image_data")
+    session_id = payload.get("session_id")
+
+    user_email = (
+        session.get("user_email")
+        or payload.get("user_email")
+        or payload.get("email")
+        or ""
+    ).strip().lower()
+    user_jwt = session.get("access_token") or payload.get("access_token") or ""
+
+    if not message and not image_data:
+        emit("ai_error", {"error": "Empty message"})
+        return
+
+    if not message and image_data:
+        message = "Please analyze this image and explain what you see."
+        display_message = "[Photo Attached]"
+
+    # Enable generation flag for this turn
+    ACTIVE_STREAM_FLAGS[sid] = True
+    if user_email:
+        ACTIVE_STREAM_FLAGS[user_email] = True
+
+    learned_skills = db_get_user_skills(user_email, user_jwt) if (user_email and not is_voice) else []
+
+    def _run_realtime_stream(
+        target_sid: str,
+        target_email: str,
+        target_jwt: str,
+        msg: str,
+        disp_msg: str,
+        hist: list,
+        skills: list,
+        img: dict | None,
+        voice_flag: bool,
+        sess_id: str | None
+    ):
+        accumulated_reply = ""
+        pending_buffer = ""
+        active_sess_id = sess_id
+
+        def is_still_active() -> bool:
+            if not ACTIVE_STREAM_FLAGS.get(target_sid, False):
+                return False
+            if target_email and not ACTIVE_STREAM_FLAGS.get(target_email, True):
+                return False
+            return True
+
+        try:
+            for chunk in ai_engine.stream_creator_chat(
+                message=msg,
+                history=hist,
+                learned_skills=skills,
+                image_data=img,
+                voice_mode=voice_flag,
+                user_email=target_email
+            ):
+                if not is_still_active():
+                    socketio.emit("ai_stream_aborted", {"aborted": True}, to=target_sid)
+                    return
+
+                if chunk:
+                    pending_buffer += chunk
+                    if not re.search(r"\[(?:SKILL|MISTAKE)", pending_buffer) and not pending_buffer.endswith("["):
+                        accumulated_reply += pending_buffer
+                        socketio.emit(
+                            "ai_chunk",
+                            {"chunk": pending_buffer, "session_id": active_sess_id},
+                            to=target_sid
+                        )
+                        pending_buffer = ""
+
+            if not is_still_active():
+                socketio.emit("ai_stream_aborted", {"aborted": True}, to=target_sid)
+                return
+
+            if pending_buffer:
+                skill_matches = re.findall(
+                    r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*(.*?)\]",
+                    pending_buffer,
+                    flags=re.DOTALL
+                )
+                for skill_text in skill_matches:
+                    if target_email and skill_text.strip() and not voice_flag:
+                        db_save_user_skill(target_email, skill_text.strip(), target_jwt)
+
+                clean_tail = re.sub(
+                    r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):\s*.*?\]",
+                    "",
+                    pending_buffer,
+                    flags=re.DOTALL
+                ).rstrip()
+                if clean_tail:
+                    accumulated_reply += clean_tail
+                    socketio.emit(
+                        "ai_chunk",
+                        {"chunk": clean_tail, "session_id": active_sess_id},
+                        to=target_sid
+                    )
+
+            # Save conversation history in text mode
+            if accumulated_reply.strip() and target_email and not voice_flag and is_still_active():
+                if not active_sess_id:
+                    title_text = (disp_msg[:30] + "...") if len(disp_msg) > 30 else disp_msg
+                    active_sess_id = db_create_session(target_email, title_text, target_jwt)
+
+                if active_sess_id:
+                    db_create_message(active_sess_id, "user", disp_msg, target_jwt)
+                    db_create_message(active_sess_id, "assistant", accumulated_reply.strip(), target_jwt)
+
+            # Trigger ElevenLabs Voice Audio automatically if in voice mode and not interrupted
+            if voice_flag and accumulated_reply.strip() and is_still_active():
+                clean_speech = clean_text_for_speech(accumulated_reply)
+                if clean_speech:
+                    audio_bytes = ai_engine.generate_elevenlabs_voice_audio(clean_speech)
+                    if audio_bytes and is_still_active():
+                        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+                        socketio.emit(
+                            "ai_voice_audio",
+                            {
+                                "text": clean_speech,
+                                "audio_base64": audio_b64,
+                                "audio_bytes": audio_bytes
+                            },
+                            to=target_sid
+                        )
+
+            if is_still_active():
+                socketio.emit(
+                    "ai_stream_done",
+                    {"done": True, "session_id": active_sess_id, "full_text": accumulated_reply.strip()},
+                    to=target_sid
+                )
+
+        except Exception as exc:
+            print(f"[Socket Stream Error]: {exc}", flush=True)
+            socketio.emit("ai_error", {"error": str(exc)}, to=target_sid)
+
+    socketio.start_background_task(
+        _run_realtime_stream,
+        sid,
+        user_email,
+        user_jwt,
+        message,
+        display_message,
+        history,
+        learned_skills,
+        image_data,
+        is_voice,
+        session_id
+    )
+
+
+@socketio.on("disconnect")
+def handle_socket_disconnect():
+    sid = request.sid
+    ACTIVE_STREAM_FLAGS.pop(sid, None)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    socketio.run(app, host="0.0.0.0", port=port)

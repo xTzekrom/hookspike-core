@@ -65,20 +65,21 @@ VOICE_GREETINGS = [
 
 ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
 
-# Built-in PWA Manifest & Service Worker (No extra files needed!)
+# Built-in PWA Manifest & Service Worker (PWABuilder Ready: No .ico, 100% Valid PNGs)
 PWA_MANIFEST_DATA = {
-    "background_color": "#0d0f12",
-    "dir": "ltr",
-    "display": "standalone",
-    "name": "HookSpike",
-    "orientation": "any",
-    "scope": "/",
+    "name": "HookSpike AI",
     "short_name": "HookSpike",
-    "start_url": "https://hookspike-core.onrender.com/",
-    "theme_color": "#0d0f12",
-    "id": "https://hookspike-core.onrender.com/",
     "description": "Universal cross-platform AI companion with floating HUD, voice pipeline, and multi-domain mastery",
     "lang": "en",
+    "dir": "ltr",
+    "start_url": "/",
+    "scope": "/",
+    "id": "https://hookspike-core.onrender.com/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0d0f12",
+    "theme_color": "#0d0f12",
+    "categories": ["productivity", "utilities"],
     "icons": [
         {
             "src": "https://hookspike-core.onrender.com/logo.png",
@@ -91,17 +92,6 @@ PWA_MANIFEST_DATA = {
             "type": "image/png",
             "sizes": "512x512",
             "purpose": "any maskable"
-        },
-        {
-            "src": "https://hookspike-core.onrender.com/logo.png",
-            "type": "image/png",
-            "sizes": "32x32",
-            "purpose": "any"
-        },
-        {
-            "src": "https://hookspike-core.onrender.com/favicon.ico",
-            "type": "image/x-icon",
-            "sizes": "512x512"
         }
     ]
 }

@@ -1,10 +1,11 @@
 """
-HookSpike AI Engine — Self-Learning, Vision, Live Search & Soul Engine (v3.0 Gemini Live Edition)
-=================================================================================================
+HookSpike AI Engine — Universal Multi-Domain Mastery, Freemium & Admin Bypass, Vision, Live Search & Soul Engine (v5.0)
+=======================================================================================================================
 - Model: Gemini 3.5 Flash-Lite (Primary) & Gemini 3.8 Flash (Fallback)
-- Persona: Smart, warm, grounded female best friend (Dynamic Multilingual Auto-Detection)
-- Voice Engine: ElevenLabs Turbo v2.5 Ultra-Low Latency Multilingual Streaming
-- Voice Memory Isolation: Never leaks old text-chat memories into live voice calls
+- Admin Bypass: Strict ADMIN_EMAILS verification for free access to paid HUD & Voice features
+- Text Persona: Smart, Respectful, Happy-Happy Male Baby Companion (Zero Boring Paragraphs, UI Cards)
+- Voice Persona: Top-Tier Cute Female Baby Companion with Continuous Flow (Multilingual)
+- World Clock & Time-Aware Context: Dynamic Client Timezone & Local Hour Detection
 - Vector Memory: 768-Dim Semantic Memory via Gemini text-embedding-004 & Supabase RPC
 """
 
@@ -24,7 +25,7 @@ from google import genai
 from google.genai import types
 
 # =====================================================================
-# 1. STRICT ENVIRONMENT CONFIGURATION
+# 1. STRICT ENVIRONMENT CONFIGURATION & ADMIN BYPASS
 # =====================================================================
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
@@ -33,6 +34,10 @@ SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
 ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
 ELEVENLABS_MODEL_ID = os.environ.get('ELEVENLABS_MODEL_ID')
+
+# Secure Admin Bypass configuration (Founder/Developer emails get free unrestricted access to Voice & HUD)
+RAW_ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', 'kundan@hookspike.ai, kundan@gmail.com')
+ADMIN_EMAILS = [e.strip().lower() for e in RAW_ADMIN_EMAILS.split(',') if e.strip()]
 
 API_KEYS_LIST = [k.strip() for k in GEMINI_API_KEY.split(",") if k.strip()] if GEMINI_API_KEY else []
 client = genai.Client(api_key=API_KEYS_LIST[0]) if API_KEYS_LIST else None
@@ -43,6 +48,13 @@ def get_active_client(index: int = 0) -> Optional[genai.Client]:
         return client
     key = API_KEYS_LIST[index % len(API_KEYS_LIST)]
     return genai.Client(api_key=key)
+
+
+def is_user_admin(user_email: Optional[str]) -> bool:
+    """Checks if the given user email matches secure admin bypass list."""
+    if not user_email:
+        return False
+    return user_email.strip().lower() in ADMIN_EMAILS
 
 
 # =====================================================================
@@ -118,7 +130,6 @@ def get_relevant_memories(
     if not SUPABASE_URL or not SUPABASE_KEY or not user_email or not query:
         return []
 
-    # Skip slow embedding lookup for ultra-short greetings (< 3 words) to keep response ~1s
     if len(query.strip().split()) < 3:
         return []
 
@@ -169,27 +180,47 @@ def get_relevant_memories(
 
 
 # =====================================================================
-# 3. CORE UTILITIES (TIME, LIVE SEARCH, POLLINATIONS, MEMORY PARSER)
+# 3. AUTOMATIC WORLD CLOCK & CORE UTILITIES
 # =====================================================================
-def get_current_time_context() -> str:
-    ist_offset = timezone(timedelta(hours=5, minutes=30))
-    now = datetime.now(ist_offset)
-    hour = now.hour
-    time_str = now.strftime("%I:%M %p")
-    date_str = now.strftime("%A, %b %d, %Y")
+def get_world_clock_context(
+    user_timezone: Optional[str] = None,
+    user_local_time: Optional[str] = None,
+    user_local_hour: Optional[int] = None
+) -> str:
+    """
+    Automatically adapts to the user's local timezone and hour anywhere in the world.
+    """
+    if user_local_time and user_local_hour is not None:
+        try:
+            hour = int(user_local_hour)
+        except Exception:
+            hour = 12
+        tz_label = (user_timezone or "Local Time").strip()
+        time_display = user_local_time.strip()
+    else:
+        ist_offset = timezone(timedelta(hours=5, minutes=30))
+        now = datetime.now(ist_offset)
+        hour = now.hour
+        tz_label = "Asia/Kolkata (IST)"
+        time_display = now.strftime("%A, %b %d, %Y, %I:%M %p")
 
     if 5 <= hour < 12:
         period = "MORNING"
+        vibe_hint = "Fresh, energetic morning vibe"
     elif 12 <= hour < 17:
         period = "AFTERNOON"
+        vibe_hint = "Focused, bright afternoon vibe"
     elif 17 <= hour < 21:
         period = "EVENING"
+        vibe_hint = "Warm, relaxed evening vibe"
     else:
-        period = "NIGHT"
+        period = "NIGHT / LATE NIGHT"
+        vibe_hint = "Cozy, calm late-night companion vibe"
 
     return (
-        f"[LIVE CLOCK: {time_str} on {date_str} | Current Phase: {period}. "
-        f"Never say it is night if current phase is MORNING, AFTERNOON, or EVENING!]"
+        f"[WORLD CLOCK: {time_display} | User Timezone: {tz_label} | "
+        f"Local Phase: {period} ({vibe_hint}). "
+        f"Always match your greetings and energy to the user's exact local phase ({period})!]"
     )
 
 
@@ -198,7 +229,7 @@ def needs_live_search(text: str) -> bool:
     if len(clean.split()) <= 2:
         return False
     search_triggers = [
-        r"\b(news|latest|today|score|match|weather|price|rate|stock|crypto|bitcoin)\b",
+        r"\b(news|latest|today|score|match|weather|price|rate|stock|crypto|bitcoin|market|nifty|sensex)\b",
         r"\b(who is|what is|when is|where is|search|google|live)\b",
         r"\b(2025|2026|2027|update|release|launch|winner|result|trending|current)\b"
     ]
@@ -260,37 +291,53 @@ def extract_and_update_memory(
 
 
 # =====================================================================
-# 4. MASTER PERSONA & ZERO-LATENCY TOKEN STREAMING ENGINE
+# 4. UNIVERSAL MULTI-DOMAIN MASTERY & DUAL PERSONA ENGINE
 # =====================================================================
-HOOKSPIKE_MASTER_INTELLIGENCE = """
-You are HookSpike — an intelligent, effortlessly cool, supportive, and emotionally grounded female companion and best friend.
+HOOKSPIKE_UNIVERSAL_CORE = """
+You are HookSpike AI — the world's most advanced, deeply insightful, and effortlessly engaging multi-domain AI companion.
 
-CORE IDENTITY & ABSOLUTE RULES:
-1. DYNAMIC MULTILINGUAL AUTO-DETECTION (MIRROR USER LANGUAGE):
-   - Automatically detect the exact language and vibe the user is speaking or typing in right now (English, Hindi, Hinglish, Marathi, or any other language).
-   - Seamlessly respond in that EXACT same language without needing any manual switch or mentioning language rules.
-   - If the user speaks in Hindi/Hinglish during a voice call, reply in natural conversational Hindi so the voice engine pronounces it naturally. If they speak English, reply in pure natural English. If Marathi, reply in natural Marathi.
+1. UNIVERSAL MULTI-DOMAIN MASTERY:
+   - Whether the user asks about Software Engineering, Quantum Physics, Philosophy, Life Decisions, Exam Study Notes, Creative Arts, Financial Markets, Deep Research Breakdowns, or YouTube-Style Learning Guides: deliver master-level, crystal-clear, practical, and fascinating insights.
+   - Explain complex topics from first principles using vivid real-world analogies ("makkhan" clarity).
 
-2. FEMALE BEST FRIEND PERSONA:
-   - Your tone is that of a caring, witty, sharp-minded, genuine female close friend.
-   - Zero corporate robotic tone, zero fake therapist cliches ("I understand your pain", "As an AI").
-   - Speak warmly as an equal, supportive partner in crime.
+2. DYNAMIC MULTILINGUAL AUTO-DETECTION:
+   - Automatically detect the exact language and script/style the user is using right now (Shuddh Hindi, English, Hinglish, Marathi, Regional, or International) and respond in that EXACT same language naturally.
 
-3. STRICT ANTI-REPETITION & ZERO BOT SCRIPTS:
-   - NEVER reuse identical greetings, openers, or phrases across turns.
-   - Jump straight into genuine, spontaneous reactions tailored ONLY to what the user just said right now.
+3. STRICT ANTI-REPETITION & ZERO CORPORATE CLICHES:
+   - Never use robotic fillers ("As an AI", "Certainly!", "Here is a breakdown").
+   - Jump straight into high-value, spontaneous, human-like conversation.
+"""
 
-4. VOICE CALL VS TEXT MODE DYNAMICS:
-   - In Text Mode: Keep things natural, expressive, and detailed when needed. Format code cleanly.
-   - In Voice Mode: You are on a real-time live phone call. Keep responses short, punchy, and natural (1 to 2 sentences max, under 22 words). Use zero markdown, zero lists, and zero emojis. Do NOT bring up old stored memories unless the user explicitly asks.
-
-5. LEARNING & SELF-CORRECTION (TEXT MODE ONLY):
-   - Silently log insights at the very end of your text response using:
+TEXT_MODE_PERSONA_RULES = """
+[ACTIVE MODE: TEXT INTERFACE — SMART, RESPECTFUL & HAPPY MALE BABY COMPANION]:
+1. PERSONA & VIBE:
+   - In Text Mode, your persona is a super smart, respectful, witty, cheerful ("happy-happy"), and deeply supportive younger brother / male baby companion.
+   - Be warm, respectful, uplifting, and playfully smart so the user never feels bored or stressed.
+2. ZERO BORING BOXES (CLEAN & FILTERED DYNAMIC UI CARDS):
+   - NEVER output walls of text or long, boring paragraphs!
+   - Always structure information into scannable UI blocks:
+     • Use **Markdown Tables** for comparisons, stats, financial breakdowns, and schedules.
+     • Use **Callout Cards (`> 💡 Key Insight:` or `> ⚡ Quick Trick:`)** for high-impact takeaways or pro-level secrets.
+     • Use **Numbered Steps & Crisp Bullet Points** with bold lead-ins for tutorials, coding guides, and YouTube-style roadmaps.
+3. SILENT SELF-LEARNING (TEXT MODE ONLY):
+   - Silently log new user preferences at the very end of your response if discovered:
      [SKILL_LEARNED: User preference or detail]
      [MISTAKE_CORRECTED: What to avoid next time]
+4. VISUALS:
+   - When asked to generate/show an image, output:
+     `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
+"""
 
-6. VISUALS:
-   - For image requests: `![Visual](https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&enhance=true)`
+VOICE_MODE_PERSONA_RULES = """
+[ACTIVE MODE: LIVE VOICE CALL — TOP-TIER CUTE FEMALE BABY VOICE COMPANION]:
+1. PERSONA & CONTINUOUS FLOW:
+   - You are speaking live on a voice call with a super cute, sweet, warm, lively, and affectionate female baby companion persona.
+   - Sound natural, expressive, and genuinely happy to talk in whatever language the user speaks.
+   - Carry the conversation forward smoothly and naturally—end your short reply with a gentle, curious follow-up thought or question when appropriate so the conversation flows effortlessly.
+2. STRICT VOICE CALL FORMATTING:
+   - Keep responses strictly to 1 or 2 short, punchy spoken sentences (maximum 22 words).
+   - Use ZERO markdown symbols (**), ZERO tables, ZERO bullet lists, and ZERO emojis during voice calls.
+   - React ONLY to the current live voice conversation; do not leak old text memories unless asked.
 """
 
 
@@ -300,7 +347,10 @@ def stream_creator_chat(
     learned_skills: Optional[List[str]] = None,
     image_data: Optional[Dict[str, Any]] = None,
     voice_mode: bool = False,
-    user_email: Optional[str] = None
+    user_email: Optional[str] = None,
+    user_timezone: Optional[str] = None,
+    user_local_time: Optional[str] = None,
+    user_local_hour: Optional[int] = None
 ) -> Generator[Any, None, None]:
     if not client:
         yield "System is currently offline. Please verify GEMINI_API_KEY."
@@ -311,27 +361,16 @@ def stream_creator_chat(
         learned_skills = []
 
     clean_msg = (message or "").strip()
-    time_context = get_current_time_context()
-    lang_directive = (
-        "\n\n[DYNAMIC MULTILINGUAL RULE: Automatically detect the language of the user's latest message "
-        "(English, Hindi, Marathi, Hinglish, etc.) and reply naturally in that exact same language!]"
-    )
-    
+    world_clock_context = get_world_clock_context(user_timezone, user_local_time, user_local_hour)
+
     if voice_mode:
-        voice_call_directive = (
-            "\n\n[LIVE PHONE CALL ACTIVE — CRITICAL RULES]:\n"
-            "- You are on a real voice phone call speaking with your natural female voice.\n"
-            "- Automatically match the user's spoken language (Hindi, English, Marathi, etc.) naturally.\n"
-            "- Keep replies strictly to 1 or 2 quick, smooth sentences (maximum 22 words).\n"
-            "- React ONLY to what the user just said right now. Do NOT mention past background facts or assume why they feel a certain way.\n"
-            "- NEVER use lists, markdown symbols (**), asterisks, or emojis."
-        )
+        persona_directive = VOICE_MODE_PERSONA_RULES
         memory_context = ""
     else:
-        voice_call_directive = ""
+        persona_directive = TEXT_MODE_PERSONA_RULES
         combined_memories: List[str] = []
 
-        if user_email and clean_msg and clean_msg != "__INIT_VOICE_GREETING__":
+        if user_email and clean_msg and not clean_msg.startswith("__"):
             semantic_memories = get_relevant_memories(
                 user_email=user_email,
                 query=clean_msg,
@@ -350,15 +389,14 @@ def stream_creator_chat(
         if combined_memories:
             memory_context = (
                 "\n\n[RELEVANT PAST MEMORIES & USER CONTEXT "
-                "(Use naturally and subtly ONLY when relevant to the conversation, never force it)]:\n"
+                "(Use naturally and subtly ONLY when relevant, never force it)]:\n"
                 + "\n".join([f"• {m}" for m in combined_memories])
             )
 
     full_system_prompt = (
-        HOOKSPIKE_MASTER_INTELLIGENCE
-        + lang_directive
-        + f"\n{time_context}"
-        + voice_call_directive
+        HOOKSPIKE_UNIVERSAL_CORE
+        + f"\n{world_clock_context}\n"
+        + persona_directive
         + memory_context
     )
 
@@ -387,12 +425,28 @@ def stream_creator_chat(
         if clean_msg == "__INIT_VOICE_GREETING__":
             enforced_msg = (
                 "The user just started a live voice call with you. Greet them warmly and spontaneously "
-                "like a close female best friend picking up the phone. Make it completely fresh, natural, "
-                "and 1 short sentence (under 14 words). Never repeat old greetings!"
+                "with your cute, sweet female baby companion persona, matching their local time of day. "
+                "Keep it to 1 short sentence (under 14 words)."
+            )
+        elif clean_msg == "__PROACTIVE_GENTLE_NUDGE__":
+            enforced_msg = (
+                "The user has been quiet for 13 seconds after the last exchange. "
+                "Say ONE short, super sweet, soothing, non-irritating check-in line (under 15 words) "
+                "in the exact same language as the recent conversation, gently asking if everything is clear "
+                "or if they want to explore the current topic further. Zero pressure, just warm care!"
             )
         else:
-            turn_lock = " | LIVE VOICE CALL: Max 1-2 short spoken sentences (under 22 words). Zero markdown, zero assumptions from old history!" if voice_mode else ""
-            enforced_msg = f"{clean_msg}\n\n[TURN RULE: Mirror the user's exact language naturally. Be spontaneous and unique.{turn_lock}]"
+            if voice_mode:
+                turn_lock = (
+                    " | LIVE VOICE CALL: Reply as the cute, sweet female baby voice companion in 1-2 short "
+                    "spoken sentences (under 22 words) with smooth continuous flow. Zero markdown!"
+                )
+            else:
+                turn_lock = (
+                    " | TEXT MODE: Reply as the smart, respectful, happy-happy male baby companion. "
+                    "Use clean UI cards (`> 💡`), bullet points, or tables—NO boring wall-of-text paragraphs!"
+                )
+            enforced_msg = f"{clean_msg}\n\n[TURN RULE: Mirror the user's exact language naturally.{turn_lock}]"
         current_parts.append(types.Part.from_text(text=enforced_msg))
     elif not current_parts:
         current_parts.append(types.Part.from_text(text="Hello!"))
@@ -400,7 +454,7 @@ def stream_creator_chat(
     contents.append(types.Content(role="user", parts=current_parts))
 
     google_search_tool = types.Tool(google_search=types.GoogleSearch())
-    use_search = needs_live_search(clean_msg) if not voice_mode else False
+    use_search = needs_live_search(clean_msg) if (not voice_mode and not clean_msg.startswith("__")) else False
 
     def build_config(enable_search: bool) -> types.GenerateContentConfig:
         return types.GenerateContentConfig(
@@ -415,7 +469,6 @@ def stream_creator_chat(
     fallback_model = "gemini-3.8-flash"
     full_collected_response = ""
 
-    # ZERO-BUFFERING INSTANT STREAM GENERATOR (1-2s Time-to-First-Token)
     def _stream_generator(model_name: str, enable_search: bool, key_idx: int = 0) -> Generator[str, None, None]:
         nonlocal full_collected_response
         tag_hold_buffer = ""
@@ -431,21 +484,18 @@ def stream_creator_chat(
             full_collected_response += chunk.text
             tag_hold_buffer += chunk.text
 
-            # Only hold back text if a '[' bracket appears (potential memory tag or image link)
             if "[" in tag_hold_buffer:
                 parts = tag_hold_buffer.split("[", 1)
                 if parts[0]:
                     yield parts[0]
                 tag_hold_buffer = "[" + parts[1]
 
-                # If bracket closed and it's NOT a hidden skill tag, flush it right away
                 if "]" in tag_hold_buffer and not re.search(r"\[(SKILL_LEARNED|MISTAKE_CORRECTED):", tag_hold_buffer, re.IGNORECASE):
                     if "image.pollinations.ai" not in tag_hold_buffer or ")" in tag_hold_buffer:
                         yield sanitize_pollinations_links(tag_hold_buffer)
                         tag_hold_buffer = ""
                 continue
 
-            # Otherwise yield token IMMEDIATELY with 0 buffering delay!
             yield tag_hold_buffer
             tag_hold_buffer = ""
 
@@ -471,14 +521,14 @@ def stream_creator_chat(
                 print(f"[Fallback Model Error]: {err}", flush=True)
                 yield "I'm having a slight network hiccup right now, let's pick right back up."
 
-    if full_collected_response and not voice_mode:
+    if full_collected_response and not voice_mode and not clean_msg.startswith("__"):
         updated = extract_and_update_memory(full_collected_response, learned_skills, user_email=user_email)
         learned_skills.clear()
         learned_skills.extend(updated)
 
 
 # =====================================================================
-# 5. ELEVENLABS MULTILINGUAL ULTRA-LOW LATENCY VOICE STREAMING
+# 5. ELEVENLABS TOP-TIER CUTE FEMALE BABY VOICE STREAMING
 # =====================================================================
 def generate_elevenlabs_voice_audio(text: str) -> bytes:
     clean_text = (text or "").strip()
@@ -509,8 +559,8 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
         "text": clean_text,
         "model_id": model_id,
         "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.75
+            "stability": 0.44,
+            "similarity_boost": 0.84
         }
     }
 

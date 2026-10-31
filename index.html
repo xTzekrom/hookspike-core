@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0d0f12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HookSpike AI">
     <title>HookSpike AI</title>
 
     <link rel="shortcut icon" href="/logo.png" type="image/png">
@@ -30,7 +34,7 @@
             --bg-color: #0d0f12;
             --surface-color: #14171d;
             --surface-elevated: #1b1f27;
-            --surface-card: rgba(22, 26, 34, 0.75);
+            --surface-card: rgba(22, 26, 34, 0.78);
             --surface-dock: rgba(18, 21, 28, 0.92);
             --border-color: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(255, 255, 255, 0.16);
@@ -53,7 +57,7 @@
             --bg-color: #f8f9fa;
             --surface-color: #ffffff;
             --surface-elevated: #f1f3f5;
-            --surface-card: rgba(255, 255, 255, 0.9);
+            --surface-card: rgba(255, 255, 255, 0.92);
             --surface-dock: rgba(255, 255, 255, 0.95);
             --border-color: rgba(0, 0, 0, 0.08);
             --border-hover: rgba(0, 0, 0, 0.16);
@@ -98,6 +102,16 @@
         .header-title-wrap { display: flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
         .header-title-gradient { color: var(--text-primary); font-weight: 800; }
         .header-right-actions { display: flex; align-items: center; gap: 8px; }
+
+        .admin-crown-badge {
+            display: none; align-items: center; gap: 4px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(16, 185, 129, 0.18));
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            color: #fbbf24; font-size: 10px; font-weight: 800;
+            padding: 3px 8px; border-radius: 999px; letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+        .admin-crown-badge.visible { display: inline-flex; }
 
         .user-avatar-pill {
             display: flex; align-items: center; gap: 8px;
@@ -279,6 +293,9 @@
             display: inline-flex; align-items: center; justify-content: center; color: #050608;
         }
 
+        /* =========================================================================
+           DYNAMIC UI CARDS, INTERACTIVE TABLES & CALLOUT BLOCKS (ZERO BORING BOXES)
+           ========================================================================= */
         .msg-line.ai .bubble-box {
             background: transparent; color: var(--text-primary); width: 100%;
             padding: 2px 0; font-size: var(--chat-font-size); line-height: 1.74; word-break: break-word;
@@ -288,10 +305,10 @@
         .bubble-box p:last-child { margin-bottom: 0; }
         .bubble-box strong { color: var(--text-primary); font-weight: 700; }
         .bubble-box h1, .bubble-box h2, .bubble-box h3 { margin: 16px 0 8px; font-weight: 800; color: var(--text-primary); }
-        .bubble-box h2 { font-size: 1.2em; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
+        .bubble-box h2 { font-size: 1.18em; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
         .bubble-box h3 { font-size: 1.05em; color: var(--accent-primary); }
         .bubble-box ul, .bubble-box ol { margin: 10px 0 14px 20px; }
-        .bubble-box li { margin-bottom: 6px; }
+        .bubble-box li { margin-bottom: 7px; padding-left: 3px; }
         .bubble-box li::marker { color: var(--accent-primary); font-weight: 700; }
 
         .bubble-box img {
@@ -300,10 +317,30 @@
         }
 
         .bubble-box blockquote {
-            margin: 12px 0; padding: 10px 14px;
-            background: var(--surface-elevated);
-            border-left: 3px solid var(--accent-primary); border-radius: 0 10px 10px 0;
+            margin: 14px 0; padding: 12px 16px;
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-left: 3.5px solid var(--accent-primary);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
         }
+        .bubble-box blockquote p { margin-bottom: 0; }
+
+        .bubble-box table {
+            width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px;
+            border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);
+            display: block; overflow-x: auto; background: var(--surface-color);
+        }
+        .bubble-box th, .bubble-box td {
+            padding: 10px 13px; border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color); text-align: left; vertical-align: top;
+        }
+        .bubble-box th {
+            background: var(--surface-elevated); font-weight: 800; color: var(--accent-primary);
+            text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;
+        }
+        .bubble-box tr:last-child td { border-bottom: none; }
+        .bubble-box td:last-child, .bubble-box th:last-child { border-right: none; }
 
         .bubble-box code:not(pre code) {
             background: var(--surface-elevated); border: 1px solid var(--border-color);
@@ -422,6 +459,143 @@
         .send-round-btn:active { transform: scale(0.92); }
         .send-round-btn.stop-mode { background: #262a33; color: var(--accent-primary); }
 
+        /* =========================================================================
+           THE WORLD'S MOST LUXURIOUS FLOATING ORB (HUD INTERFACE)
+           ========================================================================= */
+        .floating-orb-hud {
+            position: fixed;
+            right: 16px;
+            bottom: 146px;
+            z-index: 85;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            user-select: none;
+            transition: opacity 0.45s var(--luxury-ease), transform 0.45s var(--luxury-ease);
+        }
+        /* Smart Auto-Fade when idle: hides softly into the side edge */
+        .floating-orb-hud.idle-fade {
+            opacity: 0.26;
+            transform: translateX(18px) scale(0.92);
+        }
+        .floating-orb-hud.sleeping {
+            opacity: 0.14;
+            transform: translateX(26px) scale(0.84);
+        }
+        .floating-orb-hud:hover, .floating-orb-hud.expanded {
+            opacity: 1 !important;
+            transform: translateX(0) scale(1) !important;
+        }
+
+        .orb-core-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 32% 30%, var(--accent-secondary) 0%, var(--accent-primary) 48%, #064e3b 100%);
+            border: 1.5px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 22px var(--accent-glow), inset 0 2px 8px rgba(255, 255, 255, 0.45);
+            color: #050608;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.28s var(--luxury-ease), box-shadow 0.28s var(--luxury-ease);
+        }
+        .orb-core-btn::after {
+            content: "";
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border: 1.5px solid var(--accent-primary);
+            opacity: 0.45;
+            animation: orbPulseRing 2.6s infinite ease-out;
+            pointer-events: none;
+        }
+        @keyframes orbPulseRing {
+            0% { transform: scale(0.92); opacity: 0.65; }
+            100% { transform: scale(1.28); opacity: 0; }
+        }
+        .orb-core-btn:active {
+            transform: scale(0.9);
+        }
+
+        .orb-hud-menu {
+            display: none;
+            flex-direction: column;
+            gap: 7px;
+            background: rgba(14, 17, 23, 0.92);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 20px;
+            padding: 10px;
+            width: 215px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 26px var(--accent-glow);
+            animation: fadeIn 0.22s var(--luxury-ease);
+        }
+        body[data-theme="light"] .orb-hud-menu {
+            background: rgba(255, 255, 255, 0.94);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+        }
+        .floating-orb-hud.expanded .orb-hud-menu {
+            display: flex;
+        }
+
+        .orb-hud-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 6px 6px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            color: var(--accent-primary);
+        }
+
+        .orb-hud-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 11px;
+            border-radius: 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-primary);
+            font-size: 12.8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            text-align: left;
+        }
+        .orb-hud-item:hover, .orb-hud-item:active {
+            background: var(--surface-elevated);
+            border-color: var(--border-color);
+            transform: translateX(-2px);
+        }
+        .orb-item-left {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .orb-pro-tag {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: var(--accent-gradient);
+            color: #050608;
+            text-transform: uppercase;
+        }
+
+        /* =========================================================================
+           SETTINGS SCREEN & LUXURY MODALS (PAYMENT WALL, INSTANT TASK, ETC.)
+           ========================================================================= */
         .settings-screen {
             position: fixed; inset: 0; background: var(--bg-color); z-index: 250;
             display: none; flex-direction: column; overflow-y: auto;
@@ -483,16 +657,32 @@
         .sub-modal.active { display: flex !important; }
         .sub-card {
             background: var(--surface-color); border: 1px solid var(--border-color);
-            border-radius: 20px; padding: 22px; width: 100%; max-width: 400px;
+            border-radius: 20px; padding: 22px; width: 100%; max-width: 410px;
             display: flex; flex-direction: column; gap: 14px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
         }
         .sub-textarea {
             width: 100%; height: 110px; background: var(--bg-color); border: 1px solid var(--border-color);
             border-radius: 12px; padding: 10px; color: var(--text-primary); font-family: inherit; font-size: 13.5px; outline: none; resize: none;
         }
+        .sub-textarea:focus { border-color: var(--accent-primary); }
         .sub-btn-primary {
             background: var(--accent-gradient); color: #050608; border: none;
             padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 13.5px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .task-preset-chips {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .task-chip {
+            background: var(--surface-elevated); border: 1px solid var(--border-color);
+            color: var(--text-secondary); font-size: 11.5px; font-weight: 600;
+            padding: 6px 10px; border-radius: 999px; cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .task-chip:hover, .task-chip:active {
+            border-color: var(--accent-primary); color: var(--text-primary);
         }
 
         #voice-mode-overlay {
@@ -528,7 +718,7 @@
         .live-captions-stage {
             position: relative; flex: 1; width: 100%; max-width: 500px; margin: 0 auto;
             display: flex; flex-direction: column; justify-content: center;
-            padding: 0 16px 50px; z-index: 15; pointer-events: none;
+            padding: 0 16px 50px; z-index: 15; cursor: pointer;
         }
         .live-transcript-box {
             display: flex; flex-direction: column; gap: 10px;
@@ -624,10 +814,11 @@
         <div class="header-title-wrap">
             <span class="header-title-gradient">HookSpike</span>
             <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">AI</span>
+            <span class="admin-crown-badge" id="adminCrownBadge">★ Admin</span>
         </div>
 
         <div class="header-right-actions">
-            <button class="header-btn" id="openVoiceModeBtn" onclick="toggleVoiceMode(true)" title="Start Live Call">
+            <button class="header-btn" id="openVoiceModeBtn" onclick="requestProtectedVoiceCall()" title="Start Live Call">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
             </button>
 
@@ -647,7 +838,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-primary);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 <span>HookSpike Plus</span>
             </span>
-            <span class="upgrade-pill-badge">Upgrade</span>
+            <span class="upgrade-pill-badge" id="sidebarUpgradeBadge">Upgrade</span>
         </div>
 
         <div class="sidebar-menu-links">
@@ -688,6 +879,61 @@
     </aside>
 
     <main class="chat-area" id="chatArea"></main>
+
+    <!-- =========================================================================
+         LUXURIOUS FLOATING ORB (HUD INTERFACE — USER-INITIATED ONLY, AUTO-FADE)
+         ========================================================================= -->
+    <div class="floating-orb-hud" id="floatingOrbHud">
+        <div class="orb-hud-menu" id="orbHudMenu">
+            <div class="orb-hud-header">
+                <span>⚡ Omnipresent HUD</span>
+                <span id="orbStatusLabel" style="color:var(--text-muted); font-size:9.5px;">READY</span>
+            </div>
+
+            <button type="button" class="orb-hud-item" onclick="handleHudAction('voice')">
+                <span class="orb-item-left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/></svg>
+                    <span>Live Voice Call</span>
+                </span>
+                <span class="orb-pro-tag" id="hudVoiceTag">PRO</span>
+            </button>
+
+            <button type="button" class="orb-hud-item" onclick="handleHudAction('task')">
+                <span class="orb-item-left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span>Instant Task Command</span>
+                </span>
+                <span class="orb-pro-tag" id="hudTaskTag">PRO</span>
+            </button>
+
+            <button type="button" class="orb-hud-item" onclick="handleHudAction('memory')">
+                <span class="orb-item-left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                    <span>Memory & Clear Screen</span>
+                </span>
+            </button>
+
+            <button type="button" class="orb-hud-item" onclick="handleHudAction('theme')">
+                <span class="orb-item-left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z"/></svg>
+                    <span>Switch Luxury Theme</span>
+                </span>
+            </button>
+
+            <button type="button" class="orb-hud-item" onclick="handleHudAction('sleep')">
+                <span class="orb-item-left" style="color:var(--text-secondary);">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <span>Sleep Orb Mode</span>
+                </span>
+            </button>
+        </div>
+
+        <button type="button" class="orb-core-btn" id="orbCoreBtn" onclick="toggleOrbHudMenu(event)" title="HookSpike Omnipresent Orb">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z"/>
+            </svg>
+        </button>
+    </div>
 
     <button class="jump-bottom-btn" id="jumpBottomBtn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -806,7 +1052,7 @@
             </button>
         </div>
 
-        <div class="live-captions-stage">
+        <div class="live-captions-stage" onclick="handleStageTapToInterrupt()">
             <div class="live-transcript-box" id="liveTranscriptBox">
                 <div class="caption-line ai-say" id="liveTranscriptAiLine" style="display: none;">
                     <span class="caption-speaker">HookSpike:</span>
@@ -840,6 +1086,53 @@
         </div>
     </div>
 
+    <!-- =========================================================================
+         LEMON SQUEEZY / HOOKSPIKE PLUS PAYMENT WALL MODAL
+         ========================================================================= -->
+    <div class="sub-modal" id="paymentWallModal" onclick="if(event.target === this) closePaymentWallModal()">
+        <div class="sub-card">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:19px; font-weight:800; color:var(--text-primary);">⚡ HookSpike Plus</span>
+                <span class="upgrade-pill-badge">PRO UNLOCK</span>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); line-height:1.55;">
+                Normal text chat is 100% free! Upgrade to <strong>HookSpike Plus</strong> to unlock our most powerful Omnipresent systems:
+            </p>
+            <div style="display:flex; flex-direction:column; gap:8px; background:var(--bg-color); padding:12px; border-radius:14px; border:1px solid var(--border-color); font-size:12.8px;">
+                <div>✨ <strong>Live Female Baby Voice Call</strong> (Zero-Lag Multilingual)</div>
+                <div>🔮 <strong>Omnipresent Floating Orb HUD</strong> & Instant Task Engine</div>
+                <div>🧠 <strong>Unlimited 768-Dim Semantic Memory</strong> & Priority Speed</div>
+            </div>
+            <button class="sub-btn-primary" onclick="proceedToLemonSqueezy()">
+                <span>Unlock HookSpike Plus</span>
+                <span>→</span>
+            </button>
+            <button class="sub-btn-primary" style="background:var(--surface-elevated); color:var(--text-secondary);" onclick="closePaymentWallModal()">
+                Continue with Free Text Chat
+            </button>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         INSTANT TASK EXECUTOR MODAL (FROM FLOATING ORB HUD)
+         ========================================================================= -->
+    <div class="sub-modal" id="instantTaskModal" onclick="if(event.target === this) closeInstantTaskModal()">
+        <div class="sub-card">
+            <h3 style="font-size:17px; font-weight:800; display:flex; align-items:center; gap:8px;">
+                <span style="color:var(--accent-primary);">⚡</span> Instant Universal Task
+            </h3>
+            <p style="font-size:12.5px; color:var(--text-secondary);">Pick a domain or command any complex task—HookSpike will deliver a structured UI card breakdown:</p>
+            <div class="task-preset-chips">
+                <span class="task-chip" onclick="fillTaskPreset('Explain this topic with a YouTube-style learning roadmap & key takeaways: ')">🎓 Study & Roadmap</span>
+                <span class="task-chip" onclick="fillTaskPreset('Write clean, bug-free production code & architecture for: ')">💻 Code & Fix</span>
+                <span class="task-chip" onclick="fillTaskPreset('Provide a deep first-principles research & market breakdown on: ')">📊 Deep Research</span>
+                <span class="task-chip" onclick="fillTaskPreset('Help me make a smart, practical life/career decision about: ')">🧭 Life & Career</span>
+            </div>
+            <textarea class="sub-textarea" id="instantTaskInput" placeholder="Type your command in any language (Hindi, English, Hinglish, Marathi)..."></textarea>
+            <button class="sub-btn-primary" onclick="executeInstantOrbTask()">Execute Makkan Solution ⚡</button>
+        </div>
+    </div>
+
     <div class="sub-modal" id="bugModal" onclick="if(event.target === this) closeBugModal()">
         <div class="sub-card">
             <h3 style="font-size:17px; font-weight:700;">Report a Bug</h3>
@@ -869,6 +1162,25 @@
     </div>
 
     <script>
+        function triggerHaptic(ms = 10) {
+            try { if (navigator.vibrate) navigator.vibrate(ms); } catch(e) {}
+        }
+
+        function getUserWorldClockMeta() {
+            const now = new Date();
+            let tz = "UTC";
+            try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch(e) {}
+            const localStr = now.toLocaleString("en-US", {
+                weekday: "long", year: "numeric", month: "short", day: "numeric",
+                hour: "2-digit", minute: "2-digit", hour12: true
+            });
+            return {
+                user_timezone: tz,
+                user_local_time: localStr,
+                user_local_hour: now.getHours()
+            };
+        }
+
         const THEMES = [
             {
                 name: "Obsidian Dark (Emerald)",
@@ -914,7 +1226,10 @@
             localStorage.setItem("hs_theme_idx", currentThemeIdx);
         }
 
-        function cycleThemePreset() { applyTheme(currentThemeIdx + 1); }
+        function cycleThemePreset() {
+            triggerHaptic(10);
+            applyTheme(currentThemeIdx + 1);
+        }
 
         try {
             const savedTheme = localStorage.getItem("hs_theme_idx");
@@ -984,9 +1299,11 @@
         });
 
         const BACKEND_URL = window.location.origin;
+        const LEMON_SQUEEZY_STORE_URL = "https://hookspike.lemonsqueezy.com";
         let isLoggingOut = false;
         let CURRENT_USER_EMAIL = ("{{ user_email or '' }}" || localStorage.getItem("hs_user_email") || "").trim().toLowerCase();
         let CURRENT_ACCESS_TOKEN = localStorage.getItem("hs_access_token") || "";
+        let IS_ADMIN_USER = localStorage.getItem("hs_is_admin") === "true";
 
         const SUPABASE_URL = "{{ supabase_url }}";
         const SUPABASE_KEY = "{{ supabase_key }}";
@@ -995,6 +1312,143 @@
             try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
         }
 
+        // =========================================================================
+        // FLOATING ORB HUD CONTROLLER (AUTO-FADE & USER-INITIATED ONLY)
+        // =========================================================================
+        const floatingOrbHud = document.getElementById("floatingOrbHud");
+        let orbIdleTimer = null;
+
+        function resetOrbIdleTimer() {
+            if (!floatingOrbHud) return;
+            floatingOrbHud.classList.remove("idle-fade");
+            clearTimeout(orbIdleTimer);
+            orbIdleTimer = setTimeout(() => {
+                if (!floatingOrbHud.classList.contains("expanded")) {
+                    floatingOrbHud.classList.add("idle-fade");
+                }
+            }, 3500);
+        }
+
+        function toggleOrbHudMenu(e) {
+            if (e) e.stopPropagation();
+            triggerHaptic(12);
+            floatingOrbHud.classList.remove("sleeping", "idle-fade");
+            const isNowExpanded = floatingOrbHud.classList.toggle("expanded");
+            if (!isNowExpanded) {
+                resetOrbIdleTimer();
+            } else {
+                clearTimeout(orbIdleTimer);
+            }
+        }
+
+        document.addEventListener("click", (e) => {
+            if (floatingOrbHud && !floatingOrbHud.contains(e.target)) {
+                floatingOrbHud.classList.remove("expanded");
+                resetOrbIdleTimer();
+            }
+        });
+
+        function handleHudAction(actionType) {
+            triggerHaptic(10);
+            floatingOrbHud.classList.remove("expanded");
+            resetOrbIdleTimer();
+
+            if (actionType === "voice") {
+                requestProtectedVoiceCall();
+            } else if (actionType === "task") {
+                if (!IS_ADMIN_USER) {
+                    openLemonSqueezyCheckout();
+                    return;
+                }
+                document.getElementById("instantTaskModal").classList.add("active");
+                setTimeout(() => document.getElementById("instantTaskInput").focus(), 100);
+            } else if (actionType === "memory") {
+                openMemoryModal();
+            } else if (actionType === "theme") {
+                cycleThemePreset();
+            } else if (actionType === "sleep") {
+                floatingOrbHud.classList.add("sleeping");
+            }
+        }
+
+        function closeInstantTaskModal() {
+            document.getElementById("instantTaskModal").classList.remove("active");
+        }
+
+        function fillTaskPreset(prefixText) {
+            const box = document.getElementById("instantTaskInput");
+            box.value = prefixText;
+            box.focus();
+        }
+
+        function executeInstantOrbTask() {
+            const taskText = (document.getElementById("instantTaskInput").value || "").trim();
+            if (!taskText) return;
+            document.getElementById("instantTaskInput").value = "";
+            closeInstantTaskModal();
+            chatInput.value = taskText;
+            sendMsg();
+        }
+
+        // =========================================================================
+        // FREEMIUM & ADMIN BYPASS GATEKEEPER
+        // =========================================================================
+        function updateAdminBadgeUI(isAdmin) {
+            IS_ADMIN_USER = Boolean(isAdmin);
+            localStorage.setItem("hs_is_admin", IS_ADMIN_USER ? "true" : "false");
+
+            const crown = document.getElementById("adminCrownBadge");
+            const upgBadge = document.getElementById("sidebarUpgradeBadge");
+            const hudVoiceTag = document.getElementById("hudVoiceTag");
+            const hudTaskTag = document.getElementById("hudTaskTag");
+
+            if (IS_ADMIN_USER) {
+                if (crown) crown.classList.add("visible");
+                if (upgBadge) upgBadge.innerText = "ADMIN UNLOCKED";
+                if (hudVoiceTag) hudVoiceTag.innerText = "FREE";
+                if (hudTaskTag) hudTaskTag.innerText = "FREE";
+            } else {
+                if (crown) crown.classList.remove("visible");
+                if (upgBadge) upgBadge.innerText = "Upgrade";
+                if (hudVoiceTag) hudVoiceTag.innerText = "PRO";
+                if (hudTaskTag) hudTaskTag.innerText = "PRO";
+            }
+        }
+
+        function requestProtectedVoiceCall() {
+            triggerHaptic(12);
+            if (!CURRENT_USER_EMAIL) {
+                openAuth();
+                return;
+            }
+            if (!IS_ADMIN_USER) {
+                openLemonSqueezyCheckout();
+                return;
+            }
+            toggleVoiceMode(true);
+        }
+
+        function openLemonSqueezyCheckout() {
+            triggerHaptic(10);
+            sidebar.classList.remove("active");
+            overlay.classList.remove("active");
+            document.getElementById("paymentWallModal").classList.add("active");
+        }
+
+        function closePaymentWallModal() {
+            document.getElementById("paymentWallModal").classList.remove("active");
+        }
+
+        function proceedToLemonSqueezy() {
+            const checkoutUrl = CURRENT_USER_EMAIL
+                ? `${LEMON_SQUEEZY_STORE_URL}?checkout[email]=${encodeURIComponent(CURRENT_USER_EMAIL)}`
+                : LEMON_SQUEEZY_STORE_URL;
+            window.open(checkoutUrl, "_blank");
+        }
+
+        // =========================================================================
+        // CHAT & SOCKET PIPELINE
+        // =========================================================================
         let chatHist = [];
         let isStreaming = false;
         let currentSessionId = null;
@@ -1002,6 +1456,36 @@
         let activeAiBox = null;
         let activeAiCursor = null;
         let currentStreamingText = "";
+
+        let proactiveNudgeTimer = null;
+        let hasNudgedForCurrentTurn = true;
+
+        function clearProactiveNudgeTimer() {
+            clearTimeout(proactiveNudgeTimer);
+            proactiveNudgeTimer = null;
+        }
+
+        function scheduleSingleProactiveNudge() {
+            clearProactiveNudgeTimer();
+            if (hasNudgedForCurrentTurn) return;
+
+            proactiveNudgeTimer = setTimeout(() => {
+                if (hasNudgedForCurrentTurn || isStreaming || isAiSpeaking) return;
+                const activeInput = (chatInput.value || "").trim();
+                if (!isVoiceModeActive && activeInput.length > 0) return;
+
+                const relevantHistory = isVoiceModeActive ? voiceCallHistory : chatHist;
+                if (!relevantHistory || relevantHistory.length === 0) return;
+
+                hasNudgedForCurrentTurn = true;
+                const clockMeta = getUserWorldClockMeta();
+                socket.emit("proactive_nudge", {
+                    is_voice: isVoiceModeActive,
+                    history: relevantHistory.slice(-4),
+                    ...clockMeta
+                });
+            }, 13500);
+        }
 
         const chatArea = document.getElementById("chatArea");
         const chatInput = document.getElementById("chatInput");
@@ -1026,6 +1510,7 @@
         });
 
         socket.on("ai_chunk", (data) => {
+            clearProactiveNudgeTimer();
             if (isVoiceModeActive) {
                 currentStreamingText += (data.chunk || "");
                 updateLiveSubtitle("ai", currentStreamingText);
@@ -1056,9 +1541,20 @@
                 attachActionPills(activeAiBox, data.full_text);
                 if (data.session_id) currentSessionId = data.session_id;
                 loadHistorySessions();
+                hasNudgedForCurrentTurn = false;
+                scheduleSingleProactiveNudge();
             }
             activeAiBox = null;
             currentStreamingText = "";
+        });
+
+        socket.on("ai_proactive_message", (data) => {
+            if (isVoiceModeActive || isStreaming || !data || !data.text) return;
+            const nudgeBox = appendAiBubble();
+            nudgeBox.innerHTML = renderSafeMarkdown(data.text);
+            chatHist.push({ role: "assistant", content: data.text });
+            attachActionPills(nudgeBox, data.text);
+            checkScrollButton();
         });
 
         socket.on("ai_stream_aborted", () => {
@@ -1076,6 +1572,11 @@
         socket.on("ai_error", (err) => {
             setStreamingUI(false);
             if (activeAiCursor) { activeAiCursor.remove(); activeAiCursor = null; }
+            if (err && err.requires_payment) {
+                if (isVoiceModeActive) toggleVoiceMode(false);
+                openLemonSqueezyCheckout();
+                return;
+            }
             if (activeAiBox) {
                 activeAiBox.innerText = `Issue: ${err.error || 'Connection error'}`;
             }
@@ -1209,6 +1710,11 @@
         }
 
         function sendMsg() {
+            triggerHaptic(10);
+            clearProactiveNudgeTimer();
+            hasNudgedForCurrentTurn = true;
+            resetOrbIdleTimer();
+
             if (isStreaming) {
                 socket.emit("user_interrupted");
                 setStreamingUI(false);
@@ -1238,6 +1744,7 @@
             setStreamingUI(true);
 
             chatHist.push({ role: "user", content: displayTxt });
+            const clockMeta = getUserWorldClockMeta();
 
             socket.emit("send_message", {
                 message: promptForAi,
@@ -1247,12 +1754,14 @@
                 session_id: currentSessionId,
                 is_voice: false,
                 user_email: CURRENT_USER_EMAIL,
-                access_token: CURRENT_ACCESS_TOKEN
+                access_token: CURRENT_ACCESS_TOKEN,
+                ...clockMeta
             });
         }
 
         sendBtn.onclick = () => sendMsg();
         chatInput.onkeydown = (e) => {
+            clearProactiveNudgeTimer();
             if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 600) {
                 e.preventDefault();
                 sendMsg();
@@ -1260,6 +1769,7 @@
         };
 
         chatInput.addEventListener("input", function() {
+            clearProactiveNudgeTimer();
             this.style.height = "auto";
             this.style.height = Math.min(this.scrollHeight, 140) + "px";
         });
@@ -1269,11 +1779,14 @@
             if (distanceFromBottom > 100) jumpBottomBtn.classList.add("visible");
             else jumpBottomBtn.classList.remove("visible");
         }
-        chatArea.addEventListener("scroll", checkScrollButton);
+        chatArea.addEventListener("scroll", () => {
+            checkScrollButton();
+            resetOrbIdleTimer();
+        });
         jumpBottomBtn.onclick = () => chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
 
         // =========================================================================
-        // VOICE ENGINE WITH ANDROID CHROME STT DEDUPLICATION FIX & HARDWARE ECHO CHECK
+        // VOICE ENGINE (CUTE FEMALE BABY FLOW + PROACTIVE NUDGE + TAP-TO-INTERRUPT)
         // =========================================================================
         let isVoiceModeActive = false;
         let isUserMicMuted = false;
@@ -1293,7 +1806,6 @@
         let audioBufferQueue = [];
         let isPlayingBufferQueue = false;
 
-        // Pre-configure Android hardware acoustic echo cancellation & noise suppression
         async function primeHardwareAudioConstraints() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
             try {
@@ -1306,7 +1818,6 @@
                     },
                     video: false
                 });
-                // Immediately release track after hardware DSP profile is locked so SpeechRecognition gets exclusive access
                 stream.getTracks().forEach(track => track.stop());
             } catch (e) {}
         }
@@ -1318,6 +1829,15 @@
             }
             if (playbackAudioCtx && playbackAudioCtx.state === "suspended") {
                 playbackAudioCtx.resume().catch(() => {});
+            }
+        }
+
+        function handleStageTapToInterrupt() {
+            if (isVoiceModeActive && isAiSpeaking) {
+                triggerHaptic(12);
+                stopActiveAudio();
+                socket.emit("user_interrupted");
+                unlockMicAndListen();
             }
         }
 
@@ -1351,6 +1871,9 @@
                 setTimeout(() => {
                     if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
                         resumeRecognitionSafely();
+                        if (voiceCallHistory.length > 0 && !hasNudgedForCurrentTurn) {
+                            scheduleSingleProactiveNudge();
+                        }
                     }
                 }, 220);
             }
@@ -1441,7 +1964,6 @@
             }
         }
 
-        // Smart Overlap Merger: Prevents Android Chrome's cumulative 'nothing nothing I nothing I am' bug!
         function mergeAndroidSpeechResults(resultsList) {
             let merged = "";
             for (let i = 0; i < resultsList.length; i++) {
@@ -1456,16 +1978,11 @@
                 const lowerMerged = merged.toLowerCase();
                 const lowerSeg = seg.toLowerCase();
 
-                // Case 1: Chrome sent a cumulative superset ("nothing" -> "nothing I am")
                 if (lowerSeg.startsWith(lowerMerged)) {
                     merged = seg;
-                }
-                // Case 2: Duplicate or subset segment already inside merged
-                else if (lowerMerged.startsWith(lowerSeg) || lowerMerged.endsWith(lowerSeg)) {
+                } else if (lowerMerged.startsWith(lowerSeg) || lowerMerged.endsWith(lowerSeg)) {
                     continue;
-                }
-                // Case 3: Partial word overlap at boundary
-                else {
+                } else {
                     merged = merged + " " + seg;
                 }
             }
@@ -1498,12 +2015,13 @@
             speechRecognitionInstance = new SpeechRec();
             speechRecognitionInstance.lang = 'en-IN';
             speechRecognitionInstance.interimResults = true;
-            speechRecognitionInstance.continuous = false; // False prevents Android Chrome cumulative buffer stacking!
+            speechRecognitionInstance.continuous = false;
 
             speechRecognitionInstance.onresult = function(event) {
                 if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) {
                     return;
                 }
+                clearProactiveNudgeTimer();
 
                 const deduplicatedText = mergeAndroidSpeechResults(event.results);
                 if (deduplicatedText) {
@@ -1521,7 +2039,6 @@
             };
 
             speechRecognitionInstance.onend = function() {
-                // If user is still pausing or hasn't finished 1.4s silence, restart cleanly
                 if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
                     setTimeout(() => resumeRecognitionSafely(), 120);
                 }
@@ -1531,6 +2048,8 @@
         function dispatchVoiceQuery(spokenText) {
             if (!isVoiceModeActive || isAiSpeaking) return;
 
+            clearProactiveNudgeTimer();
+            hasNudgedForCurrentTurn = false;
             isAiSpeaking = true;
             pauseRecognitionSafely();
             setVoiceVisualState("thinking");
@@ -1545,6 +2064,7 @@
             }, 14000);
 
             voiceCallHistory.push({ role: "user", content: spokenText });
+            const clockMeta = getUserWorldClockMeta();
 
             socket.emit("send_message", {
                 message: spokenText,
@@ -1553,7 +2073,8 @@
                 history: voiceCallHistory.slice(-4),
                 session_id: null,
                 user_email: CURRENT_USER_EMAIL,
-                access_token: CURRENT_ACCESS_TOKEN
+                access_token: CURRENT_ACCESS_TOKEN,
+                ...clockMeta
             });
         }
 
@@ -1645,6 +2166,7 @@
 
         function toggleUserMicMute() {
             if (!isVoiceModeActive) return;
+            triggerHaptic(10);
             isUserMicMuted = !isUserMicMuted;
 
             const micBtn = document.getElementById("voiceMicToggleBtn");
@@ -1656,6 +2178,7 @@
             micOffSvg.style.display = isUserMicMuted ? "block" : "none";
 
             if (isUserMicMuted) {
+                clearProactiveNudgeTimer();
                 pauseRecognitionSafely();
                 if (!isAiSpeaking) setVoiceVisualState("muted");
             } else {
@@ -1667,6 +2190,8 @@
         }
 
         async function toggleVoiceMode(activate) {
+            triggerHaptic(12);
+            clearProactiveNudgeTimer();
             isVoiceModeActive = activate;
             const overlayEl = document.getElementById('voice-mode-overlay');
 
@@ -1675,6 +2200,7 @@
                 await primeHardwareAudioConstraints();
                 isUserMicMuted = false;
                 isAiSpeaking = true;
+                hasNudgedForCurrentTurn = true;
                 cleanUtteranceTranscript = "";
                 voiceCallHistory = [];
                 audioBufferQueue = [];
@@ -1799,6 +2325,9 @@
         }
 
         function resetChat() {
+            triggerHaptic(10);
+            clearProactiveNudgeTimer();
+            hasNudgedForCurrentTurn = true;
             currentSessionId = null;
             chatHist = [];
             chatArea.innerHTML = "";
@@ -1882,10 +2411,6 @@
             }
         }
 
-        function openLemonSqueezyCheckout() {
-            alert("HookSpike Plus Checkout coming soon!");
-        }
-
         function clearCurrentScreenChat() {
             resetChat();
             closeSettings();
@@ -1906,6 +2431,7 @@
                 closeAuth();
             } else {
                 localStorage.removeItem("hs_user_email");
+                updateAdminBadgeUI(false);
                 document.getElementById("headerAuthLabel").innerText = "Sign In";
                 document.getElementById("avatarCircle").innerText = "?";
                 document.getElementById("settingsBigAvatar").innerText = "?";
@@ -1934,12 +2460,16 @@
         async function syncWithBackend(email, token) {
             if (!email || isLoggingOut) return;
             try {
-                await fetch(`${BACKEND_URL}/api/auth/sync`, {
+                const res = await fetch(`${BACKEND_URL}/api/auth/sync`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": token ? `Bearer ${token}` : "" },
                     credentials: "include",
                     body: JSON.stringify({ email: email, access_token: token })
                 });
+                const data = await res.json();
+                if (data && typeof data.is_admin !== "undefined") {
+                    updateAdminBadgeUI(data.is_admin);
+                }
                 loadHistorySessions();
             } catch(e) {}
         }
@@ -1958,9 +2488,11 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
+            resetOrbIdleTimer();
             if (CURRENT_USER_EMAIL && !isLoggingOut) {
                 updateAuthUI(CURRENT_USER_EMAIL);
-                loadHistorySessions();
+                updateAdminBadgeUI(IS_ADMIN_USER);
+                await syncWithBackend(CURRENT_USER_EMAIL, CURRENT_ACCESS_TOKEN);
             }
             if (supabaseClient && !isLoggingOut) {
                 supabaseClient.auth.onAuthStateChange(async (event, session) => {

@@ -1,0 +1,55 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "HookSpike",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "HookSpike",
+  "start_url": "https://hookspike-core.onrender.com",
+  "theme_color": "#0d0f12",
+  "icons": [
+    {
+      "src": "https://hookspike-core.onrender.com/favicon.ico",
+      "type": "image/x-icon",
+      "sizes": "512x512",
+      "isSquare": true,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 512,
+      "is512x512": true,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://hookspike-core.onrender.com/logo.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "isSquare": true,
+      "isPng": true,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 32,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://hookspike-core.onrender.com/favicon.ico",
+      "type": "image/x-icon",
+      "sizes": "512x512",
+      "isSquare": true,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 512,
+      "is512x512": true,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ],
+  "id": "https://hookspike-core.onrender.com",
+  "description": "Universal cross-platform AI companion with floating HUD, voice pipeline, and multi-domain mastery",
+  "lang": "en"
+}

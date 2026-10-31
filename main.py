@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (Admin Bypass + World Clock + WebSocket Pipeline)
+HookSpike AI - Production Backend (Admin Bypass + World Clock + WebSocket Pipeline + Built-in PWA Builder Support)
 """
 
 import base64
@@ -64,6 +64,80 @@ VOICE_GREETINGS = [
 ]
 
 ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
+
+# Built-in PWA Manifest & Service Worker (No extra files needed!)
+PWA_MANIFEST_DATA = {
+    "background_color": "#0d0f12",
+    "dir": "ltr",
+    "display": "standalone",
+    "name": "HookSpike",
+    "orientation": "any",
+    "scope": "/",
+    "short_name": "HookSpike",
+    "start_url": "https://hookspike-core.onrender.com/",
+    "theme_color": "#0d0f12",
+    "id": "https://hookspike-core.onrender.com/",
+    "description": "Universal cross-platform AI companion with floating HUD, voice pipeline, and multi-domain mastery",
+    "lang": "en",
+    "icons": [
+        {
+            "src": "https://hookspike-core.onrender.com/logo.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any"
+        },
+        {
+            "src": "https://hookspike-core.onrender.com/logo.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "https://hookspike-core.onrender.com/logo.png",
+            "type": "image/png",
+            "sizes": "32x32",
+            "purpose": "any"
+        },
+        {
+            "src": "https://hookspike-core.onrender.com/favicon.ico",
+            "type": "image/x-icon",
+            "sizes": "512x512"
+        }
+    ]
+}
+
+PWA_SW_JS = """
+const CACHE_NAME = 'hookspike-pwa-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/manifest.json',
+  '/logo.png',
+  '/favicon.ico'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.map((key) => key !== CACHE_NAME ? caches.delete(key) : null)
+    ))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+"""
 
 
 def clean_text_for_speech(raw_text: str) -> str:
@@ -401,6 +475,24 @@ def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str =
 @app.route("/ping")
 def keep_alive_ping():
     return "ok", 200
+
+
+@app.route("/manifest.json")
+def serve_manifest():
+    if os.path.exists("manifest.json"):
+        return send_from_directory(".", "manifest.json", mimetype="application/manifest+json")
+    return Response(json.dumps(PWA_MANIFEST_DATA), mimetype="application/manifest+json")
+
+
+@app.route("/sw.js")
+def serve_service_worker():
+    if os.path.exists("sw.js"):
+        resp = make_response(send_from_directory(".", "sw.js", mimetype="application/javascript"))
+    else:
+        resp = make_response(Response(PWA_SW_JS, mimetype="application/javascript"))
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @app.route("/")

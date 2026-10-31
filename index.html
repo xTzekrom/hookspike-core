@@ -9,9 +9,12 @@
     <meta name="apple-mobile-web-app-title" content="HookSpike AI">
     <title>HookSpike AI</title>
 
+    <link rel="manifest" href="/manifest.json">
     <link rel="shortcut icon" href="/logo.png" type="image/png">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="icon" href="/logo.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/logo.png" type="image/png" sizes="192x192">
+    <link rel="icon" href="/logo.png" type="image/png" sizes="512x512">
     <link rel="apple-touch-icon" href="/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2512,6 +2515,15 @@
                 });
             }
         });
+
+        // Register Service Worker for PWABuilder & Android APK Packaging
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then((reg) => console.log('[PWA]: Service Worker Registered!', reg.scope))
+                    .catch((err) => console.warn('[PWA]: Service Worker Error:', err));
+            });
+        }
     </script>
 </body>
 </html>

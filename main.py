@@ -1,5 +1,5 @@
 """
-HookSpike AI - Production Backend (Instant Token Flush + Fluid Voice + WebSockets)
+HookSpike AI - Production Backend (Admin Bypass + World Clock + WebSocket Pipeline)
 """
 
 import base64
@@ -53,24 +53,14 @@ SESSION_MESSAGE_LIMIT = 9
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
 
 VOICE_GREETINGS = [
-    "Hey! Perfect timing, what's on your mind?",
-    "Hey there, how's your day going?",
-    "Hi! So good to hear from you, tell me everything!",
-    "Hey! I was just hoping you'd call, what's up?",
-    "Hello! You've got my full attention, how are things?",
-    "Hey bestie! What are we getting into today?",
-    "Hi there! Talk to me, how are you feeling right now?",
-    "Hey! Glad you called, what's happening in your world?",
-    "Hey you! Ready when you are, what's the latest?",
-    "Hi! Always happy to hear your voice, what's going on?",
-    "Hey! Take a breath and tell me how your day's been.",
-    "Hello there! What's sparking your thoughts today?",
-    "Hey! Right on cue, tell me what you're up to!",
-    "Hi! I'm all ears, what do we need to talk through?",
-    "Hey! Good vibes only, how's everything going with you?",
-    "Hey there! Spill the tea, what's new with you today?",
-    "Hi! Super glad you reached out, what's on your radar?",
-    "Hey! I'm right here with you, what's on your mind?"
+    "Yay, you called! Tell me everything, what's on your mind right now?",
+    "Hey you! I'm so happy to hear your voice, how is your day going?",
+    "Hi! Perfect timing, I was just waiting for you—what are we talking about today?",
+    "Hey there! You've got my full attention, tell me what's happening!",
+    "Hello! So good to connect with you, how are you feeling right now?",
+    "Hi bestie! Ready when you are, what's sparking your thoughts today?",
+    "Hey! Take a cozy breath and tell me what's going on in your world!",
+    "Yay, we're live! Tell me what we're diving into today!"
 ]
 
 ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
@@ -408,6 +398,11 @@ def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str =
     return True, "⚡ This chat session has reached its active memory limit. Please start a New Chat to continue."
 
 
+@app.route("/ping")
+def keep_alive_ping():
+    return "ok", 200
+
+
 @app.route("/")
 def index():
     if request.args.get("logged_out") == "1":
@@ -430,7 +425,7 @@ def auth_sync():
     if email and "@" in email:
         session["user_email"] = email
         session.modified = True
-        return jsonify({"ok": True, "email": email})
+        return jsonify({"ok": True, "email": email, "is_admin": ai_engine.is_user_admin(email)})
     return jsonify({"error": "Invalid auth credentials"}), 400
 
 
@@ -539,6 +534,13 @@ def chat_stream():
     history = payload.get("history", [])
     session_id = payload.get("session_id")
     voice_mode = bool(payload.get("voice_mode", False))
+    user_timezone = payload.get("user_timezone")
+    user_local_time = payload.get("user_local_time")
+    user_local_hour = payload.get("user_local_hour")
+
+    # FREEMIUM & ADMIN BYPASS CHECK FOR VOICE / HUD / ADVANCED FEATURES
+    if voice_mode and not ai_engine.is_user_admin(user_email):
+        return jsonify({"error": "Voice Mode requires HookSpike Plus subscription.", "requires_payment": True}), 403
 
     if not message and not image_data:
         return jsonify({"error": "Empty message"}), 400
@@ -569,7 +571,10 @@ def chat_stream():
                 learned_skills,
                 image_data,
                 voice_mode=voice_mode,
-                user_email=target_email
+                user_email=target_email,
+                user_timezone=user_timezone,
+                user_local_time=user_local_time,
+                user_local_hour=user_local_hour
             ):
                 if chunk:
                     pending_buffer += chunk
@@ -618,6 +623,10 @@ def chat_stream():
 
 @app.route("/api/voice-tts", methods=["POST"])
 def voice_tts_endpoint():
+    user_email = verify_and_get_email()
+    if not ai_engine.is_user_admin(user_email):
+        return jsonify({"error": "Voice TTS requires subscription.", "requires_payment": True}), 403
+
     data = request.get_json(silent=True) or {}
     raw_text = (data.get("text") or "").strip()
 
@@ -647,11 +656,17 @@ def voice_tts_endpoint():
 
 
 # =====================================================================
-# REAL-TIME WEBSOCKET PIPELINE (INSTANT PACKET FLUSH via socketio.sleep(0))
+# REAL-TIME WEBSOCKET PIPELINE (ADMIN BYPASS + WORLD CLOCK + VOICE)
 # =====================================================================
 @socketio.on("start_voice_call")
 def handle_start_voice_call(data=None):
     sid = request.sid
+    user_email = verify_and_get_email()
+    if not ai_engine.is_user_admin(user_email):
+        socketio.emit("ai_error", {"error": "Voice mode requires subscription.", "requires_payment": True}, to=sid)
+        socketio.sleep(0)
+        return
+
     ACTIVE_STREAM_FLAGS[sid] = True
 
     greeting_text = random.choice(VOICE_GREETINGS)
@@ -695,13 +710,78 @@ def handle_user_interrupted(data=None):
     socketio.sleep(0)
 
 
+@socketio.on("proactive_nudge")
+def handle_proactive_nudge(data=None):
+    payload = data if isinstance(data, dict) else {}
+    sid = request.sid
+    is_voice = bool(payload.get("is_voice", False))
+    history = payload.get("history", [])
+    user_timezone = payload.get("user_timezone")
+    user_local_time = payload.get("user_local_time")
+    user_local_hour = payload.get("user_local_hour")
+
+    if not history:
+        return
+
+    ACTIVE_STREAM_FLAGS[sid] = True
+
+    def _run_nudge(target_sid: str, hist: list, voice_flag: bool, tz: str | None, ltime: str | None, lhour: int | None):
+        if not ACTIVE_STREAM_FLAGS.get(target_sid, False):
+            return
+        nudge_reply = ""
+        try:
+            for piece in ai_engine.stream_creator_chat(
+                message="__PROACTIVE_GENTLE_NUDGE__",
+                history=hist[-4:],
+                learned_skills=[],
+                image_data=None,
+                voice_mode=voice_flag,
+                user_email=None,
+                user_timezone=tz,
+                user_local_time=ltime,
+                user_local_hour=lhour
+            ):
+                if not ACTIVE_STREAM_FLAGS.get(target_sid, False):
+                    return
+                if piece:
+                    nudge_reply += piece
+
+            clean_nudge = re.sub(r"\[(?:SKILL_LEARNED|MISTAKE_CORRECTED):.*?\]", "", nudge_reply, flags=re.DOTALL).strip()
+            if not clean_nudge or not ACTIVE_STREAM_FLAGS.get(target_sid, False):
+                return
+
+            if voice_flag:
+                socketio.emit("ai_voice_greeting", {"text": clean_nudge}, to=target_sid)
+                socketio.sleep(0)
+                speech_text = clean_text_for_speech(clean_nudge)
+                audio_bytes = ai_engine.generate_elevenlabs_voice_audio(speech_text)
+                if audio_bytes and ACTIVE_STREAM_FLAGS.get(target_sid, False):
+                    audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+                    socketio.emit(
+                        "ai_voice_audio",
+                        {"text": clean_nudge, "audio_base64": audio_b64},
+                        to=target_sid
+                    )
+                    socketio.sleep(0)
+            else:
+                socketio.emit("ai_proactive_message", {"text": clean_nudge}, to=target_sid)
+                socketio.sleep(0)
+        except Exception as e:
+            print(f"[Proactive Nudge Warning]: {e}", flush=True)
+
+    socketio.start_background_task(
+        _run_nudge,
+        sid,
+        history,
+        is_voice,
+        user_timezone,
+        user_local_time,
+        user_local_hour
+    )
+
+
 @socketio.on("send_message")
 def handle_socket_send_message(data):
-    """
-    Real-Time Chat & Fluid Voice Event:
-    Uses socketio.sleep(0) after every single token emit so Eventlet flushes
-    WebSocket frames immediately (1-2s Time-to-First-Token).
-    """
     payload = data if isinstance(data, dict) else {}
     sid = request.sid
 
@@ -711,6 +791,9 @@ def handle_socket_send_message(data):
     history = payload.get("history", [])
     image_data = payload.get("image_data")
     session_id = payload.get("session_id")
+    user_timezone = payload.get("user_timezone")
+    user_local_time = payload.get("user_local_time")
+    user_local_hour = payload.get("user_local_hour")
 
     user_email = (
         session.get("user_email")
@@ -719,6 +802,11 @@ def handle_socket_send_message(data):
         or ""
     ).strip().lower()
     user_jwt = session.get("access_token") or payload.get("access_token") or ""
+
+    if is_voice and not ai_engine.is_user_admin(user_email):
+        socketio.emit("ai_error", {"error": "Voice mode requires subscription.", "requires_payment": True}, to=sid)
+        socketio.sleep(0)
+        return
 
     if not message and not image_data:
         emit("ai_error", {"error": "Empty message"})
@@ -744,7 +832,10 @@ def handle_socket_send_message(data):
         skills: list,
         img: dict | None,
         voice_flag: bool,
-        sess_id: str | None
+        sess_id: str | None,
+        tz: str | None,
+        ltime: str | None,
+        lhour: int | None
     ):
         accumulated_reply = ""
         pending_buffer = ""
@@ -764,7 +855,10 @@ def handle_socket_send_message(data):
                 learned_skills=skills,
                 image_data=img,
                 voice_mode=voice_flag,
-                user_email=target_email
+                user_email=target_email,
+                user_timezone=tz,
+                user_local_time=ltime,
+                user_local_hour=lhour
             ):
                 if not is_still_active():
                     socketio.emit("ai_stream_aborted", {"aborted": True}, to=target_sid)
@@ -780,7 +874,6 @@ def handle_socket_send_message(data):
                             {"chunk": pending_buffer, "session_id": active_sess_id},
                             to=target_sid
                         )
-                        # CRITICAL FIX: Force Eventlet to flush token packet over network immediately!
                         socketio.sleep(0)
                         pending_buffer = ""
 
@@ -814,7 +907,6 @@ def handle_socket_send_message(data):
                     )
                     socketio.sleep(0)
 
-            # Synthesize complete short voice response in one natural prosody pass
             if voice_flag and is_still_active():
                 clean_speech = clean_text_for_speech(accumulated_reply)
                 if clean_speech:
@@ -845,7 +937,6 @@ def handle_socket_send_message(data):
                 )
                 socketio.sleep(0)
 
-            # Save conversation history in text mode AFTER emitting stream_done so UI never waits
             if accumulated_reply.strip() and target_email and not voice_flag and is_still_active():
                 if not active_sess_id:
                     title_text = (disp_msg[:30] + "...") if len(disp_msg) > 30 else disp_msg
@@ -872,7 +963,10 @@ def handle_socket_send_message(data):
         learned_skills,
         image_data,
         is_voice,
-        session_id
+        session_id,
+        user_timezone,
+        user_local_time,
+        user_local_hour
     )
 
 

@@ -2,6 +2,10 @@
 HookSpike AI - Production Backend (Admin Bypass + World Clock + WebSocket Pipeline + Built-in PWA Builder Support)
 """
 
+# Monkey patch FIRST before any socket/threading/urllib calls
+import eventlet
+eventlet.monkey_patch()
+
 import base64
 import json
 import os
@@ -78,7 +82,7 @@ VOICE_GREETINGS = [
 
 ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
 
-# Built-in PWA Manifest & Service Worker (PWABuilder Ready: No .ico, 100% Valid PNGs)
+# Built-in PWA Manifest & Service Worker
 PWA_MANIFEST_DATA = {
     "name": "HookSpike AI",
     "short_name": "HookSpike",
@@ -236,8 +240,9 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
     if not user_email:
         return []
     skills = []
+    clean_email = user_email.strip().lower()
     try:
-        encoded_email = urllib.parse.quote(user_email)
+        encoded_email = urllib.parse.quote(clean_email)
         url = f"{SUPABASE_URL}/rest/v1/user_skills?user_email=eq.{encoded_email}&select=skill_rule&order=created_at.desc&limit=25"
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
         with urllib.request.urlopen(req, timeout=3) as resp:
@@ -251,7 +256,7 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             cur = conn.execute(
                 "SELECT skill_rule FROM user_skills WHERE user_email = ? ORDER BY id DESC LIMIT 25",
-                (user_email,)
+                (clean_email,)
             )
             for row in cur.fetchall():
                 if row[0] and row[0] not in skills:
@@ -265,6 +270,7 @@ def db_get_user_skills(user_email: str, user_jwt: str = "") -> list[str]:
 def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
     if not user_email or not skill_rule:
         return
+    clean_email = user_email.strip().lower()
     skill_rule = skill_rule.strip()
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -272,7 +278,7 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO user_skills (user_email, skill_rule, created_at) VALUES (?, ?, ?)",
-                (user_email, skill_rule, now_iso)
+                (clean_email, skill_rule, now_iso)
             )
             conn.commit()
     except Exception:
@@ -281,7 +287,7 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
     try:
         url = f"{SUPABASE_URL}/rest/v1/user_skills"
         body = json.dumps({
-            "user_email": user_email,
+            "user_email": clean_email,
             "skill_rule": skill_rule
         }).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
@@ -292,7 +298,8 @@ def db_save_user_skill(user_email: str, skill_rule: str, user_jwt: str = ""):
 
 
 def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
-    encoded_email = urllib.parse.quote(user_email)
+    clean_email = user_email.strip().lower()
+    encoded_email = urllib.parse.quote(clean_email)
     encoded_del = urllib.parse.quote("[Deleted]")
     url = (
         f"{SUPABASE_URL}/rest/v1/chat_sessions"
@@ -302,7 +309,7 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
     
     try:
         req = urllib.request.Request(url, headers=sb_headers(user_jwt), method="GET")
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
                 return [row for row in data if row.get("title") != "[Deleted]"]
@@ -314,7 +321,7 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
             conn.row_factory = sqlite3.Row
             cur = conn.execute(
                 "SELECT id, title, created_at FROM chat_sessions WHERE user_email = ? AND title != '[Deleted]' ORDER BY created_at DESC LIMIT 50",
-                (user_email,)
+                (clean_email,)
             )
             return [dict(row) for row in cur.fetchall()]
     except Exception:
@@ -322,14 +329,15 @@ def db_select_sessions(user_email: str, user_jwt: str = "") -> list:
 
 
 def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "") -> bool:
+    clean_email = user_email.strip().lower()
     encoded_sess = urllib.parse.quote(str(session_id))
-    encoded_email = urllib.parse.quote(user_email)
+    encoded_email = urllib.parse.quote(clean_email)
 
     try:
         url = f"{SUPABASE_URL}/rest/v1/chat_sessions?id=eq.{encoded_sess}&user_email=eq.{encoded_email}"
         body = json.dumps({"title": "[Deleted]"}).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="PATCH")
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             resp.read()
     except Exception as e:
         print(f"[Supabase Soft-Delete Warning]: {e}", flush=True)
@@ -338,7 +346,7 @@ def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "")
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
                 "UPDATE chat_sessions SET title = '[Deleted]' WHERE id = ? AND user_email = ?",
-                (str(session_id), user_email)
+                (str(session_id), clean_email)
             )
             conn.commit()
     except Exception as e:
@@ -348,18 +356,19 @@ def db_soft_delete_session(session_id: str, user_email: str, user_jwt: str = "")
 
 
 def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> list:
+    clean_email = user_email.strip().lower()
     encoded_sess = urllib.parse.quote(str(session_id))
-    encoded_email = urllib.parse.quote(user_email)
+    encoded_email = urllib.parse.quote(clean_email)
 
     try:
         own_url = f"{SUPABASE_URL}/rest/v1/chat_sessions?id=eq.{encoded_sess}&user_email=eq.{encoded_email}&select=id"
         req_own = urllib.request.Request(own_url, headers=sb_headers(user_jwt), method="GET")
-        with urllib.request.urlopen(req_own, timeout=8) as resp_own:
+        with urllib.request.urlopen(req_own, timeout=5) as resp_own:
             own_data = json.loads(resp_own.read().decode("utf-8"))
             if isinstance(own_data, list) and len(own_data) > 0:
                 msg_url = f"{SUPABASE_URL}/rest/v1/chat_messages?session_id=eq.{encoded_sess}&select=role,content,created_at&order=created_at.asc"
                 req_msg = urllib.request.Request(msg_url, headers=sb_headers(user_jwt), method="GET")
-                with urllib.request.urlopen(req_msg, timeout=8) as resp_msg:
+                with urllib.request.urlopen(req_msg, timeout=5) as resp_msg:
                     msg_data = json.loads(resp_msg.read().decode("utf-8"))
                     if isinstance(msg_data, list):
                         return msg_data
@@ -371,7 +380,7 @@ def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> 
             conn.row_factory = sqlite3.Row
             own = conn.execute(
                 "SELECT id FROM chat_sessions WHERE id = ? AND user_email = ?",
-                (str(session_id), user_email)
+                (str(session_id), clean_email)
             ).fetchone()
             if not own:
                 return []
@@ -385,14 +394,15 @@ def db_select_messages(session_id: str, user_email: str, user_jwt: str = "") -> 
 
 
 def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
+    clean_email = user_email.strip().lower()
     now_iso = datetime.now(timezone.utc).isoformat()
     session_id = str(uuid.uuid4())
 
     try:
         url = f"{SUPABASE_URL}/rest/v1/chat_sessions"
-        body = json.dumps({"user_email": user_email, "title": title}).encode("utf-8")
+        body = json.dumps({"user_email": clean_email, "title": title}).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             res_text = resp.read().decode("utf-8")
             data = json.loads(res_text) if res_text.strip() else []
             rows = data if isinstance(data, list) else [data]
@@ -405,7 +415,7 @@ def db_create_session(user_email: str, title: str, user_jwt: str = "") -> str:
         with sqlite3.connect(LOCAL_DB_PATH) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO chat_sessions (id, user_email, title, created_at) VALUES (?, ?, ?, ?)",
-                (session_id, user_email, title, now_iso)
+                (session_id, clean_email, title, now_iso)
             )
             conn.commit()
     except Exception:
@@ -425,7 +435,7 @@ def db_create_message(session_id: str, role: str, content: str, user_jwt: str = 
             "content": content
         }).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=sb_headers(user_jwt), method="POST")
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             resp.read()
     except Exception as e:
         print(f"[Supabase Message Insert Error]: {e}", flush=True)

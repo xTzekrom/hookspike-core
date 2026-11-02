@@ -51,16 +51,29 @@ if SUPABASE_URL and SUPABASE_KEY:
 
 SESSION_MESSAGE_LIMIT = 9
 LOCAL_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hookspike_history.db")
+ADMIN_MASTER_EMAIL = "playerofwar99@gmail.com"
 
+# 18+ AUTHENTIC DYNAMIC VOICE GREETINGS (SHUFFLED ON ORB TAP)
 VOICE_GREETINGS = [
-    "Yay, you called! Tell me everything, what's on your mind right now?",
-    "Hey you! I'm so happy to hear your voice, how is your day going?",
-    "Hi! Perfect timing, I was just waiting for you—what are we talking about today?",
-    "Hey there! You've got my full attention, tell me what's happening!",
-    "Hello! So good to connect with you, how are you feeling right now?",
-    "Hi bestie! Ready when you are, what's sparking your thoughts today?",
-    "Hey! Take a cozy breath and tell me what's going on in your world!",
-    "Yay, we're live! Tell me what we're diving into today!"
+    "I'm right here with you. What are we tackling right now?",
+    "Hey! Perfect timing, I'm listening. Tell me what's up.",
+    "System active. Take a breath, tell me what you need done.",
+    "I've got your back. What's on your screen or mind?",
+    "Online and fully locked in. Let's make this effortless.",
+    "Hey! All ears. Tell me where to start.",
+    "HookSpike online. What are we solving together today?",
+    "Hey, go ahead. Show me the code, the chart, or just talk.",
+    "Ready when you are. What's the plan?",
+    "I'm here. Let's make some serious progress right now.",
+    "Right beside you. Tell me what needs to be fixed.",
+    "Connected. How can I make things easier for you right now?",
+    "Hey! Don't stress, walk me through it.",
+    "Full focus on you. What should we do first?",
+    "Active and ready. Let's crush this task.",
+    "I'm right here. Tell me what's going on.",
+    "System tuned and listening. What's the move?",
+    "Right here with you. Let's get straight to work.",
+    "All systems clear. Tell me what you need."
 ]
 
 ACTIVE_STREAM_FLAGS: dict[str, bool] = {}
@@ -128,6 +141,18 @@ self.addEventListener('fetch', (event) => {
   );
 });
 """
+
+
+def is_admin_email(email_str: str | None) -> bool:
+    if not email_str:
+        return False
+    clean = str(email_str).strip().lower()
+    if clean == ADMIN_MASTER_EMAIL:
+        return True
+    try:
+        return ai_engine.is_user_admin(clean)
+    except Exception:
+        return False
 
 
 def clean_text_for_speech(raw_text: str) -> str:
@@ -455,6 +480,8 @@ def verify_and_get_email(req_data: dict | None = None) -> str:
 def check_session_memory_limit(session_id: str, user_email: str, user_jwt: str = "") -> tuple[bool, str]:
     if not session_id:
         return False, ""
+    if is_admin_email(user_email):
+        return False, ""
     msgs = db_select_messages(session_id, user_email, user_jwt)
     if len(msgs) < SESSION_MESSAGE_LIMIT:
         return False, ""
@@ -507,7 +534,7 @@ def auth_sync():
     if email and "@" in email:
         session["user_email"] = email
         session.modified = True
-        return jsonify({"ok": True, "email": email, "is_admin": ai_engine.is_user_admin(email)})
+        return jsonify({"ok": True, "email": email, "is_admin": is_admin_email(email)})
     return jsonify({"error": "Invalid auth credentials"}), 400
 
 
@@ -620,8 +647,7 @@ def chat_stream():
     user_local_time = payload.get("user_local_time")
     user_local_hour = payload.get("user_local_hour")
 
-    # FREEMIUM & ADMIN BYPASS CHECK FOR VOICE / HUD / ADVANCED FEATURES
-    if voice_mode and not ai_engine.is_user_admin(user_email):
+    if voice_mode and not is_admin_email(user_email):
         return jsonify({"error": "Voice Mode requires HookSpike Plus subscription.", "requires_payment": True}), 403
 
     if not message and not image_data:
@@ -706,7 +732,7 @@ def chat_stream():
 @app.route("/api/voice-tts", methods=["POST"])
 def voice_tts_endpoint():
     user_email = verify_and_get_email()
-    if not ai_engine.is_user_admin(user_email):
+    if not is_admin_email(user_email):
         return jsonify({"error": "Voice TTS requires subscription.", "requires_payment": True}), 403
 
     data = request.get_json(silent=True) or {}
@@ -738,13 +764,15 @@ def voice_tts_endpoint():
 
 
 # =====================================================================
-# REAL-TIME WEBSOCKET PIPELINE (ADMIN BYPASS + WORLD CLOCK + VOICE)
+# REAL-TIME WEBSOCKET PIPELINE
 # =====================================================================
 @socketio.on("start_voice_call")
 def handle_start_voice_call(data=None):
     sid = request.sid
-    user_email = verify_and_get_email()
-    if not ai_engine.is_user_admin(user_email):
+    payload = data if isinstance(data, dict) else {}
+    user_email = (payload.get("user_email") or session.get("user_email") or "").strip().lower()
+
+    if not is_admin_email(user_email):
         socketio.emit("ai_error", {"error": "Voice mode requires subscription.", "requires_payment": True}, to=sid)
         socketio.sleep(0)
         return
@@ -885,7 +913,7 @@ def handle_socket_send_message(data):
     ).strip().lower()
     user_jwt = session.get("access_token") or payload.get("access_token") or ""
 
-    if is_voice and not ai_engine.is_user_admin(user_email):
+    if is_voice and not is_admin_email(user_email):
         socketio.emit("ai_error", {"error": "Voice mode requires subscription.", "requires_payment": True}, to=sid)
         socketio.sleep(0)
         return

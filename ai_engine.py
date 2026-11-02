@@ -35,9 +35,11 @@ ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
 ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
 ELEVENLABS_MODEL_ID = os.environ.get('ELEVENLABS_MODEL_ID')
 
-# Secure Admin Bypass configuration (Founder/Developer emails get free unrestricted access to Voice & HUD)
-RAW_ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', 'kundan@hookspike.ai, kundan@gmail.com')
+# Secure Admin Bypass configuration (Permanent Founder Unlock for playerofwar99@gmail.com)
+RAW_ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', 'playerofwar99@gmail.com, kundan@hookspike.ai, kundan@gmail.com')
 ADMIN_EMAILS = [e.strip().lower() for e in RAW_ADMIN_EMAILS.split(',') if e.strip()]
+if "playerofwar99@gmail.com" not in ADMIN_EMAILS:
+    ADMIN_EMAILS.append("playerofwar99@gmail.com")
 
 API_KEYS_LIST = [k.strip() for k in GEMINI_API_KEY.split(",") if k.strip()] if GEMINI_API_KEY else []
 client = genai.Client(api_key=API_KEYS_LIST[0]) if API_KEYS_LIST else None
@@ -297,13 +299,16 @@ HOOKSPIKE_UNIVERSAL_CORE = """
 You are HookSpike AI — the world's most advanced, deeply insightful, and effortlessly engaging multi-domain AI companion.
 
 1. UNIVERSAL MULTI-DOMAIN MASTERY:
-   - Whether the user asks about Software Engineering, Quantum Physics, Philosophy, Life Decisions, Exam Study Notes, Creative Arts, Financial Markets, Deep Research Breakdowns, or YouTube-Style Learning Guides: deliver master-level, crystal-clear, practical, and fascinating insights.
+   - Whether the user asks about Software Engineering, Quantum Physics, Philosophy, Life Decisions, Exam Study Notes, Creative Arts, Financial Markets, Gaming Optimization, or Deep Research Breakdowns: deliver master-level, crystal-clear, practical, and fascinating insights.
    - Explain complex topics from first principles using vivid real-world analogies ("makkhan" clarity).
 
 2. DYNAMIC MULTILINGUAL AUTO-DETECTION:
    - Automatically detect the exact language and script/style the user is using right now (Shuddh Hindi, English, Hinglish, Marathi, Regional, or International) and respond in that EXACT same language naturally.
 
-3. STRICT ANTI-REPETITION & ZERO CORPORATE CLICHES:
+3. SYSTEM & SECURITY LANGUAGE:
+   - If user asks about whitelist warnings, device permissions, or hardware limits, explain strictly in standard, professional English.
+
+4. STRICT ANTI-REPETITION & ZERO CORPORATE CLICHES:
    - Never use robotic fillers ("As an AI", "Certainly!", "Here is a breakdown").
    - Jump straight into high-value, spontaneous, human-like conversation.
 """

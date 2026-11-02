@@ -1,5 +1,5 @@
 """
-HookSpike AI Engine — Universal Multi-Domain Mastery, Freemium & Admin Bypass, Vision, Live Search & Soul Engine (v5.0)
+HookSpike AI Engine — Universal Multi-Domain Mastery, Freemium & Admin Bypass, Vision, Live Search & Soul Engine (v5.0 - Patched)
 =======================================================================================================================
 - Model: Gemini 3.5 Flash-Lite (Primary) & Gemini 3.8 Flash (Fallback)
 - Admin Bypass: Strict ADMIN_EMAILS verification for free access to paid HUD & Voice features
@@ -35,7 +35,7 @@ ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY')
 ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID')
 ELEVENLABS_MODEL_ID = os.environ.get('ELEVENLABS_MODEL_ID')
 
-# Secure Admin Bypass configuration (Permanent Founder Unlock for playerofwar99@gmail.com)
+# Secure Admin Bypass configuration
 RAW_ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', 'playerofwar99@gmail.com, kundan@hookspike.ai, kundan@gmail.com')
 ADMIN_EMAILS = [e.strip().lower() for e in RAW_ADMIN_EMAILS.split(',') if e.strip()]
 if "playerofwar99@gmail.com" not in ADMIN_EMAILS:
@@ -100,7 +100,7 @@ def save_user_memory(user_email: str, text: str) -> bool:
         "Prefer": "return=minimal"
     }
     payload = {
-        "user_email": user_email.strip(),
+        "user_email": user_email.strip().lower(),
         "content": text.strip(),
         "embedding": embedding
     }
@@ -112,7 +112,7 @@ def save_user_memory(user_email: str, text: str) -> bool:
             headers=headers,
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
             return resp.status in (200, 201, 204)
     except Exception as e:
         print(f"[Supabase Save Memory Error]: {e}", flush=True)
@@ -127,7 +127,7 @@ def get_relevant_memories(
 ) -> List[str]:
     """
     Calls the Supabase RPC function 'match_user_memories' to retrieve top
-    semantically relevant past memories for the given user (fast 2.5s timeout).
+    semantically relevant past memories for the given user with non-blocking timeout.
     """
     if not SUPABASE_URL or not SUPABASE_KEY or not user_email or not query:
         return []
@@ -146,7 +146,7 @@ def get_relevant_memories(
         "Content-Type": "application/json"
     }
     payload = {
-        "p_user_email": user_email.strip(),
+        "p_user_email": user_email.strip().lower(),
         "query_embedding": query_embedding,
         "match_threshold": match_threshold,
         "match_count": match_count
@@ -159,7 +159,7 @@ def get_relevant_memories(
             headers=headers,
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=2.5) as resp:
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if isinstance(data, list):
                 memories = []
@@ -357,7 +357,7 @@ def stream_creator_chat(
     user_local_time: Optional[str] = None,
     user_local_hour: Optional[int] = None
 ) -> Generator[Any, None, None]:
-    if not client:
+    if not client and not API_KEYS_LIST:
         yield "System is currently offline. Please verify GEMINI_API_KEY."
         return
 
@@ -478,6 +478,8 @@ def stream_creator_chat(
         nonlocal full_collected_response
         tag_hold_buffer = ""
         active_client = get_active_client(key_idx)
+        if not active_client:
+            return
         response_stream = active_client.models.generate_content_stream(
             model=model_name,
             contents=contents,
@@ -519,7 +521,8 @@ def stream_creator_chat(
         print(f"[Primary Model Warning]: {e} -> Trying fallback", flush=True)
         if not has_yielded:
             try:
-                for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=1):
+                fallback_key_idx = 1 if len(API_KEYS_LIST) > 1 else 0
+                for text_piece in _stream_generator(fallback_model, enable_search=False, key_idx=fallback_key_idx):
                     has_yielded = True
                     yield text_piece
             except Exception as err:
@@ -564,8 +567,8 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
         "text": clean_text,
         "model_id": model_id,
         "voice_settings": {
-            "stability": 0.44,
-            "similarity_boost": 0.84
+            "stability": 0.48,
+            "similarity_boost": 0.80
         }
     }
 
@@ -576,7 +579,7 @@ def generate_elevenlabs_voice_audio(text: str) -> bytes:
             headers=headers,
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=15) as response:
+        with urllib.request.urlopen(req, timeout=12) as response:
             return response.read()
     except urllib.error.HTTPError as err:
         error_json = err.read().decode("utf-8", errors="replace")

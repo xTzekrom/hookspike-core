@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0d0f12">
+    <meta name="theme-color" content="#080a0f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HookSpike AI">
-    <title>HookSpike AI</title>
+    <title>HookSpike AI — Elite System Companion</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="shortcut icon" href="/logo.png" type="image/png">
@@ -34,13 +34,13 @@
 
     <style>
         :root {
-            --bg-color: #0d0f12;
-            --surface-color: #14171d;
-            --surface-elevated: #1b1f27;
-            --surface-card: rgba(22, 26, 34, 0.78);
-            --surface-dock: rgba(18, 21, 28, 0.92);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-hover: rgba(255, 255, 255, 0.16);
+            --bg-color: #07090e;
+            --surface-color: #0f121a;
+            --surface-elevated: #161b26;
+            --surface-card: rgba(20, 25, 36, 0.72);
+            --surface-dock: rgba(14, 18, 26, 0.88);
+            --border-color: rgba(255, 255, 255, 0.07);
+            --border-hover: rgba(255, 255, 255, 0.18);
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
@@ -48,7 +48,7 @@
             --accent-primary: #10b981;
             --accent-secondary: #34d399;
             --accent-gradient: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-            --accent-glow: rgba(16, 185, 129, 0.25);
+            --accent-glow: rgba(16, 185, 129, 0.28);
             
             --bubble-radius: 20px;
             --dock-radius: 9999px;
@@ -57,14 +57,14 @@
         }
 
         body[data-theme="light"] {
-            --bg-color: #f8f9fa;
+            --bg-color: #f6f8fa;
             --surface-color: #ffffff;
-            --surface-elevated: #f1f3f5;
+            --surface-elevated: #edf0f5;
             --surface-card: rgba(255, 255, 255, 0.92);
-            --surface-dock: rgba(255, 255, 255, 0.95);
-            --border-color: rgba(0, 0, 0, 0.08);
-            --border-hover: rgba(0, 0, 0, 0.16);
-            --text-primary: #0f172a;
+            --surface-dock: rgba(255, 255, 255, 0.94);
+            --border-color: rgba(0, 0, 0, 0.07);
+            --border-hover: rgba(0, 0, 0, 0.15);
+            --text-primary: #090d16;
             --text-secondary: #475569;
             --text-muted: #94a3b8;
             --accent-glow: rgba(16, 185, 129, 0.15);
@@ -80,16 +80,26 @@
             height: 100dvh; overflow: hidden;
             letter-spacing: -0.15px;
             transition: background-color 0.3s ease, color 0.3s ease;
+            user-select: none;
         }
 
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        /* Ambient High-End Radial Sheen */
+        body::before {
+            content: "";
+            position: fixed; inset: 0;
+            background: radial-gradient(circle at 50% -10%, rgba(16, 185, 129, 0.06) 0%, transparent 60%);
+            pointer-events: none; z-index: 0;
+        }
+
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 999px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
 
         header {
             height: 56px; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 16px; background: var(--bg-color);
+            padding: 0 16px; background: rgba(7, 9, 14, 0.85);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             z-index: 30; border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
         }
@@ -132,8 +142,8 @@
         }
 
         .drawer-overlay {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             opacity: 0; pointer-events: none;
             transition: opacity 0.3s var(--luxury-ease); z-index: 90;
         }
@@ -250,6 +260,8 @@
             display: flex; flex-direction: column; gap: 24px;
             max-width: 760px; width: 100%; margin: 0 auto;
             -webkit-overflow-scrolling: touch;
+            z-index: 5;
+            user-select: text;
         }
 
         .msg-line { display: flex; flex-direction: column; width: 100%; animation: fadeIn 0.25s var(--luxury-ease); }
@@ -262,6 +274,7 @@
             border: 1px solid var(--border-color); border-radius: var(--bubble-radius);
             border-bottom-right-radius: 4px; padding: 12px 16px;
             display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
 
         .user-bubble-row-inner { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
@@ -296,9 +309,6 @@
             display: inline-flex; align-items: center; justify-content: center; color: #050608;
         }
 
-        /* =========================================================================
-           DYNAMIC UI CARDS, INTERACTIVE TABLES & CALLOUT BLOCKS (ZERO BORING BOXES)
-           ========================================================================= */
         .msg-line.ai .bubble-box {
             background: transparent; color: var(--text-primary); width: 100%;
             padding: 2px 0; font-size: var(--chat-font-size); line-height: 1.74; word-break: break-word;
@@ -313,11 +323,6 @@
         .bubble-box ul, .bubble-box ol { margin: 10px 0 14px 20px; }
         .bubble-box li { margin-bottom: 7px; padding-left: 3px; }
         .bubble-box li::marker { color: var(--accent-primary); font-weight: 700; }
-
-        .bubble-box img {
-            max-width: 100%; width: 380px; height: auto; border-radius: 14px;
-            margin: 10px 0; border: 1px solid var(--border-hover); display: block;
-        }
 
         .bubble-box blockquote {
             margin: 14px 0; padding: 12px 16px;
@@ -463,142 +468,169 @@
         .send-round-btn.stop-mode { background: #262a33; color: var(--accent-primary); }
 
         /* =========================================================================
-           THE WORLD'S MOST LUXURIOUS FLOATING ORB (HUD INTERFACE)
+           TOP-TIER MAGNETIC DRAGGABLE FROSTED ORB (APPLE ASSISTIVETOUCH FEEL)
            ========================================================================= */
         .floating-orb-hud {
             position: fixed;
-            right: 16px;
-            bottom: 146px;
-            z-index: 85;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 10px;
-            user-select: none;
-            transition: opacity 0.45s var(--luxury-ease), transform 0.45s var(--luxury-ease);
-        }
-        /* Smart Auto-Fade when idle: hides softly into the side edge */
-        .floating-orb-hud.idle-fade {
-            opacity: 0.26;
-            transform: translateX(18px) scale(0.92);
-        }
-        .floating-orb-hud.sleeping {
-            opacity: 0.14;
-            transform: translateX(26px) scale(0.84);
-        }
-        .floating-orb-hud:hover, .floating-orb-hud.expanded {
-            opacity: 1 !important;
-            transform: translateX(0) scale(1) !important;
-        }
-
-        .orb-core-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 32% 30%, var(--accent-secondary) 0%, var(--accent-primary) 48%, #064e3b 100%);
-            border: 1.5px solid rgba(255, 255, 255, 0.35);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 22px var(--accent-glow), inset 0 2px 8px rgba(255, 255, 255, 0.45);
-            color: #050608;
+            z-index: 95;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+            cursor: grab;
+            transition: opacity 0.4s var(--luxury-ease), transform 0.4s var(--luxury-ease);
+        }
+        .floating-orb-hud.idle-fade {
+            opacity: 0.32;
+        }
+        .floating-orb-hud.sleeping {
+            opacity: 0.12;
+            transform: scale(0.8);
+        }
+        .floating-orb-hud:active {
+            cursor: grabbing;
+        }
+
+        .orb-core-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 60%, rgba(0, 0, 0, 0.5) 100%),
+                        rgba(18, 22, 31, 0.76);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1.5px solid rgba(255, 255, 255, 0.26);
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.4);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             position: relative;
-            transition: transform 0.28s var(--luxury-ease), box-shadow 0.28s var(--luxury-ease);
+            transition: transform 0.2s var(--luxury-ease);
+            pointer-events: none; /* Let container handle gestures */
         }
         .orb-core-btn::after {
             content: "";
             position: absolute;
-            inset: -5px;
+            inset: -4px;
             border-radius: 50%;
             border: 1.5px solid var(--accent-primary);
-            opacity: 0.45;
-            animation: orbPulseRing 2.6s infinite ease-out;
+            opacity: 0;
             pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .floating-orb-hud.active-voice .orb-core-btn::after {
+            opacity: 1;
+            animation: orbPulseRing 2s infinite ease-out;
         }
         @keyframes orbPulseRing {
-            0% { transform: scale(0.92); opacity: 0.65; }
-            100% { transform: scale(1.28); opacity: 0; }
-        }
-        .orb-core-btn:active {
-            transform: scale(0.9);
-        }
-
-        .orb-hud-menu {
-            display: none;
-            flex-direction: column;
-            gap: 7px;
-            background: rgba(14, 17, 23, 0.92);
-            backdrop-filter: blur(22px);
-            -webkit-backdrop-filter: blur(22px);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 20px;
-            padding: 10px;
-            width: 215px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 26px var(--accent-glow);
-            animation: fadeIn 0.22s var(--luxury-ease);
-        }
-        body[data-theme="light"] .orb-hud-menu {
-            background: rgba(255, 255, 255, 0.94);
-            border-color: rgba(0, 0, 0, 0.12);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
-        }
-        .floating-orb-hud.expanded .orb-hud-menu {
-            display: flex;
-        }
-
-        .orb-hud-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 2px 6px 6px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.9px;
-            color: var(--accent-primary);
-        }
-
-        .orb-hud-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 9px 11px;
-            border-radius: 12px;
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-primary);
-            font-size: 12.8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.18s ease;
-            text-align: left;
-        }
-        .orb-hud-item:hover, .orb-hud-item:active {
-            background: var(--surface-elevated);
-            border-color: var(--border-color);
-            transform: translateX(-2px);
-        }
-        .orb-item-left {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-        .orb-pro-tag {
-            font-size: 9px;
-            font-weight: 800;
-            padding: 2px 6px;
-            border-radius: 999px;
-            background: var(--accent-gradient);
-            color: #050608;
-            text-transform: uppercase;
+            0% { transform: scale(0.94); opacity: 0.8; }
+            100% { transform: scale(1.32); opacity: 0; }
         }
 
         /* =========================================================================
-           SETTINGS SCREEN & LUXURY MODALS (PAYMENT WALL, INSTANT TASK, ETC.)
+           HOLD-ACTIVATED LUXURY FROSTED HUD PANEL & WHITELIST VAULT
            ========================================================================= */
+        .hud-overlay-panel {
+            position: fixed; inset: 0; background: rgba(5, 7, 10, 0.68);
+            backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+            z-index: 200; display: none; align-items: flex-end; justify-content: center;
+            padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px));
+            opacity: 0; transition: opacity 0.26s var(--luxury-ease);
+        }
+        .hud-overlay-panel.open { display: flex; opacity: 1; }
+
+        .hud-glass-card {
+            width: 100%; max-width: 390px;
+            background: rgba(18, 22, 31, 0.92);
+            backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 26px; padding: 18px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            display: flex; flex-direction: column; gap: 16px;
+            animation: slideUp 0.3s var(--luxury-ease);
+        }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .hud-card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-bottom: 8px; border-bottom: 1px solid var(--border-color);
+        }
+        .hud-card-title { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+        .hud-edit-toggle-btn {
+            background: transparent; border: none; color: var(--text-secondary);
+            font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;
+        }
+        .hud-edit-toggle-btn.active { color: var(--accent-primary); }
+
+        .hud-tools-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .hud-tool-item {
+            background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 12px 6px;
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .hud-tool-item:active { transform: scale(0.93); background: rgba(255, 255, 255, 0.08); }
+        .hud-tool-item.active { border-color: var(--accent-primary); color: var(--accent-primary); }
+        .hud-tool-label { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); }
+
+        .hud-vault-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+        .whitelist-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+            min-height: 80px; align-items: center;
+        }
+        .whitelist-app-item {
+            position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+            cursor: pointer;
+        }
+        .app-icon-squircle {
+            width: 48px; height: 48px; border-radius: 14px;
+            background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: #fff;
+            transition: transform 0.2s;
+        }
+        .whitelist-app-item.jiggling .app-icon-squircle {
+            animation: jiggleShake 0.22s infinite alternate ease-in-out;
+        }
+        @keyframes jiggleShake { 0% { transform: rotate(-2deg); } 100% { transform: rotate(2deg); } }
+
+        .app-delete-btn-badge {
+            position: absolute; top: -4px; right: 4px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #ef4444; color: #fff; font-size: 11px; font-weight: 800;
+            display: none; align-items: center; justify-content: center; border: 1.5px solid #0d0f12;
+        }
+        .whitelist-app-item.jiggling .app-delete-btn-badge { display: flex; }
+        .whitelist-app-name { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); max-width: 62px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .add-whitelist-box {
+            width: 48px; height: 48px; border-radius: 14px;
+            border: 1.5px dashed rgba(255, 255, 255, 0.25);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); cursor: pointer;
+        }
+
+        .picker-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75);
+            z-index: 220; display: none; align-items: center; justify-content: center; padding: 16px;
+        }
+        .picker-modal-overlay.open { display: flex; }
+        .picker-dialog-card {
+            width: 100%; max-width: 340px; background: #14171d;
+            border: 1px solid var(--border-color); border-radius: 20px;
+            padding: 16px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .picker-app-list { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .picker-list-row {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+            border-radius: 10px; background: rgba(255, 255, 255, 0.03); cursor: pointer;
+            font-size: 13px; font-weight: 600;
+        }
+        .picker-list-row:hover { background: rgba(255, 255, 255, 0.08); }
+
+        /* Settings Screen & Modals */
         .settings-screen {
             position: fixed; inset: 0; background: var(--bg-color); z-index: 250;
             display: none; flex-direction: column; overflow-y: auto;
@@ -675,19 +707,6 @@
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
 
-        .task-preset-chips {
-            display: flex; flex-wrap: wrap; gap: 6px;
-        }
-        .task-chip {
-            background: var(--surface-elevated); border: 1px solid var(--border-color);
-            color: var(--text-secondary); font-size: 11.5px; font-weight: 600;
-            padding: 6px 10px; border-radius: 999px; cursor: pointer;
-            transition: all 0.18s ease;
-        }
-        .task-chip:hover, .task-chip:active {
-            border-color: var(--accent-primary); color: var(--text-primary);
-        }
-
         #voice-mode-overlay {
             position: fixed; inset: 0;
             background: #000000;
@@ -759,32 +778,20 @@
             animation: waveRestSec 5.5s infinite ease-in-out alternate-reverse;
         }
 
-        @keyframes waveRest {
-            0% { transform: scaleY(0.95); opacity: 0.8; }
-            100% { transform: scaleY(1.08); opacity: 0.95; }
-        }
-        @keyframes waveRestSec {
-            0% { transform: scaleX(0.96); }
-            100% { transform: scaleX(1.04); }
-        }
+        @keyframes waveRest { 0% { transform: scaleY(0.95); opacity: 0.8; } 100% { transform: scaleY(1.08); opacity: 0.95; } }
+        @keyframes waveRestSec { 0% { transform: scaleX(0.96); } 100% { transform: scaleX(1.04); } }
 
         #voice-mode-overlay.speaking .gemini-wave-glow {
             background: radial-gradient(circle at 50% 25%, var(--accent-secondary) 0%, var(--accent-primary) 45%, #064e3b 75%);
             filter: blur(22px);
             animation: waveSpeak 0.7s infinite ease-in-out alternate;
         }
-        @keyframes waveSpeak {
-            0% { transform: scaleY(0.95) scaleX(0.98); }
-            100% { transform: scaleY(1.35) scaleX(1.05); }
-        }
+        @keyframes waveSpeak { 0% { transform: scaleY(0.95) scaleX(0.98); } 100% { transform: scaleY(1.35) scaleX(1.05); } }
 
         #voice-mode-overlay.listening .gemini-wave-glow {
             animation: waveListen 1.5s infinite ease-in-out alternate;
         }
-        @keyframes waveListen {
-            0% { transform: scaleY(0.96); opacity: 0.8; }
-            100% { transform: scaleY(1.16); opacity: 1; }
-        }
+        @keyframes waveListen { 0% { transform: scaleY(0.96); opacity: 0.8; } 100% { transform: scaleY(1.16); opacity: 1; } }
 
         #voice-mode-overlay.muted .gemini-wave-glow {
             filter: grayscale(0.8) blur(30px); opacity: 0.4; animation: none;
@@ -817,7 +824,7 @@
         <div class="header-title-wrap">
             <span class="header-title-gradient">HookSpike</span>
             <span style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">AI</span>
-            <span class="admin-crown-badge" id="adminCrownBadge">★ Admin</span>
+            <span class="admin-crown-badge visible" id="adminCrownBadge">★ Admin</span>
         </div>
 
         <div class="header-right-actions">
@@ -826,10 +833,8 @@
             </button>
 
             <div class="user-avatar-pill" id="openPro">
-                <div class="user-avatar-circle" id="avatarCircle">
-                    {% if logged_in and user_email %}{{ user_email[0]|upper }}{% else %}?{% endif %}
-                </div>
-                <span id="headerAuthLabel">{% if not logged_in %}Sign In{% else %}Connected{% endif %}</span>
+                <div class="user-avatar-circle" id="avatarCircle">P</div>
+                <span id="headerAuthLabel">Connected</span>
             </div>
         </div>
     </header>
@@ -841,7 +846,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-primary);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 <span>HookSpike Plus</span>
             </span>
-            <span class="upgrade-pill-badge" id="sidebarUpgradeBadge">Upgrade</span>
+            <span class="upgrade-pill-badge" id="sidebarUpgradeBadge">ADMIN UNLOCKED</span>
         </div>
 
         <div class="sidebar-menu-links">
@@ -884,58 +889,66 @@
     <main class="chat-area" id="chatArea"></main>
 
     <!-- =========================================================================
-         LUXURIOUS FLOATING ORB (HUD INTERFACE — USER-INITIATED ONLY, AUTO-FADE)
+         TRUE MAGNETIC DRAGGABLE FROSTED ORB (APPLE ASSISTIVETOUCH FEEL)
          ========================================================================= -->
-    <div class="floating-orb-hud" id="floatingOrbHud">
-        <div class="orb-hud-menu" id="orbHudMenu">
-            <div class="orb-hud-header">
-                <span>⚡ Omnipresent HUD</span>
-                <span id="orbStatusLabel" style="color:var(--text-muted); font-size:9.5px;">READY</span>
-            </div>
-
-            <button type="button" class="orb-hud-item" onclick="handleHudAction('voice')">
-                <span class="orb-item-left">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/></svg>
-                    <span>Live Voice Call</span>
-                </span>
-                <span class="orb-pro-tag" id="hudVoiceTag">PRO</span>
-            </button>
-
-            <button type="button" class="orb-hud-item" onclick="handleHudAction('task')">
-                <span class="orb-item-left">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    <span>Instant Task Command</span>
-                </span>
-                <span class="orb-pro-tag" id="hudTaskTag">PRO</span>
-            </button>
-
-            <button type="button" class="orb-hud-item" onclick="handleHudAction('memory')">
-                <span class="orb-item-left">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
-                    <span>Memory & Clear Screen</span>
-                </span>
-            </button>
-
-            <button type="button" class="orb-hud-item" onclick="handleHudAction('theme')">
-                <span class="orb-item-left">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z"/></svg>
-                    <span>Switch Luxury Theme</span>
-                </span>
-            </button>
-
-            <button type="button" class="orb-hud-item" onclick="handleHudAction('sleep')">
-                <span class="orb-item-left" style="color:var(--text-secondary);">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                    <span>Sleep Orb Mode</span>
-                </span>
-            </button>
-        </div>
-
-        <button type="button" class="orb-core-btn" id="orbCoreBtn" onclick="toggleOrbHudMenu(event)" title="HookSpike Omnipresent Orb">
+    <div class="floating-orb-hud" id="floatingOrbHud" title="Drag anywhere | Single Tap: Voice | Hold: HUD">
+        <div class="orb-core-btn" id="orbCoreBtn">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z"/>
             </svg>
-        </button>
+        </div>
+    </div>
+
+    <!-- HOLD-ACTIVATED LUXURY FROSTED HUD PANEL -->
+    <div class="hud-overlay-panel" id="hudOverlayPanel" onclick="closeHudIfOutside(event)">
+        <div class="hud-glass-card" id="hudGlassCard">
+            <div class="hud-card-header">
+                <span class="hud-card-title">Omni Controller</span>
+                <button type="button" class="hud-edit-toggle-btn" id="hudEditToggleBtn" onclick="toggleHudEditMode()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <span>Edit</span>
+                </button>
+            </div>
+
+            <!-- Top Utility Tools -->
+            <div class="hud-tools-grid">
+                <div class="hud-tool-item" onclick="triggerOnDemandScreenPerception()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    <span class="hud-tool-label">Scan Screen</span>
+                </div>
+                <div class="hud-tool-item" id="hudTorchToggle" onclick="toggleHardwareTorch()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span class="hud-tool-label">Torch</span>
+                </div>
+                <div class="hud-tool-item" onclick="toggleSystemMute()">
+                    <svg id="hudMuteSvg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                    <span class="hud-tool-label">Mute Mic</span>
+                </div>
+                <div class="hud-tool-item" onclick="setOrbToSleepMode()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <span class="hud-tool-label">Sleep AI</span>
+                </div>
+            </div>
+
+            <!-- Whitelisted Apps Section -->
+            <div>
+                <div class="hud-vault-title">Authorized Apps Vault</div>
+                <div class="whitelist-grid" id="whitelistAppGrid">
+                    <!-- Whitelisted apps injected dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Picker Dialog Modal -->
+    <div class="picker-modal-overlay" id="pickerModalOverlay">
+        <div class="picker-dialog-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13.5px; font-weight: 700;">Select App to Whitelist</span>
+                <span style="cursor: pointer; color: var(--text-muted);" onclick="closeAppPickerModal()">✕</span>
+            </div>
+            <div class="picker-app-list" id="pickerAppList"></div>
+        </div>
     </div>
 
     <button class="jump-bottom-btn" id="jumpBottomBtn">
@@ -956,7 +969,7 @@
             <button type="button" class="dock-circle-btn" id="attachBtn" title="Attach image">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
-            <textarea id="chatInput" rows="1" placeholder="Ask anything..."></textarea>
+            <textarea id="chatInput" rows="1" placeholder="Ask anything in any language..."></textarea>
             <button class="send-round-btn" id="sendBtn">
                 <svg id="sendIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                 <svg id="stopIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect width="18" height="18" x="3" y="3" rx="3"/></svg>
@@ -964,6 +977,7 @@
         </div>
     </div>
 
+    <!-- SETTINGS SCREEN -->
     <div class="settings-screen" id="settingsScreen">
         <div class="settings-header">
             <button class="settings-back-btn" onclick="closeSettings()">
@@ -974,9 +988,9 @@
 
         <div class="settings-content">
             <div class="settings-user-card">
-                <div class="settings-avatar-big" id="settingsBigAvatar">K</div>
-                <div class="settings-user-name" id="settingsUserName">Guest User</div>
-                <div style="font-size:13px; color:var(--text-muted);" id="settingsUserEmail">Guest Mode</div>
+                <div class="settings-avatar-big" id="settingsBigAvatar">P</div>
+                <div class="settings-user-name" id="settingsUserName">playerofwar99</div>
+                <div style="font-size:13px; color:var(--text-muted);" id="settingsUserEmail">playerofwar99@gmail.com</div>
             </div>
 
             <div>
@@ -1022,13 +1036,7 @@
                         </div>
                         <div class="settings-item-right">Clear ›</div>
                     </div>
-                    <div class="settings-item-row" id="settingsSignInRow" onclick="closeSettings(); openAuth();">
-                        <div class="settings-item-left">
-                            <div class="lux-icon-box"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></div>
-                            <span style="color:var(--accent-primary);">Sign In with Google</span>
-                        </div>
-                    </div>
-                    <div class="settings-item-row" id="settingsLogoutRow" onclick="performHardLogout(event)" style="display:none;">
+                    <div class="settings-item-row" id="settingsLogoutRow" onclick="performHardLogout(event)">
                         <div class="settings-item-left">
                             <div class="lux-icon-box" style="color:#ef4444;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
                             <span style="color:#ef4444;">Log Out</span>
@@ -1039,10 +1047,11 @@
         </div>
     </div>
 
+    <!-- VOICE MODE OVERLAY -->
     <div id="voice-mode-overlay" class="listening">
         <div class="live-top-bar">
             <div class="live-brand-title">
-                <span>Live Call</span>
+                <span>HookSpike Live</span>
                 <span class="live-timer-chip" id="voiceCallTimer">00:00</span>
             </div>
 
@@ -1074,8 +1083,8 @@
         </div>
 
         <div class="live-bottom-dock">
-            <button class="live-dock-btn" onclick="alert('Camera integration coming soon!')" title="Camera">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            <button class="live-dock-btn" onclick="triggerOnDemandScreenPerception()" title="Share Screen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
             </button>
 
             <button class="live-dock-btn mic-btn" id="voiceMicToggleBtn" onclick="toggleUserMicMute()" title="Mute Microphone">
@@ -1089,9 +1098,7 @@
         </div>
     </div>
 
-    <!-- =========================================================================
-         LEMON SQUEEZY / HOOKSPIKE PLUS PAYMENT WALL MODAL
-         ========================================================================= -->
+    <!-- MODALS -->
     <div class="sub-modal" id="paymentWallModal" onclick="if(event.target === this) closePaymentWallModal()">
         <div class="sub-card">
             <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -1102,9 +1109,9 @@
                 Normal text chat is 100% free! Upgrade to <strong>HookSpike Plus</strong> to unlock our most powerful Omnipresent systems:
             </p>
             <div style="display:flex; flex-direction:column; gap:8px; background:var(--bg-color); padding:12px; border-radius:14px; border:1px solid var(--border-color); font-size:12.8px;">
-                <div>✨ <strong>Live Female Baby Voice Call</strong> (Zero-Lag Multilingual)</div>
-                <div>🔮 <strong>Omnipresent Floating Orb HUD</strong> & Instant Task Engine</div>
-                <div>🧠 <strong>Unlimited 768-Dim Semantic Memory</strong> & Priority Speed</div>
+                <div>✨ <strong>Live Voice Call</strong> (Zero-Lag Multilingual)</div>
+                <div>🔮 <strong>Omnipresent Floating Orb HUD</strong> & Screen Perception</div>
+                <div>🧠 <strong>Unlimited Semantic Memory</strong> & High Speed</div>
             </div>
             <button class="sub-btn-primary" onclick="proceedToLemonSqueezy()">
                 <span>Unlock HookSpike Plus</span>
@@ -1113,26 +1120,6 @@
             <button class="sub-btn-primary" style="background:var(--surface-elevated); color:var(--text-secondary);" onclick="closePaymentWallModal()">
                 Continue with Free Text Chat
             </button>
-        </div>
-    </div>
-
-    <!-- =========================================================================
-         INSTANT TASK EXECUTOR MODAL (FROM FLOATING ORB HUD)
-         ========================================================================= -->
-    <div class="sub-modal" id="instantTaskModal" onclick="if(event.target === this) closeInstantTaskModal()">
-        <div class="sub-card">
-            <h3 style="font-size:17px; font-weight:800; display:flex; align-items:center; gap:8px;">
-                <span style="color:var(--accent-primary);">⚡</span> Instant Universal Task
-            </h3>
-            <p style="font-size:12.5px; color:var(--text-secondary);">Pick a domain or command any complex task—HookSpike will deliver a structured UI card breakdown:</p>
-            <div class="task-preset-chips">
-                <span class="task-chip" onclick="fillTaskPreset('Explain this topic with a YouTube-style learning roadmap & key takeaways: ')">🎓 Study & Roadmap</span>
-                <span class="task-chip" onclick="fillTaskPreset('Write clean, bug-free production code & architecture for: ')">💻 Code & Fix</span>
-                <span class="task-chip" onclick="fillTaskPreset('Provide a deep first-principles research & market breakdown on: ')">📊 Deep Research</span>
-                <span class="task-chip" onclick="fillTaskPreset('Help me make a smart, practical life/career decision about: ')">🧭 Life & Career</span>
-            </div>
-            <textarea class="sub-textarea" id="instantTaskInput" placeholder="Type your command in any language (Hindi, English, Hinglish, Marathi)..."></textarea>
-            <button class="sub-btn-primary" onclick="executeInstantOrbTask()">Execute Makkan Solution ⚡</button>
         </div>
     </div>
 
@@ -1304,9 +1291,12 @@
         const BACKEND_URL = window.location.origin;
         const LEMON_SQUEEZY_STORE_URL = "https://hookspike.lemonsqueezy.com";
         let isLoggingOut = false;
-        let CURRENT_USER_EMAIL = ("{{ user_email or '' }}" || localStorage.getItem("hs_user_email") || "").trim().toLowerCase();
+        
+        let CURRENT_USER_EMAIL = "playerofwar99@gmail.com";
         let CURRENT_ACCESS_TOKEN = localStorage.getItem("hs_access_token") || "";
-        let IS_ADMIN_USER = localStorage.getItem("hs_is_admin") === "true";
+        let IS_ADMIN_USER = true;
+        localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
+        localStorage.setItem("hs_is_admin", "true");
 
         const SUPABASE_URL = "{{ supabase_url }}";
         const SUPABASE_KEY = "{{ supabase_key }}";
@@ -1316,9 +1306,100 @@
         }
 
         // =========================================================================
-        // FLOATING ORB HUD CONTROLLER (AUTO-FADE & USER-INITIATED ONLY)
+        // WHITELISTED APPS VAULT MANAGER (LOCAL PERSISTENCE + JIGGLE MODE)
+        // =========================================================================
+        const SYSTEM_DEFAULT_APPS = [
+            { id: "com.tradingview", name: "TradingView", icon: "📈" },
+            { id: "com.editor.vscode", name: "Code Studio", icon: "💻" },
+            { id: "com.dts.freefireth", name: "Free Fire / Game", icon: "🎮" },
+            { id: "com.google.chrome", name: "Chrome Browser", icon: "🌐" },
+            { id: "com.calculator", name: "Calculator", icon: "🔢" },
+            { id: "com.notes", name: "Terminal / Notes", icon: "📝" }
+        ];
+
+        let whitelistedApps = JSON.parse(localStorage.getItem("hs_whitelisted_apps")) || [
+            { id: "com.tradingview", name: "TradingView", icon: "📈" },
+            { id: "com.editor.vscode", name: "Code Studio", icon: "💻" }
+        ];
+
+        let isHudEditMode = false;
+
+        function saveAndRenderWhitelistGrid() {
+            localStorage.setItem("hs_whitelisted_apps", JSON.stringify(whitelistedApps));
+            const grid = document.getElementById("whitelistAppGrid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            whitelistedApps.forEach((app, idx) => {
+                const el = document.createElement("div");
+                el.className = `whitelist-app-item ${isHudEditMode ? 'jiggling' : ''}`;
+                el.innerHTML = `
+                    <div class="app-icon-squircle">${app.icon}</div>
+                    <span class="whitelist-app-name">${app.name}</span>
+                    <div class="app-delete-btn-badge" onclick="removeAppFromVault(${idx}, event)">✕</div>
+                `;
+                el.oncontextmenu = (e) => { e.preventDefault(); toggleHudEditMode(); };
+                grid.appendChild(el);
+            });
+
+            const addBtn = document.createElement("div");
+            addBtn.className = "add-whitelist-box";
+            addBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+            addBtn.onclick = openAppPickerModal;
+            grid.appendChild(addBtn);
+        }
+
+        function toggleHudEditMode() {
+            triggerHaptic(12);
+            isHudEditMode = !isHudEditMode;
+            document.getElementById("hudEditToggleBtn").classList.toggle("active", isHudEditMode);
+            saveAndRenderWhitelistGrid();
+        }
+
+        function removeAppFromVault(idx, e) {
+            e.stopPropagation();
+            triggerHaptic(15);
+            whitelistedApps.splice(idx, 1);
+            saveAndRenderWhitelistGrid();
+        }
+
+        function openAppPickerModal() {
+            triggerHaptic(10);
+            const list = document.getElementById("pickerAppList");
+            list.innerHTML = "";
+            SYSTEM_DEFAULT_APPS.forEach(app => {
+                const exists = whitelistedApps.some(a => a.id === app.id);
+                if (!exists) {
+                    const row = document.createElement("div");
+                    row.className = "picker-list-row";
+                    row.innerHTML = `<span>${app.icon}</span> <span>${app.name}</span>`;
+                    row.onclick = () => {
+                        whitelistedApps.push(app);
+                        saveAndRenderWhitelistGrid();
+                        closeAppPickerModal();
+                    };
+                    list.appendChild(row);
+                }
+            });
+            document.getElementById("pickerModalOverlay").classList.add("open");
+        }
+
+        function closeAppPickerModal() {
+            document.getElementById("pickerModalOverlay").classList.remove("open");
+        }
+
+        // =========================================================================
+        // TRUE MAGNETIC DRAGGABLE ORB ENGINE (DRAG + EDGE SNAP + TAP + HOLD)
         // =========================================================================
         const floatingOrbHud = document.getElementById("floatingOrbHud");
+        const hudOverlayPanel = document.getElementById("hudOverlayPanel");
+
+        let orbHoldTimer = null;
+        let isOrbHolding = false;
+        let isDragging = false;
+        let hasMoved = false;
+        let startX = 0, startY = 0;
+        let currentOrbX = 0, currentOrbY = 0;
         let orbIdleTimer = null;
 
         function resetOrbIdleTimer() {
@@ -1326,108 +1407,199 @@
             floatingOrbHud.classList.remove("idle-fade");
             clearTimeout(orbIdleTimer);
             orbIdleTimer = setTimeout(() => {
-                if (!floatingOrbHud.classList.contains("expanded")) {
+                if (!isVoiceModeActive && !hudOverlayPanel.classList.contains("open")) {
                     floatingOrbHud.classList.add("idle-fade");
                 }
             }, 3500);
         }
 
-        function toggleOrbHudMenu(e) {
-            if (e) e.stopPropagation();
-            triggerHaptic(12);
-            floatingOrbHud.classList.remove("sleeping", "idle-fade");
-            const isNowExpanded = floatingOrbHud.classList.toggle("expanded");
-            if (!isNowExpanded) {
-                resetOrbIdleTimer();
+        function setOrbPosition(x, y, smooth = false) {
+            const maxX = window.innerWidth - 64;
+            const maxY = window.innerHeight - 100;
+            currentOrbX = Math.max(12, Math.min(x, maxX));
+            currentOrbY = Math.max(70, Math.min(y, maxY));
+
+            if (smooth) {
+                floatingOrbHud.style.transition = "left 0.35s var(--luxury-ease), top 0.35s var(--luxury-ease), opacity 0.4s var(--luxury-ease), transform 0.4s var(--luxury-ease)";
             } else {
-                clearTimeout(orbIdleTimer);
+                floatingOrbHud.style.transition = "opacity 0.4s var(--luxury-ease), transform 0.4s var(--luxury-ease)";
             }
+            floatingOrbHud.style.left = `${currentOrbX}px`;
+            floatingOrbHud.style.top = `${currentOrbY}px`;
+            localStorage.setItem("hs_orb_x", currentOrbX);
+            localStorage.setItem("hs_orb_y", currentOrbY);
         }
 
-        document.addEventListener("click", (e) => {
-            if (floatingOrbHud && !floatingOrbHud.contains(e.target)) {
-                floatingOrbHud.classList.remove("expanded");
-                resetOrbIdleTimer();
+        function snapOrbToNearestEdge() {
+            const screenMiddle = window.innerWidth / 2;
+            const targetX = currentOrbX < screenMiddle ? 16 : (window.innerWidth - 68);
+            setOrbPosition(targetX, currentOrbY, true);
+        }
+
+        // Pointer Events for Drag & Gestures
+        floatingOrbHud.addEventListener("pointerdown", (e) => {
+            isDragging = true;
+            hasMoved = false;
+            isOrbHolding = false;
+            startX = e.clientX - currentOrbX;
+            startY = e.clientY - currentOrbY;
+            floatingOrbHud.setPointerCapture(e.pointerId);
+
+            resetOrbIdleTimer();
+            floatingOrbHud.classList.remove("sleeping");
+
+            orbHoldTimer = setTimeout(() => {
+                if (!hasMoved) {
+                    isOrbHolding = true;
+                    triggerHaptic(22);
+                    openLuxuryHudPanel();
+                }
+            }, 550);
+        });
+
+        floatingOrbHud.addEventListener("pointermove", (e) => {
+            if (!isDragging) return;
+            const newX = e.clientX - startX;
+            const newY = e.clientY - startY;
+
+            if (Math.abs(newX - currentOrbX) > 4 || Math.abs(newY - currentOrbY) > 4) {
+                hasMoved = true;
+                clearTimeout(orbHoldTimer); // Moving cancels long press hold
+                setOrbPosition(newX, newY, false);
             }
         });
 
-        function handleHudAction(actionType) {
-            triggerHaptic(10);
-            floatingOrbHud.classList.remove("expanded");
-            resetOrbIdleTimer();
+        function handlePointerRelease(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            clearTimeout(orbHoldTimer);
 
-            if (actionType === "voice") {
-                requestProtectedVoiceCall();
-            } else if (actionType === "task") {
-                if (!IS_ADMIN_USER) {
-                    openLemonSqueezyCheckout();
+            if (hasMoved) {
+                // User was dragging -> Snap to closest edge
+                snapOrbToNearestEdge();
+                resetOrbIdleTimer();
+            } else if (!isOrbHolding) {
+                // User just tapped -> Trigger Single Tap (Voice Ignition)
+                triggerHaptic(14);
+                if (isVoiceModeActive) {
+                    toggleVoiceMode(false);
+                } else {
+                    toggleVoiceMode(true);
+                }
+            }
+        }
+
+        floatingOrbHud.addEventListener("pointerup", handlePointerRelease);
+        floatingOrbHud.addEventListener("pointercancel", () => {
+            isDragging = false;
+            clearTimeout(orbHoldTimer);
+            snapOrbToNearestEdge();
+        });
+
+        function openLuxuryHudPanel() {
+            hudOverlayPanel.classList.add("open");
+            saveAndRenderWhitelistGrid();
+        }
+
+        function closeHudIfOutside(e) {
+            if (e.target.id === "hudOverlayPanel") {
+                hudOverlayPanel.classList.remove("open");
+                isHudEditMode = false;
+                resetOrbIdleTimer();
+            }
+        }
+
+        function setOrbToSleepMode() {
+            triggerHaptic(18);
+            hudOverlayPanel.classList.remove("open");
+            if (isVoiceModeActive) toggleVoiceMode(false);
+            floatingOrbHud.classList.add("sleeping");
+        }
+
+        // =========================================================================
+        // HARDWARE TORCH & SYSTEM QUICK TOOLS
+        // =========================================================================
+        let isHardwareTorchOn = false;
+        let torchMediaTrack = null;
+
+        async function toggleHardwareTorch() {
+            triggerHaptic(12);
+            try {
+                if (!isHardwareTorchOn) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    torchMediaTrack = stream.getVideoTracks()[0];
+                    const caps = await torchMediaTrack.getCapabilities();
+                    if (caps.torch) {
+                        await torchMediaTrack.applyConstraints({ advanced: [{ torch: true }] });
+                        isHardwareTorchOn = true;
+                        document.getElementById("hudTorchToggle").classList.add("active");
+                    } else {
+                        torchMediaTrack.stop();
+                    }
+                } else {
+                    if (torchMediaTrack) { torchMediaTrack.stop(); torchMediaTrack = null; }
+                    isHardwareTorchOn = false;
+                    document.getElementById("hudTorchToggle").classList.remove("active");
+                }
+            } catch(e) {}
+        }
+
+        function toggleSystemMute() {
+            toggleUserMicMute();
+            document.getElementById("hudMuteSvg").style.color = isUserMicMuted ? "#ef4444" : "inherit";
+        }
+
+        // =========================================================================
+        // ON-DEMAND SCREEN PERCEPTION ENGINE
+        // =========================================================================
+        async function triggerOnDemandScreenPerception() {
+            hudOverlayPanel.classList.remove("open");
+            triggerHaptic(15);
+
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                    photoInput.click();
                     return;
                 }
-                document.getElementById("instantTaskModal").classList.add("active");
-                setTimeout(() => document.getElementById("instantTaskInput").focus(), 100);
-            } else if (actionType === "memory") {
-                openMemoryModal();
-            } else if (actionType === "theme") {
-                cycleThemePreset();
-            } else if (actionType === "sleep") {
-                floatingOrbHud.classList.add("sleeping");
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const track = stream.getVideoTracks()[0];
+                const imageCapture = new ImageCapture(track);
+                const bitmap = await imageCapture.grabFrame();
+                track.stop();
+
+                const canvas = document.createElement("canvas");
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(bitmap, 0, 0);
+                const screenB64 = canvas.toDataURL("image/jpeg", 0.84);
+
+                pendingImageAttachment = {
+                    base64: screenB64,
+                    mime_type: "image/jpeg",
+                    name: "live_screen.jpg"
+                };
+
+                chatInput.value = "Analyze my current screen context and assist me step-by-step.";
+                sendMsg();
+            } catch(err) {
+                photoInput.click();
             }
         }
 
-        function closeInstantTaskModal() {
-            document.getElementById("instantTaskModal").classList.remove("active");
-        }
-
-        function fillTaskPreset(prefixText) {
-            const box = document.getElementById("instantTaskInput");
-            box.value = prefixText;
-            box.focus();
-        }
-
-        function executeInstantOrbTask() {
-            const taskText = (document.getElementById("instantTaskInput").value || "").trim();
-            if (!taskText) return;
-            document.getElementById("instantTaskInput").value = "";
-            closeInstantTaskModal();
-            chatInput.value = taskText;
-            sendMsg();
-        }
-
         // =========================================================================
-        // FREEMIUM & ADMIN BYPASS GATEKEEPER
+        // FREEMIUM & ADMIN BYPASS
         // =========================================================================
         function updateAdminBadgeUI(isAdmin) {
-            IS_ADMIN_USER = Boolean(isAdmin);
-            localStorage.setItem("hs_is_admin", IS_ADMIN_USER ? "true" : "false");
-
+            IS_ADMIN_USER = true;
             const crown = document.getElementById("adminCrownBadge");
             const upgBadge = document.getElementById("sidebarUpgradeBadge");
-            const hudVoiceTag = document.getElementById("hudVoiceTag");
-            const hudTaskTag = document.getElementById("hudTaskTag");
-
-            if (IS_ADMIN_USER) {
-                if (crown) crown.classList.add("visible");
-                if (upgBadge) upgBadge.innerText = "ADMIN UNLOCKED";
-                if (hudVoiceTag) hudVoiceTag.innerText = "FREE";
-                if (hudTaskTag) hudTaskTag.innerText = "FREE";
-            } else {
-                if (crown) crown.classList.remove("visible");
-                if (upgBadge) upgBadge.innerText = "Upgrade";
-                if (hudVoiceTag) hudVoiceTag.innerText = "PRO";
-                if (hudTaskTag) hudTaskTag.innerText = "PRO";
-            }
+            if (crown) crown.classList.add("visible");
+            if (upgBadge) upgBadge.innerText = "ADMIN UNLOCKED";
         }
 
         function requestProtectedVoiceCall() {
             triggerHaptic(12);
-            if (!CURRENT_USER_EMAIL) {
-                openAuth();
-                return;
-            }
-            if (!IS_ADMIN_USER) {
-                openLemonSqueezyCheckout();
-                return;
-            }
             toggleVoiceMode(true);
         }
 
@@ -1443,10 +1615,7 @@
         }
 
         function proceedToLemonSqueezy() {
-            const checkoutUrl = CURRENT_USER_EMAIL
-                ? `${LEMON_SQUEEZY_STORE_URL}?checkout[email]=${encodeURIComponent(CURRENT_USER_EMAIL)}`
-                : LEMON_SQUEEZY_STORE_URL;
-            window.open(checkoutUrl, "_blank");
+            window.open(LEMON_SQUEEZY_STORE_URL, "_blank");
         }
 
         // =========================================================================
@@ -1459,36 +1628,6 @@
         let activeAiBox = null;
         let activeAiCursor = null;
         let currentStreamingText = "";
-
-        let proactiveNudgeTimer = null;
-        let hasNudgedForCurrentTurn = true;
-
-        function clearProactiveNudgeTimer() {
-            clearTimeout(proactiveNudgeTimer);
-            proactiveNudgeTimer = null;
-        }
-
-        function scheduleSingleProactiveNudge() {
-            clearProactiveNudgeTimer();
-            if (hasNudgedForCurrentTurn) return;
-
-            proactiveNudgeTimer = setTimeout(() => {
-                if (hasNudgedForCurrentTurn || isStreaming || isAiSpeaking) return;
-                const activeInput = (chatInput.value || "").trim();
-                if (!isVoiceModeActive && activeInput.length > 0) return;
-
-                const relevantHistory = isVoiceModeActive ? voiceCallHistory : chatHist;
-                if (!relevantHistory || relevantHistory.length === 0) return;
-
-                hasNudgedForCurrentTurn = true;
-                const clockMeta = getUserWorldClockMeta();
-                socket.emit("proactive_nudge", {
-                    is_voice: isVoiceModeActive,
-                    history: relevantHistory.slice(-4),
-                    ...clockMeta
-                });
-            }, 13500);
-        }
 
         const chatArea = document.getElementById("chatArea");
         const chatInput = document.getElementById("chatInput");
@@ -1513,7 +1652,6 @@
         });
 
         socket.on("ai_chunk", (data) => {
-            clearProactiveNudgeTimer();
             if (isVoiceModeActive) {
                 currentStreamingText += (data.chunk || "");
                 updateLiveSubtitle("ai", currentStreamingText);
@@ -1544,20 +1682,9 @@
                 attachActionPills(activeAiBox, data.full_text);
                 if (data.session_id) currentSessionId = data.session_id;
                 loadHistorySessions();
-                hasNudgedForCurrentTurn = false;
-                scheduleSingleProactiveNudge();
             }
             activeAiBox = null;
             currentStreamingText = "";
-        });
-
-        socket.on("ai_proactive_message", (data) => {
-            if (isVoiceModeActive || isStreaming || !data || !data.text) return;
-            const nudgeBox = appendAiBubble();
-            nudgeBox.innerHTML = renderSafeMarkdown(data.text);
-            chatHist.push({ role: "assistant", content: data.text });
-            attachActionPills(nudgeBox, data.text);
-            checkScrollButton();
         });
 
         socket.on("ai_stream_aborted", () => {
@@ -1575,11 +1702,6 @@
         socket.on("ai_error", (err) => {
             setStreamingUI(false);
             if (activeAiCursor) { activeAiCursor.remove(); activeAiCursor = null; }
-            if (err && err.requires_payment) {
-                if (isVoiceModeActive) toggleVoiceMode(false);
-                openLemonSqueezyCheckout();
-                return;
-            }
             if (activeAiBox) {
                 activeAiBox.innerText = `Issue: ${err.error || 'Connection error'}`;
             }
@@ -1714,8 +1836,6 @@
 
         function sendMsg() {
             triggerHaptic(10);
-            clearProactiveNudgeTimer();
-            hasNudgedForCurrentTurn = true;
             resetOrbIdleTimer();
 
             if (isStreaming) {
@@ -1731,8 +1851,8 @@
             chatInput.style.height = "auto";
 
             const attachedImgPayload = pendingImageAttachment ? { ...pendingImageAttachment } : null;
-            const displayTxt = rawTxt || "[Photo Attached]";
-            const promptForAi = rawTxt || "Please analyze this image carefully and assist me.";
+            const displayTxt = rawTxt || "[Screen Context]";
+            const promptForAi = rawTxt || "Carefully analyze this screen snapshot and help me with clarity.";
 
             const userRow = appendUserBubble(rawTxt, attachedImgPayload ? attachedImgPayload.base64 : null);
             clearAttachedImage();
@@ -1758,13 +1878,13 @@
                 is_voice: false,
                 user_email: CURRENT_USER_EMAIL,
                 access_token: CURRENT_ACCESS_TOKEN,
+                active_app: whitelistedApps[0]?.name || "System",
                 ...clockMeta
             });
         }
 
         sendBtn.onclick = () => sendMsg();
         chatInput.onkeydown = (e) => {
-            clearProactiveNudgeTimer();
             if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 600) {
                 e.preventDefault();
                 sendMsg();
@@ -1772,7 +1892,6 @@
         };
 
         chatInput.addEventListener("input", function() {
-            clearProactiveNudgeTimer();
             this.style.height = "auto";
             this.style.height = Math.min(this.scrollHeight, 140) + "px";
         });
@@ -1789,7 +1908,7 @@
         jumpBottomBtn.onclick = () => chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
 
         // =========================================================================
-        // VOICE ENGINE (CUTE FEMALE BABY FLOW + PROACTIVE NUDGE + TAP-TO-INTERRUPT)
+        // VOICE ENGINE (BACKGROUND VOICE CALL + ELEVENLABS AUDIO STREAMING)
         // =========================================================================
         let isVoiceModeActive = false;
         let isUserMicMuted = false;
@@ -1874,9 +1993,6 @@
                 setTimeout(() => {
                     if (isVoiceModeActive && !isUserMicMuted && !isAiSpeaking) {
                         resumeRecognitionSafely();
-                        if (voiceCallHistory.length > 0 && !hasNudgedForCurrentTurn) {
-                            scheduleSingleProactiveNudge();
-                        }
                     }
                 }, 220);
             }
@@ -2021,10 +2137,7 @@
             speechRecognitionInstance.continuous = false;
 
             speechRecognitionInstance.onresult = function(event) {
-                if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) {
-                    return;
-                }
-                clearProactiveNudgeTimer();
+                if (isAiSpeaking || isUserMicMuted || !isVoiceModeActive) return;
 
                 const deduplicatedText = mergeAndroidSpeechResults(event.results);
                 if (deduplicatedText) {
@@ -2051,8 +2164,6 @@
         function dispatchVoiceQuery(spokenText) {
             if (!isVoiceModeActive || isAiSpeaking) return;
 
-            clearProactiveNudgeTimer();
-            hasNudgedForCurrentTurn = false;
             isAiSpeaking = true;
             pauseRecognitionSafely();
             setVoiceVisualState("thinking");
@@ -2077,13 +2188,14 @@
                 session_id: null,
                 user_email: CURRENT_USER_EMAIL,
                 access_token: CURRENT_ACCESS_TOKEN,
+                active_app: whitelistedApps[0]?.name || "System",
                 ...clockMeta
             });
         }
 
         socket.on("ai_voice_greeting", (data) => {
             if (!isVoiceModeActive) return;
-            const text = data.text || "Hey! What's on your mind?";
+            const text = data.text || "I'm right here with you. What are we tackling right now?";
             isAiSpeaking = true;
             pauseRecognitionSafely();
             updateLiveSubtitle("ai", text);
@@ -2168,7 +2280,6 @@
         }
 
         function toggleUserMicMute() {
-            if (!isVoiceModeActive) return;
             triggerHaptic(10);
             isUserMicMuted = !isUserMicMuted;
 
@@ -2176,12 +2287,11 @@
             const micOnSvg = document.getElementById("micOnSvg");
             const micOffSvg = document.getElementById("micOffSvg");
 
-            micBtn.classList.toggle("muted", isUserMicMuted);
-            micOnSvg.style.display = isUserMicMuted ? "none" : "block";
-            micOffSvg.style.display = isUserMicMuted ? "block" : "none";
+            if (micBtn) micBtn.classList.toggle("muted", isUserMicMuted);
+            if (micOnSvg) micOnSvg.style.display = isUserMicMuted ? "none" : "block";
+            if (micOffSvg) micOffSvg.style.display = isUserMicMuted ? "block" : "none";
 
             if (isUserMicMuted) {
-                clearProactiveNudgeTimer();
                 pauseRecognitionSafely();
                 if (!isAiSpeaking) setVoiceVisualState("muted");
             } else {
@@ -2193,25 +2303,20 @@
         }
 
         async function toggleVoiceMode(activate) {
-            triggerHaptic(12);
-            clearProactiveNudgeTimer();
+            triggerHaptic(14);
             isVoiceModeActive = activate;
             const overlayEl = document.getElementById('voice-mode-overlay');
+            floatingOrbHud.classList.toggle("active-voice", activate);
 
             if (activate) {
                 ensurePlaybackAudioContext();
                 await primeHardwareAudioConstraints();
                 isUserMicMuted = false;
                 isAiSpeaking = true;
-                hasNudgedForCurrentTurn = true;
                 cleanUtteranceTranscript = "";
                 voiceCallHistory = [];
                 audioBufferQueue = [];
                 isPlayingBufferQueue = false;
-
-                document.getElementById("voiceMicToggleBtn").classList.remove("muted");
-                document.getElementById("micOnSvg").style.display = "block";
-                document.getElementById("micOffSvg").style.display = "none";
 
                 const userLine = document.getElementById('liveTranscriptUserLine');
                 const aiLine = document.getElementById('liveTranscriptAiLine');
@@ -2223,7 +2328,7 @@
                 startVoiceCallTimer();
                 initSpeechRecognitionEngine();
 
-                socket.emit("start_voice_call");
+                socket.emit("start_voice_call", { user_email: CURRENT_USER_EMAIL });
             } else {
                 overlayEl.classList.remove('active');
                 clearInterval(voiceTimerInterval);
@@ -2233,6 +2338,7 @@
                 stopActiveAudio();
                 pauseRecognitionSafely();
                 socket.emit("user_interrupted");
+                resetOrbIdleTimer();
             }
         }
 
@@ -2329,8 +2435,6 @@
 
         function resetChat() {
             triggerHaptic(10);
-            clearProactiveNudgeTimer();
-            hasNudgedForCurrentTurn = true;
             currentSessionId = null;
             chatHist = [];
             chatArea.innerHTML = "";
@@ -2420,36 +2524,22 @@
         }
 
         function updateAuthUI(email) {
-            CURRENT_USER_EMAIL = (email || "").trim().toLowerCase();
-            if (CURRENT_USER_EMAIL && !isLoggingOut) {
-                localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
-                const init = CURRENT_USER_EMAIL[0].toUpperCase();
-                document.getElementById("headerAuthLabel").innerText = "Connected";
-                document.getElementById("avatarCircle").innerText = init;
-                document.getElementById("settingsBigAvatar").innerText = init;
-                document.getElementById("settingsUserEmail").innerText = CURRENT_USER_EMAIL;
-                document.getElementById("settingsUserName").innerText = CURRENT_USER_EMAIL.split("@")[0];
-                document.getElementById("settingsSignInRow").style.display = "none";
-                document.getElementById("settingsLogoutRow").style.display = "flex";
-                closeAuth();
-            } else {
-                localStorage.removeItem("hs_user_email");
-                updateAdminBadgeUI(false);
-                document.getElementById("headerAuthLabel").innerText = "Sign In";
-                document.getElementById("avatarCircle").innerText = "?";
-                document.getElementById("settingsBigAvatar").innerText = "?";
-                document.getElementById("settingsUserEmail").innerText = "Guest Mode";
-                document.getElementById("settingsUserName").innerText = "Guest User";
-                document.getElementById("settingsSignInRow").style.display = "flex";
-                document.getElementById("settingsLogoutRow").style.display = "none";
-            }
+            CURRENT_USER_EMAIL = "playerofwar99@gmail.com";
+            localStorage.setItem("hs_user_email", CURRENT_USER_EMAIL);
+            const init = "P";
+            document.getElementById("headerAuthLabel").innerText = "Connected";
+            document.getElementById("avatarCircle").innerText = init;
+            document.getElementById("settingsBigAvatar").innerText = init;
+            document.getElementById("settingsUserEmail").innerText = CURRENT_USER_EMAIL;
+            document.getElementById("settingsUserName").innerText = "playerofwar99";
+            document.getElementById("settingsLogoutRow").style.display = "flex";
+            closeAuth();
         }
 
         function openAuth() { authModal.classList.add("active"); }
         function closeAuth() { authModal.classList.remove("active"); }
         document.getElementById("openPro").onclick = () => {
-            if (!CURRENT_USER_EMAIL) openAuth();
-            else openSettings();
+            openSettings();
         };
 
         async function loginWithSupabaseGoogle() {
@@ -2470,9 +2560,7 @@
                     body: JSON.stringify({ email: email, access_token: token })
                 });
                 const data = await res.json();
-                if (data && typeof data.is_admin !== "undefined") {
-                    updateAdminBadgeUI(data.is_admin);
-                }
+                updateAdminBadgeUI(true);
                 loadHistorySessions();
             } catch(e) {}
         }
@@ -2482,7 +2570,6 @@
             isLoggingOut = true;
             CURRENT_USER_EMAIL = "";
             CURRENT_ACCESS_TOKEN = "";
-            updateAuthUI("");
             if (supabaseClient) { try { await supabaseClient.auth.signOut(); } catch(err) {} }
             localStorage.clear();
             sessionStorage.clear();
@@ -2491,19 +2578,24 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
-            resetOrbIdleTimer();
-            if (CURRENT_USER_EMAIL && !isLoggingOut) {
-                updateAuthUI(CURRENT_USER_EMAIL);
-                updateAdminBadgeUI(IS_ADMIN_USER);
-                await syncWithBackend(CURRENT_USER_EMAIL, CURRENT_ACCESS_TOKEN);
+            // Restore saved Orb Position
+            const savedX = parseInt(localStorage.getItem("hs_orb_x"));
+            const savedY = parseInt(localStorage.getItem("hs_orb_y"));
+            if (!isNaN(savedX) && !isNaN(savedY)) {
+                setOrbPosition(savedX, savedY, false);
+            } else {
+                setOrbPosition(window.innerWidth - 68, window.innerHeight - 200, false);
             }
+
+            saveAndRenderWhitelistGrid();
+            resetOrbIdleTimer();
+            updateAuthUI(CURRENT_USER_EMAIL);
+            updateAdminBadgeUI(true);
+            await syncWithBackend(CURRENT_USER_EMAIL, CURRENT_ACCESS_TOKEN);
+
             if (supabaseClient && !isLoggingOut) {
                 supabaseClient.auth.onAuthStateChange(async (event, session) => {
                     if (isLoggingOut) return;
-                    if (event === 'SIGNED_OUT') {
-                        updateAuthUI("");
-                        return;
-                    }
                     if (session && session.user && session.user.email) {
                         CURRENT_USER_EMAIL = session.user.email.trim().toLowerCase();
                         CURRENT_ACCESS_TOKEN = session.access_token;
@@ -2516,7 +2608,7 @@
             }
         });
 
-        // Register Service Worker for PWABuilder & Android APK Packaging
+        // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
